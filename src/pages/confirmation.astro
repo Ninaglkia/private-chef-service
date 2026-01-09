@@ -1,0 +1,376 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Button from '../components/Button.astro';
+import { supabase } from '../lib/supabase';
+import { formatPrice, PLANS } from '../lib/pricing';
+
+const sessionId = Astro.url.searchParams.get('session_id');
+const quoteId = Astro.url.searchParams.get('quote_id');
+
+let booking = null;
+let quoteRequest = null;
+let error = null;
+let isQuote = false;
+
+if (sessionId) {
+  const { data, error: fetchError } = await supabase
+    .from('bookings')
+    .select('*')
+    .eq('stripe_session_id', sessionId)
+    .maybeSingle();
+
+  if (fetchError) {
+    error = 'Unable to retrieve booking details';
+  } else {
+    booking = data;
+  }
+} else if (quoteId) {
+  isQuote = true;
+  const { data, error: fetchError } = await supabase
+    .from('quote_requests')
+    .select('*')
+    .eq('id', quoteId)
+    .maybeSingle();
+
+  if (fetchError) {
+    error = 'Unable to retrieve quote request details';
+  } else {
+    quoteRequest = data;
+  }
+} else {
+  error = 'No session or quote ID provided';
+}
+
+const planDetails = booking ? PLANS[booking.plan as keyof typeof PLANS] : null;
+---
+
+<Layout title="Booking Confirmed | Weekly Private Chef">
+  <Header />
+
+  <main class="pt-24 pb-16 bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-6">
+      <div class="max-w-3xl mx-auto">
+        {quoteRequest ? (
+          <>
+            <div class="text-center mb-12">
+              <div class="inline-flex items-center justify-center w-20 h-20 bg-gold-500 rounded-full mb-6">
+                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h1 class="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-4">
+                Quote Request Received!
+              </h1>
+              <p class="text-xl text-gray-600">
+                We'll respond within 24 hours with a personalized quote
+              </p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg p-8 md:p-10 mb-8">
+              <h2 class="text-2xl font-serif font-bold text-gray-900 mb-6">Request Details</h2>
+
+              <div class="space-y-4 mb-8">
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Request ID</span>
+                  <span class="font-semibold text-gray-900">{quoteRequest.id.slice(0, 8).toUpperCase()}</span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Customer Name</span>
+                  <span class="font-semibold text-gray-900">{quoteRequest.customer_name}</span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Email</span>
+                  <span class="font-semibold text-gray-900">{quoteRequest.customer_email}</span>
+                </div>
+
+                {quoteRequest.customer_phone && (
+                  <div class="flex justify-between py-3 border-b border-gray-200">
+                    <span class="text-gray-600">Phone</span>
+                    <span class="font-semibold text-gray-900">{quoteRequest.customer_phone}</span>
+                  </div>
+                )}
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Location</span>
+                  <span class="font-semibold text-gray-900">{quoteRequest.city}</span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Service Starts</span>
+                  <span class="font-semibold text-gray-900">
+                    {new Date(quoteRequest.start_date).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Number of Guests</span>
+                  <span class="font-semibold text-gray-900">{quoteRequest.num_guests} guests</span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Service Days</span>
+                  <span class="font-semibold text-gray-900">
+                    Monday - Friday
+                    {quoteRequest.add_saturday && ', Saturday'}
+                    {quoteRequest.add_sunday && ', Sunday'}
+                  </span>
+                </div>
+
+                {quoteRequest.notes && (
+                  <div class="py-3 border-b border-gray-200">
+                    <span class="text-gray-600 block mb-2">Special Requests</span>
+                    <p class="text-gray-900">{quoteRequest.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-xl p-8 mb-8">
+              <h2 class="text-2xl font-serif font-bold mb-4">What Happens Next?</h2>
+              <div class="space-y-4">
+                <div class="flex items-start">
+                  <div class="flex-shrink-0 w-8 h-8 bg-gold-500 rounded-full flex items-center justify-center mr-4 mt-1">
+                    <span class="text-sm font-bold">1</span>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold mb-1">Confirmation Email</h3>
+                    <p class="text-gray-300">
+                      You'll receive a confirmation email at {quoteRequest.customer_email} shortly.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-start">
+                  <div class="flex-shrink-0 w-8 h-8 bg-gold-500 rounded-full flex items-center justify-center mr-4 mt-1">
+                    <span class="text-sm font-bold">2</span>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold mb-1">Custom Quote Preparation</h3>
+                    <p class="text-gray-300">
+                      Our team will prepare a personalized quote tailored to your group size and requirements.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-start">
+                  <div class="flex-shrink-0 w-8 h-8 bg-gold-500 rounded-full flex items-center justify-center mr-4 mt-1">
+                    <span class="text-sm font-bold">3</span>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold mb-1">Quote Delivery</h3>
+                    <p class="text-gray-300">
+                      You'll receive a detailed quote via email within 24 hours, including pricing, staffing details, and service options.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-start">
+                  <div class="flex-shrink-0 w-8 h-8 bg-gold-500 rounded-full flex items-center justify-center mr-4 mt-1">
+                    <span class="text-sm font-bold">4</span>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold mb-1">Finalize & Book</h3>
+                    <p class="text-gray-300">
+                      Once you approve the quote, we'll process your payment and confirm your service.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-center">
+              <Button href="/" size="lg">
+                Return to Home
+              </Button>
+              <p class="mt-4 text-gray-600">
+                Questions? Contact us at <a href="mailto:hello@weeklyprivatechef.com" class="text-gray-900 underline">hello@weeklyprivatechef.com</a>
+              </p>
+            </div>
+          </>
+        ) : booking ? (
+          <>
+            <div class="text-center mb-12">
+              <div class="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-6">
+                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h1 class="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-4">
+                Booking Confirmed!
+              </h1>
+              <p class="text-xl text-gray-600">
+                Your weekly private chef service has been successfully booked
+              </p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg p-8 md:p-10 mb-8">
+              <h2 class="text-2xl font-serif font-bold text-gray-900 mb-6">Booking Details</h2>
+
+              <div class="space-y-4 mb-8">
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Booking ID</span>
+                  <span class="font-semibold text-gray-900">{booking.id.slice(0, 8).toUpperCase()}</span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Customer Name</span>
+                  <span class="font-semibold text-gray-900">{booking.customer_name}</span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Email</span>
+                  <span class="font-semibold text-gray-900">{booking.customer_email}</span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Location</span>
+                  <span class="font-semibold text-gray-900">{booking.city}</span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Service Starts</span>
+                  <span class="font-semibold text-gray-900">
+                    {new Date(booking.start_date).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Number of Guests</span>
+                  <span class="font-semibold text-gray-900">{booking.num_guests} guests</span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Plan</span>
+                  <span class="font-semibold text-gray-900">{planDetails?.name}</span>
+                </div>
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Service Days</span>
+                  <span class="font-semibold text-gray-900">
+                    Monday - Friday
+                    {booking.add_saturday && ', Saturday'}
+                    {booking.add_sunday && ', Sunday'}
+                  </span>
+                </div>
+
+                {booking.dietary_preferences && (
+                  <div class="py-3 border-b border-gray-200">
+                    <span class="text-gray-600 block mb-2">Dietary Preferences</span>
+                    <p class="text-gray-900">{booking.dietary_preferences}</p>
+                  </div>
+                )}
+
+                <div class="flex justify-between py-3 border-b border-gray-200">
+                  <span class="text-gray-600">Payment Status</span>
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                    Paid
+                  </span>
+                </div>
+
+                <div class="flex justify-between py-4 bg-gray-50 rounded-lg px-4 mt-4">
+                  <span class="text-lg font-semibold text-gray-900">Total Paid</span>
+                  <span class="text-2xl font-bold text-gray-900">{formatPrice(booking.total_price)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-xl p-8 mb-8">
+              <h2 class="text-2xl font-serif font-bold mb-4">What Happens Next?</h2>
+              <div class="space-y-4">
+                <div class="flex items-start">
+                  <div class="flex-shrink-0 w-8 h-8 bg-gold-500 rounded-full flex items-center justify-center mr-4 mt-1">
+                    <span class="text-sm font-bold">1</span>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold mb-1">Confirmation Email</h3>
+                    <p class="text-gray-300">
+                      You will receive a detailed confirmation email at {booking.customer_email} within the next few minutes.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-start">
+                  <div class="flex-shrink-0 w-8 h-8 bg-gold-500 rounded-full flex items-center justify-center mr-4 mt-1">
+                    <span class="text-sm font-bold">2</span>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold mb-1">Chef Assignment</h3>
+                    <p class="text-gray-300">
+                      Our team will match you with the perfect chef for your needs within 24-48 hours.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-start">
+                  <div class="flex-shrink-0 w-8 h-8 bg-gold-500 rounded-full flex items-center justify-center mr-4 mt-1">
+                    <span class="text-sm font-bold">3</span>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold mb-1">Menu Consultation</h3>
+                    <p class="text-gray-300">
+                      Your chef will contact you to discuss menu preferences, dietary needs, and schedule details.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-start">
+                  <div class="flex-shrink-0 w-8 h-8 bg-gold-500 rounded-full flex items-center justify-center mr-4 mt-1">
+                    <span class="text-sm font-bold">4</span>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold mb-1">Service Begins</h3>
+                    <p class="text-gray-300">
+                      On your start date, your chef will arrive at your home to begin preparing your first meal.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-center">
+              <Button href="/" size="lg">
+                Return to Home
+              </Button>
+              <p class="mt-4 text-gray-600">
+                Questions? Contact us at <a href="mailto:hello@weeklyprivatechef.com" class="text-gray-900 underline">hello@weeklyprivatechef.com</a>
+              </p>
+            </div>
+          </>
+        ) : (
+          <div class="text-center">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-red-500 rounded-full mb-6">
+              <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-4">
+              Booking Not Found
+            </h1>
+            <p class="text-xl text-gray-600 mb-8">
+              {error || 'We could not find your booking details'}
+            </p>
+            <Button href="/booking" size="lg">
+              Make a New Booking
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>

@@ -1,0 +1,63 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="bg-gray-900 text-white">
+  <div class="container mx-auto px-6 py-16">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-16 mb-12">
+      <div class="md:col-span-2">
+        <h3 class="text-2xl font-semibold mb-4">Private Chef</h3>
+        <p class="text-gray-400 max-w-md leading-relaxed">
+          Premium private chef service bringing restaurant-quality dining to your home.
+          Monday to Friday, breakfast, lunch, and dinner prepared fresh daily.
+        </p>
+      </div>
+
+      <div>
+        <h4 class="font-semibold mb-6 text-base text-white">Links</h4>
+        <ul class="space-y-3">
+          <li>
+            <a href="/#how-it-works" class="text-gray-400 hover:text-white transition-colors text-sm">
+              How It Works
+            </a>
+          </li>
+          <li>
+            <a href="/#pricing" class="text-gray-400 hover:text-white transition-colors text-sm">
+              Pricing
+            </a>
+          </li>
+          <li>
+            <a href="/#faq" class="text-gray-400 hover:text-white transition-colors text-sm">
+              FAQ
+            </a>
+          </li>
+          <li>
+            <a href="/booking" class="text-gray-400 hover:text-white transition-colors text-sm">
+              Book Now
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="font-semibold mb-6 text-base text-white">Legal</h4>
+        <ul class="space-y-3">
+          <li>
+            <a href="/terms" class="text-gray-400 hover:text-white transition-colors text-sm">
+              Terms
+            </a>
+          </li>
+          <li>
+            <a href="/privacy" class="text-gray-400 hover:text-white transition-colors text-sm">
+              Privacy
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="border-t border-gray-800 pt-8 text-center">
+      <p class="text-gray-500 text-sm">&copy; {currentYear} Private Chef. All rights reserved.</p>
+    </div>
+  </div>
+</footer>

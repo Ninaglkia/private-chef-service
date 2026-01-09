@@ -1,0 +1,67 @@
+---
+const { transparent = false } = Astro.props;
+const pathname = Astro.url.pathname;
+---
+
+<header class={`fixed w-full top-0 z-50 transition-all duration-300 ${transparent ? 'bg-transparent' : 'bg-white/95 backdrop-blur-md shadow-soft border-b border-gray-100/50'}`}>
+  <nav class="container mx-auto px-6 py-4">
+    <div class="flex items-center justify-between">
+      <a href="/" class={`text-2xl font-semibold tracking-tight ${transparent ? 'text-white' : 'text-gray-900'} hover:text-gray-700 transition-colors`}>
+        Private Chef
+      </a>
+
+      <div class="hidden md:flex items-center space-x-12">
+        <a
+          href="/#how-it-works"
+          class={`text-sm font-medium ${transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+        >
+          How It Works
+        </a>
+        <a
+          href="/#pricing"
+          class={`text-sm font-medium ${transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+        >
+          Pricing
+        </a>
+        <a
+          href="/#faq"
+          class={`text-sm font-medium ${transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+        >
+          FAQ
+        </a>
+        <a
+          href="/booking"
+          class="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-300 text-sm font-semibold"
+        >
+          Book Now
+        </a>
+      </div>
+
+      <button
+        class={`md:hidden ${transparent ? 'text-white' : 'text-gray-900'}`}
+        id="mobile-menu-button"
+        aria-label="Toggle menu"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="hidden md:hidden mt-4 pb-4 space-y-3" id="mobile-menu">
+      <a href="/#how-it-works" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2">How It Works</a>
+      <a href="/#pricing" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2">Pricing</a>
+      <a href="/#faq" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2">FAQ</a>
+      <a href="/booking" class="block text-center px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-semibold">Book Now</a>
+    </div>
+  </nav>
+</header>
+
+<script>
+  const mobileMenuButton = document.getElementById('mobile-menu-button');
+  const mobileMenu = document.getElementById('mobile-menu');
+
+  mobileMenuButton?.addEventListener('click', () => {
+    mobileMenu?.classList.toggle('hidden');
+  });
+</script>

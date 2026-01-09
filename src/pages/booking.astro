@@ -1,0 +1,749 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const preselectedGuests = Astro.url.searchParams.get('guests');
+---
+
+<Layout title="Book Your Private Chef | Weekly Private Chef">
+  <Header />
+
+  <main class="pt-32 pb-20 bg-white min-h-screen">
+    <div class="container mx-auto px-6">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-16">
+          <h1 class="text-4xl md:text-5xl font-semibold text-gray-900 mb-6">
+            Book Your Private Chef
+          </h1>
+          <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+            Complete the form below to reserve your service
+          </p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-soft-xl p-10 md:p-16 border border-gray-200">
+          <form id="booking-form" class="space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label for="customer_name" class="block text-sm font-semibold text-gray-900 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  id="customer_name"
+                  name="customer_name"
+                  required
+                  class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
+                  placeholder="John Smith"
+                />
+              </div>
+
+              <div>
+                <label for="customer_email" class="block text-sm font-semibold text-gray-900 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  id="customer_email"
+                  name="customer_email"
+                  required
+                  class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
+                  placeholder="john@example.com"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label for="customer_phone" class="block text-sm font-semibold text-gray-900 mb-2">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  id="customer_phone"
+                  name="customer_phone"
+                  class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
+                  placeholder="+34 612 345 678"
+                />
+              </div>
+
+              <div>
+                <label for="city" class="block text-sm font-semibold text-gray-900 mb-2">
+                  City *
+                </label>
+                <input
+                  type="text"
+                  id="city"
+                  name="city"
+                  required
+                  class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
+                  placeholder="Barcelona"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="relative">
+                <label for="start_date" class="block text-sm font-semibold text-gray-900 mb-2">
+                  Select Service Dates *
+                </label>
+                <div class="relative">
+                  <input
+                    type="text"
+                    id="start_date"
+                    name="start_date"
+                    required
+                    readonly
+                    placeholder="Select start and end dates"
+                    class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg cursor-pointer bg-white"
+                  />
+                  <svg class="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <div id="calendar-container" class="hidden absolute left-0 z-50 mt-2 bg-white rounded-2xl shadow-2xl border-2 border-gray-200 p-6 w-[400px] max-w-[95vw]">
+                    <div class="flex items-center justify-between mb-6">
+                      <button type="button" id="prev-month" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <h3 id="calendar-month-year" class="text-lg font-semibold text-gray-900"></h3>
+                      <button type="button" id="next-month" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="grid grid-cols-7 gap-2 mb-3">
+                      <div class="text-center text-xs font-semibold text-gray-600 py-2">Mon</div>
+                      <div class="text-center text-xs font-semibold text-gray-600 py-2">Tue</div>
+                      <div class="text-center text-xs font-semibold text-gray-600 py-2">Wed</div>
+                      <div class="text-center text-xs font-semibold text-gray-600 py-2">Thu</div>
+                      <div class="text-center text-xs font-semibold text-gray-600 py-2">Fri</div>
+                      <div class="text-center text-xs font-semibold text-gray-600 py-2">Sat</div>
+                      <div class="text-center text-xs font-semibold text-gray-600 py-2">Sun</div>
+                    </div>
+                    <div id="calendar-days" class="grid grid-cols-7 gap-2 mb-4"></div>
+                  </div>
+                </div>
+                <p class="mt-2 text-sm text-gray-500" id="date-help-text">Select a Monday as start date</p>
+              </div>
+
+              <div>
+                <label for="num_guests" class="block text-sm font-semibold text-gray-900 mb-2">
+                  Number of Guests *
+                </label>
+                <select
+                  id="num_guests"
+                  name="num_guests"
+                  required
+                  class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
+                >
+                  <option value="">Select number of guests</option>
+                  <option value="2">2 guests</option>
+                  <option value="3">3 guests</option>
+                  <option value="4">4 guests</option>
+                  <option value="5">5 guests</option>
+                  <option value="6">6 guests</option>
+                  <option value="7">7 guests</option>
+                  <option value="8">8 guests</option>
+                  <option value="9">9 guests</option>
+                  <option value="10">10 guests</option>
+                  <option value="11">11 guests</option>
+                  <option value="12">12 guests</option>
+                  <option value="13">13 guests</option>
+                  <option value="14">14 guests</option>
+                  <option value="15">15 guests</option>
+                  <option value="16">16 guests</option>
+                  <option value="17">17 guests</option>
+                  <option value="18">18 guests</option>
+                  <option value="19">19 guests</option>
+                  <option value="20">20 guests</option>
+                  <option value="21">20+ guests</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-900 mb-2">
+                Selected Plan
+              </label>
+              <div id="selected-plan" class="bg-cream-50 rounded-xl p-6 border-2 border-cream-200 shadow-soft">
+                <p class="text-gray-600 text-base">Select number of guests to see your plan</p>
+              </div>
+            </div>
+
+            <div id="weekend-extras" class="hidden">
+              <label class="block text-sm font-semibold text-gray-900 mb-3">
+                Weekend Add-ons (Optional)
+              </label>
+              <div class="space-y-3">
+                <label class="flex items-center p-4 bg-gray-50 rounded-xl border-2 border-gray-200 cursor-pointer hover:border-gold-400 transition-all duration-200">
+                  <input type="checkbox" id="add_saturday" name="add_saturday" class="w-5 h-5 text-gold-500 border-gray-300 rounded focus:ring-gold-400" />
+                  <span class="ml-3 text-gray-900 font-medium">Add Saturday</span>
+                  <span id="saturday-price" class="ml-auto text-gray-600 font-semibold"></span>
+                </label>
+                <label class="flex items-center p-4 bg-gray-50 rounded-xl border-2 border-gray-200 cursor-pointer hover:border-gold-400 transition-all duration-200">
+                  <input type="checkbox" id="add_sunday" name="add_sunday" class="w-5 h-5 text-gold-500 border-gray-300 rounded focus:ring-gold-400" />
+                  <span class="ml-3 text-gray-900 font-medium">Add Sunday</span>
+                  <span id="sunday-price" class="ml-auto text-gray-600 font-semibold"></span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label for="dietary_preferences" id="notes-label" class="block text-sm font-semibold text-gray-900 mb-2">
+                Dietary Preferences & Allergies
+              </label>
+              <textarea
+                id="dietary_preferences"
+                name="dietary_preferences"
+                rows="5"
+                class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
+                placeholder="Please specify any dietary restrictions, allergies, or food preferences..."
+              ></textarea>
+            </div>
+
+            <div id="price-section" class="bg-gray-900 text-white rounded-2xl p-8 shadow-soft-lg">
+              <div class="flex justify-between items-center mb-6">
+                <span class="text-lg font-semibold">Total Price</span>
+                <span id="total-price" class="text-4xl font-semibold">€0</span>
+              </div>
+              <div id="price-breakdown" class="text-base text-gray-300 space-y-2">
+                <p>Select number of guests to calculate price</p>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-2xl p-8">
+              <div class="flex items-start">
+                <svg class="w-6 h-6 text-blue-600 mr-4 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 mb-3">Booking Confirmation Policy</h3>
+                  <p class="text-sm text-gray-700 mb-2">
+                    When you complete your booking and payment, your request is subject to confirmation by our team.
+                  </p>
+                  <ul class="space-y-2 text-sm text-gray-700">
+                    <li class="flex items-start">
+                      <svg class="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                      </svg>
+                      <span>All booking requests are reviewed and confirmed within 48 hours</span>
+                    </li>
+                    <li class="flex items-start">
+                      <svg class="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                      </svg>
+                      <span>If we cannot assign a suitable chef within 48 hours, you will receive a full automatic refund</span>
+                    </li>
+                    <li class="flex items-start">
+                      <svg class="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                      </svg>
+                      <span>No charges are retained if your booking cannot be confirmed</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-start pt-4">
+              <input
+                type="checkbox"
+                id="gdpr_consent"
+                name="gdpr_consent"
+                required
+                class="w-6 h-6 mt-1 text-gold-600 border-gray-300 rounded-lg focus:ring-gold-400"
+              />
+              <label for="gdpr_consent" class="ml-4 text-base text-gray-600 leading-relaxed">
+                I agree to the <a href="/terms" class="text-gold-600 underline font-medium hover:text-gold-700">Terms & Conditions</a> and
+                <a href="/privacy" class="text-gold-600 underline font-medium hover:text-gold-700">Privacy Policy</a>. I understand that payment
+                is 100% upfront and non-refundable within 7 days of service start. *
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              id="submit-button"
+              class="w-full bg-gray-900 text-white py-4 rounded-lg font-semibold text-lg hover:bg-gray-800 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Proceed to Payment
+            </button>
+
+            <p class="text-center text-base text-gray-500">
+              Secure payment powered by Stripe
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<script>
+  import { getPlanForGuests, calculatePrice, formatPrice, PLANS, type Plan } from '../lib/pricing';
+
+  const numGuestsSelect = document.getElementById('num_guests') as HTMLSelectElement;
+  const addSaturdayCheckbox = document.getElementById('add_saturday') as HTMLInputElement;
+  const addSundayCheckbox = document.getElementById('add_sunday') as HTMLInputElement;
+  const totalPriceElement = document.getElementById('total-price');
+  const priceBreakdownElement = document.getElementById('price-breakdown');
+  const selectedPlanElement = document.getElementById('selected-plan');
+  const bookingForm = document.getElementById('booking-form') as HTMLFormElement;
+  const startDateInput = document.getElementById('start_date') as HTMLInputElement;
+  const submitButton = document.getElementById('submit-button') as HTMLButtonElement;
+  const priceSection = document.getElementById('price-section');
+  const notesLabel = document.getElementById('notes-label');
+  const notesTextarea = document.getElementById('dietary_preferences') as HTMLTextAreaElement;
+  const calendarContainer = document.getElementById('calendar-container');
+  const calendarDays = document.getElementById('calendar-days');
+  const calendarMonthYear = document.getElementById('calendar-month-year');
+  const prevMonthButton = document.getElementById('prev-month');
+  const nextMonthButton = document.getElementById('next-month');
+  const dateHelpText = document.getElementById('date-help-text');
+  const weekendExtras = document.getElementById('weekend-extras');
+  const saturdayPriceSpan = document.getElementById('saturday-price');
+  const sundayPriceSpan = document.getElementById('sunday-price');
+
+  let currentPlan: Plan | null = null;
+  let isCustomQuote = false;
+  let startDate: Date | null = null;
+  let endDate: Date | null = null;
+  let currentMonth = new Date().getMonth();
+  let currentYear = new Date().getFullYear();
+
+  function getNextMonday() {
+    const today = new Date();
+    const nextMonday = new Date(today);
+    nextMonday.setDate(today.getDate() + ((1 + 7 - today.getDay()) % 7 || 7));
+    return nextMonday;
+  }
+
+  function formatDateForDisplay(date: Date): string {
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    };
+    return date.toLocaleDateString('en-US', options);
+  }
+
+  function formatDateRange(start: Date, end: Date): string {
+    return `${formatDateForDisplay(start)} - ${formatDateForDisplay(end)}`;
+  }
+
+  function formatDateForSubmit(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function isMonday(date: Date): boolean {
+    return date.getDay() === 1;
+  }
+
+  function isFriday(date: Date): boolean {
+    return date.getDay() === 5;
+  }
+
+  function isSaturday(date: Date): boolean {
+    return date.getDay() === 6;
+  }
+
+  function isSunday(date: Date): boolean {
+    return date.getDay() === 0;
+  }
+
+  function isEndDay(date: Date): boolean {
+    return isFriday(date) || isSaturday(date) || isSunday(date);
+  }
+
+  function isFutureDate(date: Date): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date >= today;
+  }
+
+  function isDateInRange(date: Date, start: Date, end: Date): boolean {
+    return date >= start && date <= end;
+  }
+
+  function calculateDays(start: Date, end: Date): number {
+    const diff = end.getTime() - start.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
+  }
+
+  function renderCalendar() {
+    if (!calendarDays || !calendarMonthYear) return;
+
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const prevLastDay = new Date(currentYear, currentMonth, 0);
+
+    const firstDayIndex = (firstDay.getDay() + 6) % 7;
+    const lastDayIndex = (lastDay.getDay() + 6) % 7;
+    const nextDays = lastDayIndex === 6 ? 0 : 6 - lastDayIndex;
+
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    calendarMonthYear.textContent = `${months[currentMonth]} ${currentYear}`;
+
+    let days = '';
+
+    for (let x = firstDayIndex; x > 0; x--) {
+      const day = prevLastDay.getDate() - x + 1;
+      days += `<div class="text-center py-3 text-sm text-gray-300">${day}</div>`;
+    }
+
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      const date = new Date(currentYear, currentMonth, i);
+      const isFuture = isFutureDate(date);
+
+      let isSelectable = false;
+      let isStart = false;
+      let isEnd = false;
+      let isInRange = false;
+
+      if (!startDate) {
+        isSelectable = isFuture && isMonday(date);
+      } else if (!endDate) {
+        isSelectable = isFuture && date > startDate && isEndDay(date);
+      }
+
+      if (startDate && formatDateForSubmit(date) === formatDateForSubmit(startDate)) {
+        isStart = true;
+      }
+
+      if (endDate && formatDateForSubmit(date) === formatDateForSubmit(endDate)) {
+        isEnd = true;
+      }
+
+      if (startDate && endDate) {
+        isInRange = isDateInRange(date, startDate, endDate) && !isStart && !isEnd;
+      }
+
+      let classes = 'text-center py-3 text-sm rounded-lg transition-all duration-200 ';
+
+      if (isStart) {
+        classes += 'bg-gray-900 text-white font-bold shadow-lg ring-2 ring-gray-900 ring-offset-2';
+      } else if (isEnd) {
+        classes += 'bg-gold-500 text-white font-bold shadow-lg ring-2 ring-gold-500 ring-offset-2';
+      } else if (isInRange) {
+        classes += 'bg-gold-100 text-gray-900 font-medium';
+      } else if (isSelectable) {
+        classes += 'text-gray-900 font-medium cursor-pointer hover:bg-gold-100 hover:scale-105 hover:shadow-md border-2 border-gold-300';
+      } else {
+        classes += 'text-gray-300 cursor-not-allowed';
+      }
+
+      const dataAttr = isSelectable ? `data-date="${formatDateForSubmit(date)}"` : '';
+      days += `<div class="${classes}" ${dataAttr}>${i}</div>`;
+    }
+
+    for (let j = 1; j <= nextDays; j++) {
+      days += `<div class="text-center py-3 text-sm text-gray-300">${j}</div>`;
+    }
+
+    calendarDays.innerHTML = days;
+
+    calendarDays.querySelectorAll('[data-date]').forEach(dayElement => {
+      dayElement.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dateStr = dayElement.getAttribute('data-date');
+        if (dateStr) {
+          const [year, month, day] = dateStr.split('-').map(Number);
+          const selectedDateObj = new Date(year, month - 1, day);
+
+          if (!startDate) {
+            startDate = selectedDateObj;
+            if (dateHelpText) {
+              dateHelpText.textContent = 'Now select Friday, Saturday or Sunday as end date';
+            }
+            renderCalendar();
+          } else if (!endDate) {
+            endDate = selectedDateObj;
+            const numDays = calculateDays(startDate, endDate);
+            startDateInput.value = formatDateRange(startDate, endDate);
+            startDateInput.setAttribute('data-start-date', formatDateForSubmit(startDate));
+            startDateInput.setAttribute('data-end-date', formatDateForSubmit(endDate));
+            startDateInput.setAttribute('data-days', numDays.toString());
+            if (dateHelpText) {
+              dateHelpText.textContent = `Selected: ${numDays} days of service`;
+            }
+
+            updatePricing();
+            calendarContainer?.classList.add('hidden');
+            renderCalendar();
+          }
+        }
+      });
+    });
+  }
+
+  startDateInput.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!calendarContainer?.classList.contains('hidden')) {
+      calendarContainer?.classList.add('hidden');
+    } else {
+      startDate = null;
+      endDate = null;
+      if (dateHelpText) {
+        dateHelpText.textContent = 'Select a Monday as start date';
+      }
+      calendarContainer?.classList.remove('hidden');
+      renderCalendar();
+    }
+  });
+
+  calendarContainer?.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!calendarContainer?.contains(e.target as Node) && e.target !== startDateInput) {
+      calendarContainer?.classList.add('hidden');
+    }
+  });
+
+  prevMonthButton?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    currentMonth--;
+    if (currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    }
+    renderCalendar();
+  });
+
+  nextMonthButton?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    currentMonth++;
+    if (currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+    renderCalendar();
+  });
+
+  function updatePricing() {
+    const numGuests = parseInt(numGuestsSelect.value);
+
+    if (!numGuests || numGuests < 2) {
+      totalPriceElement!.textContent = '€0';
+      priceBreakdownElement!.innerHTML = '<p>Select number of guests to calculate price</p>';
+      selectedPlanElement!.innerHTML = '<p class="text-gray-600">Select number of guests to see your plan</p>';
+      submitButton.textContent = 'Proceed to Payment';
+      weekendExtras?.classList.add('hidden');
+      isCustomQuote = false;
+      return;
+    }
+
+    if (numGuests > 10) {
+      isCustomQuote = true;
+      priceSection!.classList.add('hidden');
+      weekendExtras?.classList.add('hidden');
+      submitButton.textContent = 'Submit Quote Request';
+      notesLabel!.textContent = 'Special Requests & Notes';
+      notesTextarea.placeholder = 'Please tell us about your event, dietary requirements, special requests, or any other details...';
+
+      selectedPlanElement!.innerHTML = `
+        <div class="bg-gradient-to-br from-gold-50 to-yellow-50 border-2 border-gold-300 rounded-lg p-6">
+          <h3 class="font-bold text-gray-900 text-xl mb-3 flex items-center">
+            <svg class="w-6 h-6 text-gold-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+            Custom Plan - Tailored to Your Needs
+          </h3>
+          <p class="text-gray-700 mb-4">
+            For groups of 10+ guests, we create a personalized service plan with:
+          </p>
+          <ul class="space-y-2 text-gray-700">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+              Multiple chefs and waiters as needed
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+              Fully personalized menus
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+              Response within 24 hours
+            </li>
+          </ul>
+        </div>
+      `;
+      return;
+    }
+
+    isCustomQuote = false;
+    priceSection!.classList.remove('hidden');
+    weekendExtras?.classList.remove('hidden');
+    submitButton.textContent = 'Proceed to Payment';
+    notesLabel!.textContent = 'Dietary Preferences & Allergies';
+    notesTextarea.placeholder = 'Please specify any dietary restrictions, allergies, or food preferences...';
+
+    currentPlan = getPlanForGuests(numGuests);
+    const planDetails = PLANS[currentPlan];
+
+    if (saturdayPriceSpan) {
+      saturdayPriceSpan.textContent = `+${formatPrice(planDetails.saturdayPrice)}`;
+    }
+    if (sundayPriceSpan) {
+      sundayPriceSpan.textContent = `+${formatPrice(planDetails.sundayPrice)}`;
+    }
+
+    const addSaturday = addSaturdayCheckbox.checked;
+    const addSunday = addSundayCheckbox.checked;
+
+    const totalPrice = calculatePrice(currentPlan, addSaturday, addSunday);
+
+    totalPriceElement!.textContent = formatPrice(totalPrice);
+
+    let breakdown = `<p>Base price (Mon-Fri): ${formatPrice(planDetails.weekPrice)}</p>`;
+    if (addSaturday) {
+      breakdown += `<p>Saturday add-on: +${formatPrice(planDetails.saturdayPrice)}</p>`;
+    }
+    if (addSunday) {
+      breakdown += `<p>Sunday add-on: +${formatPrice(planDetails.sundayPrice)}</p>`;
+    }
+    priceBreakdownElement!.innerHTML = breakdown;
+
+    selectedPlanElement!.innerHTML = `
+      <div>
+        <h3 class="font-bold text-gray-900 text-lg mb-2">${planDetails.name}</h3>
+        <p class="text-gray-600 mb-3">${planDetails.guests}</p>
+        <div class="space-y-1">
+          <p class="text-sm text-gray-700"><strong>Staff:</strong> ${planDetails.staff.join(', ')}</p>
+          <p class="text-sm text-gray-700"><strong>Base price:</strong> ${formatPrice(planDetails.weekPrice)}/week</p>
+        </div>
+      </div>
+    `;
+  }
+
+  numGuestsSelect?.addEventListener('change', updatePricing);
+  addSaturdayCheckbox?.addEventListener('change', updatePricing);
+  addSundayCheckbox?.addEventListener('change', updatePricing);
+
+  bookingForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const numGuests = parseInt((document.getElementById('num_guests') as HTMLSelectElement).value);
+
+    if (!numGuests || numGuests < 2) {
+      alert('Please select the number of guests');
+      return;
+    }
+
+    submitButton.disabled = true;
+    submitButton.textContent = 'Processing...';
+
+    const formData = new FormData(bookingForm);
+
+    if (isCustomQuote) {
+      const quoteData = {
+        customer_name: formData.get('customer_name'),
+        customer_email: formData.get('customer_email'),
+        customer_phone: formData.get('customer_phone') || null,
+        city: formData.get('city'),
+        start_date: startDateInput.getAttribute('data-start-date'),
+        num_guests: numGuests,
+        add_saturday: addSaturdayCheckbox.checked,
+        add_sunday: addSundayCheckbox.checked,
+        notes: formData.get('dietary_preferences') || '',
+      };
+
+      try {
+        const response = await fetch('/api/request-quote', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(quoteData),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        window.location.href = '/confirmation?quote_id=' + result.id;
+      } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+        submitButton.disabled = false;
+        submitButton.textContent = 'Submit Quote Request';
+      }
+    } else {
+      if (!currentPlan) {
+        alert('Please select the number of guests');
+        submitButton.disabled = false;
+        submitButton.textContent = 'Proceed to Payment';
+        return;
+      }
+
+      const bookingData = {
+        customer_name: formData.get('customer_name'),
+        customer_email: formData.get('customer_email'),
+        customer_phone: formData.get('customer_phone') || null,
+        city: formData.get('city'),
+        start_date: startDateInput.getAttribute('data-start-date'),
+        num_guests: numGuests,
+        plan: currentPlan,
+        add_saturday: addSaturdayCheckbox.checked,
+        add_sunday: addSundayCheckbox.checked,
+        dietary_preferences: formData.get('dietary_preferences') || '',
+        total_price: calculatePrice(currentPlan, addSaturdayCheckbox.checked, addSundayCheckbox.checked),
+      };
+
+      try {
+        const response = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(bookingData),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        if (result.url) {
+          window.location.href = result.url;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+        submitButton.disabled = false;
+        submitButton.textContent = 'Proceed to Payment';
+      }
+    }
+  });
+
+  renderCalendar();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const preselectedGuests = urlParams.get('guests');
+  if (preselectedGuests && numGuestsSelect) {
+    numGuestsSelect.value = preselectedGuests;
+  }
+
+  updatePricing();
+</script>
