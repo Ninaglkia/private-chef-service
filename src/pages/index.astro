@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Button from '../components/Button.astro';
-import PricingCard from '../components/PricingCard.astro';
+import Pricing3D from '../components/Pricing3D.astro';
 import HeroCarousel from '../components/HeroCarousel.astro';
 import ChefCarousel from '../components/ChefCarousel.astro';
 import { PLANS, CUSTOM_PLAN } from '../lib/pricing';
@@ -226,64 +226,7 @@ import { PLANS, CUSTOM_PLAN } from '../lib/pricing';
       </div>
     </section>
 
-    <section id="pricing" class="py-32 bg-white">
-      <div class="container mx-auto px-6">
-        <div class="text-center mb-20">
-          <h2 class="text-4xl md:text-5xl font-semibold text-gray-900 mb-6">
-            Pricing Plans
-          </h2>
-          <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-            Select the perfect plan for your household size. All plans include Monday to Friday service.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto items-stretch">
-          <PricingCard
-            name={PLANS.standard.name}
-            price={PLANS.standard.weekPrice}
-            guests={PLANS.standard.guests}
-            staff={PLANS.standard.staff}
-            features={['Monday to Friday service', 'Breakfast, lunch & dinner', '2 to 4 guests', 'Menu planning included', 'Kitchen management', 'Groceries handled internally']}
-            missingFeatures={['Professional waiter service', 'Dual chef service']}
-            weekendPrice={80000}
-            buttonHref="/booking?guests=3"
-            badge="Standard"
-          />
-          <PricingCard
-            name={PLANS.plus.name}
-            price={PLANS.plus.weekPrice}
-            guests={PLANS.plus.guests}
-            staff={PLANS.plus.staff}
-            features={['Monday to Friday service', 'Breakfast, lunch & dinner', '5 to 7 guests', 'Professional waiter service', 'Menu planning included', 'Kitchen management', 'Groceries handled internally']}
-            missingFeatures={['Dual chef service']}
-            weekendPrice={125000}
-            highlighted={true}
-            buttonHref="/booking?guests=6"
-            badge="Most Popular"
-          />
-          <PricingCard
-            name={PLANS.premium.name}
-            price={PLANS.premium.weekPrice}
-            guests={PLANS.premium.guests}
-            staff={PLANS.premium.staff}
-            features={['Monday to Friday service', 'Breakfast, lunch & dinner', '8 to 10 guests', 'Dual chef service', 'Professional waiter service', 'Menu planning included', 'Kitchen management', 'Groceries handled internally']}
-            weekendPrice={180000}
-            buttonHref="/booking?guests=9"
-            badge="Premium"
-          />
-          <PricingCard
-            name={CUSTOM_PLAN.name}
-            priceLabel="Custom quote"
-            guests={CUSTOM_PLAN.guests}
-            staff={CUSTOM_PLAN.staff}
-            features={CUSTOM_PLAN.features}
-            buttonText="Request a Quote"
-            buttonHref="/booking?guests=15"
-            badge="Customized"
-          />
-        </div>
-      </div>
-    </section>
+    <Pricing3D />
 
     <section class="py-32 bg-gray-900 text-white relative overflow-hidden">
       <div class="container mx-auto px-6 relative z-10">

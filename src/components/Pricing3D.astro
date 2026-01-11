@@ -1,0 +1,240 @@
+---
+import { PLANS, CUSTOM_PLAN, formatPrice } from '../lib/pricing';
+
+const plans = [
+  {
+    id: 'standard',
+    ...PLANS.standard,
+    badge: 'Standard',
+    features: ['Monday to Friday service', 'Breakfast, lunch & dinner', '2 to 4 guests', 'Menu planning included', 'Kitchen management', 'Groceries handled internally'],
+    missingFeatures: ['Professional waiter service', 'Dual chef service'],
+    weekendPrice: 80000,
+    buttonHref: '/booking?guests=3',
+    highlighted: false
+  },
+  {
+    id: 'plus',
+    ...PLANS.plus,
+    badge: 'Most Popular',
+    features: ['Monday to Friday service', 'Breakfast, lunch & dinner', '5 to 7 guests', 'Professional waiter service', 'Menu planning included', 'Kitchen management', 'Groceries handled internally'],
+    missingFeatures: ['Dual chef service'],
+    weekendPrice: 125000,
+    buttonHref: '/booking?guests=6',
+    highlighted: true
+  },
+  {
+    id: 'premium',
+    ...PLANS.premium,
+    badge: 'Premium',
+    features: ['Monday to Friday service', 'Breakfast, lunch & dinner', '8 to 10 guests', 'Dual chef service', 'Professional waiter service', 'Menu planning included', 'Kitchen management', 'Groceries handled internally'],
+    missingFeatures: [],
+    weekendPrice: 180000,
+    buttonHref: '/booking?guests=9',
+    highlighted: false
+  },
+  {
+    id: 'custom',
+    name: CUSTOM_PLAN.name,
+    priceLabel: 'Custom quote',
+    guests: CUSTOM_PLAN.guests,
+    staff: CUSTOM_PLAN.staff,
+    features: CUSTOM_PLAN.features,
+    missingFeatures: [],
+    weekendPrice: 0,
+    buttonHref: '/booking?guests=15',
+    buttonText: 'Request a Quote',
+    badge: 'Customized',
+    highlighted: false
+  }
+];
+---
+
+<section id="pricing" class="py-32 bg-gray-50 perspective-2000 overflow-hidden">
+  <div class="container mx-auto px-6">
+    <div class="text-center mb-20">
+      <h2 class="text-4xl md:text-5xl font-semibold text-gray-900 mb-6">
+        Pricing Plans
+      </h2>
+      <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+        Select the perfect plan for your household size. All plans include Monday to Friday service.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto items-stretch">
+      {plans.map((plan) => (
+        <div class="pricing-card-wrapper h-full">
+          <div class={`pricing-card relative w-full h-full bg-white rounded-2xl p-8 transition-all duration-200 ease-out transform-style-3d ${plan.highlighted ? 'ring-2 ring-gold-500 shadow-gold-soft' : 'border border-gray-100 shadow-soft'}`}>
+            
+            <!-- Glare Effect -->
+            <div class="glare absolute inset-0 rounded-2xl opacity-0 pointer-events-none z-50 mix-blend-overlay"></div>
+            
+            <!-- Content Layer (floating) -->
+            <div class="card-content transform-style-3d translate-z-10">
+              
+              <!-- Badge -->
+              <div class="flex justify-between items-start mb-6">
+                <span class={`inline-block px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider ${plan.highlighted ? 'bg-gold-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                  {plan.badge}
+                </span>
+                {plan.highlighted && (
+                  <span class="text-gold-500 animate-pulse">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                  </span>
+                )}
+              </div>
+
+              <h3 class="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+              <p class="text-gray-500 text-sm mb-6 h-10">{plan.guests}</p>
+
+              <div class="mb-6 pb-6 border-b border-gray-100">
+                {plan.priceLabel ? (
+                  <div class="text-4xl font-bold text-gray-900">{plan.priceLabel}</div>
+                ) : (
+                  <>
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-4xl font-bold text-gray-900">{formatPrice(plan.weekPrice || 0)}</span>
+                      <span class="text-gray-500 text-sm">/week</span>
+                    </div>
+                    {plan.weekendPrice && (
+                      <div class="mt-2 text-sm text-gray-500">
+                        + {formatPrice(plan.weekendPrice)} /weekend day
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div class="space-y-4 mb-8">
+                {plan.staff && (
+                  <div class="flex items-center gap-3 text-sm text-gray-700 font-medium">
+                    <svg class="w-5 h-5 text-gold-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span>{plan.staff.join(' + ')}</span>
+                  </div>
+                )}
+                
+                {plan.features.map((feature) => (
+                  <div class="flex items-start gap-3 text-sm text-gray-600">
+                    <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>{feature}</span>
+                  </div>
+                ))}
+                
+                {plan.missingFeatures?.map((feature) => (
+                  <div class="flex items-start gap-3 text-sm text-gray-400">
+                    <svg class="w-5 h-5 text-gray-300 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div class="mt-auto">
+                <a
+                  href={plan.buttonHref}
+                  class={`block w-full py-4 rounded-xl font-semibold text-center transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
+                    plan.highlighted
+                      ? 'bg-gold-500 text-white hover:bg-gold-600 shadow-gold'
+                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                  }`}
+                >
+                  {plan.buttonText || 'Book Now'}
+                </a>
+              </div>
+              
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .perspective-2000 {
+    perspective: 2000px;
+  }
+  
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+  
+  .translate-z-10 {
+    transform: translateZ(30px);
+  }
+  
+  .pricing-card {
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+  
+  .glare {
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0) 80%
+    );
+  }
+  
+  .shadow-gold {
+    box-shadow: 0 10px 30px -10px rgba(212, 175, 55, 0.5);
+  }
+  
+  .shadow-gold-soft {
+    box-shadow: 0 4px 20px -5px rgba(212, 175, 55, 0.3);
+  }
+</style>
+
+<script>
+  function initTilt() {
+    const cards = document.querySelectorAll('.pricing-card');
+    
+    cards.forEach(card => {
+      const cardElement = card as HTMLElement;
+      const glare = cardElement.querySelector('.glare') as HTMLElement;
+      
+      cardElement.addEventListener('mousemove', (e) => {
+        const rect = cardElement.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Calculate rotation based on mouse position
+        // Center of card is 0,0
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const rotateX = ((y - centerY) / centerY) * -10; // Max 10 deg rotation
+        const rotateY = ((x - centerX) / centerX) * 10;
+        
+        // Apply transform
+        cardElement.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+        
+        // Update glare position
+        if (glare) {
+          glare.style.opacity = '1';
+          glare.style.transform = `translate(${x - centerX}px, ${y - centerY}px)`;
+          glare.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 80%)`;
+        }
+      });
+      
+      cardElement.addEventListener('mouseleave', () => {
+        cardElement.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+        if (glare) {
+          glare.style.opacity = '0';
+        }
+      });
+    });
+  }
+  
+  // Init on load
+  initTilt();
+  
+  // Init on view transitions (if enabled in Astro)
+  document.addEventListener('astro:page-load', initTilt);
+</script>
