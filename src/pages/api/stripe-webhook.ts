@@ -52,6 +52,16 @@ export const POST: APIRoute = async ({ request }) => {
         .eq('id', bookingId)
         .single();
 
+      // Calculate end date manually if not in DB
+      let endDate = booking?.end_date;
+      if (!endDate && booking?.start_date) {
+        const startDateObj = new Date(booking.start_date);
+        const daysToAdd = 4 + (booking.add_saturday ? 1 : 0) + (booking.add_sunday ? 1 : 0);
+        const endDateObj = new Date(startDateObj);
+        endDateObj.setDate(startDateObj.getDate() + daysToAdd);
+        endDate = endDateObj.toISOString().split('T')[0];
+      }
+
       const toEmail = booking?.customer_email || session.customer_details?.email || session.customer_email || null;
 
       if (emailApiKey && toEmail) {
@@ -62,7 +72,7 @@ export const POST: APIRoute = async ({ request }) => {
             ${booking ? `
               <p><strong>Name:</strong> ${booking.customer_name}</p>
               <p><strong>City:</strong> ${booking.city}</p>
-              <p><strong>Service Dates:</strong> ${booking.start_date} to ${booking.end_date}</p>
+              <p><strong>Service Dates:</strong> ${booking.start_date} to ${endDate}</p>
               <p><strong>Guests:</strong> ${booking.num_guests}</p>
               <p><strong>Total:</strong> €${(booking.total_price / 100).toFixed(0)}</p>
             ` : ''}

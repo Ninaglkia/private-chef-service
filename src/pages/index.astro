@@ -4,6 +4,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Button from '../components/Button.astro';
 import PricingCard from '../components/PricingCard.astro';
+import HeroCarousel from '../components/HeroCarousel.astro';
 import { PLANS, CUSTOM_PLAN } from '../lib/pricing';
 ---
 
@@ -12,12 +13,7 @@ import { PLANS, CUSTOM_PLAN } from '../lib/pricing';
 
   <main>
     <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-      <div class="absolute inset-0 bg-gradient-to-br from-gray-900/85 via-gray-900/75 to-gray-800/85 z-10"></div>
-      <img
-        src="https://images.pexels.com/photos/2696064/pexels-photo-2696064.jpeg?auto=compress&cs=tinysrgb&w=1920"
-        alt="Professional chef preparing gourmet meal"
-        class="absolute inset-0 w-full h-full object-cover"
-      />
+      <HeroCarousel />
       <div class="container mx-auto px-6 text-center relative z-20">
         <h1 class="text-5xl md:text-6xl lg:text-7xl font-semibold text-white mb-6 leading-tight">
           Premium Private Chef Service
@@ -101,6 +97,44 @@ import { PLANS, CUSTOM_PLAN } from '../lib/pricing';
             <p class="text-gray-600 text-sm leading-relaxed">
               Relax while your chef prepares fresh meals daily in your kitchen
             </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-20 bg-white border-t border-gray-100">
+      <div class="container mx-auto px-6">
+        <div class="flex flex-col md:flex-row items-center gap-16">
+          <div class="md:w-1/2 relative">
+             <div class="absolute inset-0 bg-gold-100 rounded-2xl transform rotate-3 scale-105 opacity-50"></div>
+            <img
+              src="/images/chef-nino.jpg"
+              alt="Chef Nino - CEO & Founder"
+              class="relative rounded-2xl shadow-xl w-full object-cover h-[600px] z-10"
+            />
+          </div>
+          <div class="md:w-1/2">
+            <h2 class="text-4xl md:text-5xl font-semibold mb-6 text-gray-900 leading-tight">
+              Meet Chef Nino
+              <span class="block text-gold-600 text-2xl mt-3 font-medium">Founder & Executive Chef</span>
+            </h2>
+            <p class="text-gray-600 leading-relaxed mb-6 text-lg italic">
+              "Cooking is not just about ingredients, it's about creating memories. As the founder of Weekly Private Chef, my mission is to bring the sophistication of fine dining directly to your family table."
+            </p>
+            <p class="text-gray-600 leading-relaxed mb-8 text-lg">
+              With over 15 years of culinary excellence in top-tier kitchens, I oversee every aspect of our service to ensure your experience is nothing short of perfection. From hand-picking our chefs to curating seasonal menus, my personal touch is in every detail.
+            </p>
+            
+            <div class="grid grid-cols-2 gap-6 mt-8">
+               <div class="border-l-4 border-gold-500 pl-6">
+                  <p class="text-3xl font-bold text-gray-900">15+</p>
+                  <p class="text-sm text-gray-500 uppercase tracking-wide mt-1">Years Experience</p>
+               </div>
+               <div class="border-l-4 border-gold-500 pl-6">
+                  <p class="text-3xl font-bold text-gray-900">100%</p>
+                  <p class="text-sm text-gray-500 uppercase tracking-wide mt-1">Satisfaction</p>
+               </div>
+            </div>
           </div>
         </div>
       </div>

@@ -57,6 +57,20 @@ export const POST: APIRoute = async ({ request, url }) => {
     if (add_saturday) selected_days.push('Saturday');
     if (add_sunday) selected_days.push('Sunday');
 
+    // Handle potential numeric plan input (0, 1, 2) from frontend
+    let planInput = plan;
+    if (typeof plan === 'number' || !isNaN(Number(plan))) {
+      const planIndex = Number(plan);
+      const planMap = ['standard', 'plus', 'premium'];
+      if (planIndex >= 0 && planIndex < planMap.length) {
+        planInput = planMap[planIndex];
+      }
+    }
+
+    // Map input plan to valid DB values
+    const validPlans = ['standard', 'plus', 'premium'];
+    const dbPlan = validPlans.includes(planInput) ? planInput : 'standard';
+
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
       .insert({
@@ -65,20 +79,21 @@ export const POST: APIRoute = async ({ request, url }) => {
         customer_phone: customer_phone || null,
         city,
         start_date,
-        end_date,
         num_guests: parseInt(num_guests),
         total_price,
-        status: 'pending_payment',
+        status: 'pending',
         dietary_preferences: dietary_preferences || null,
-        plan_id: 'weekly-chef',
-        selected_days
+        plan: dbPlan,
+        add_saturday: add_saturday || false,
+        add_sunday: add_sunday || false,
       })
-      .select()
+      .select('id, customer_email, customer_name, city, start_date, num_guests, total_price')
       .single();
 
     if (bookingError || !booking) {
+      console.error('Supabase booking error:', bookingError);
       return new Response(
-        JSON.stringify({ error: 'Failed to create booking' }),
+        JSON.stringify({ error: 'Failed to create booking: ' + (bookingError?.message || 'Unknown error') }),
         {
           status: 500,
           headers: { 'Content-Type': 'application/json' },
@@ -97,8 +112,9 @@ export const POST: APIRoute = async ({ request, url }) => {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: `Weekly Private Chef - ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`,
+              name: `Weekly Private Chef - ${dbPlan.charAt(0).toUpperCase() + dbPlan.slice(1)} Plan`,
               description: `${num_guests} guests • ${city} • Starts ${start_date}`,
+              images: ['https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&w=1600&q=80'], // High quality chef image
             },
             unit_amount: total_price,
           },
@@ -126,9 +142,10 @@ export const POST: APIRoute = async ({ request, url }) => {
         headers: { 'Content-Type': 'application/json' },
       }
     );
-  } catch (error) {
+  } catch (error: any) {
+    console.error('General error creating checkout session:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to create checkout session' }),
+      JSON.stringify({ error: 'Failed to create checkout session: ' + (error?.message || 'Unknown error') }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
