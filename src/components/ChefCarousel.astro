@@ -1,6 +1,11 @@
 ---
 const images = [
   {
+    src: "/images/chef-nino.jpg",
+    alt: "Chef Nino - Founder & Executive Chef",
+    caption: "Founder & Executive Chef Nino"
+  },
+  {
     src: "/images/IMG_7210.jpg",
     alt: "Chef Nino and his professional culinary team",
     caption: "Our dedicated team of culinary experts"
@@ -95,6 +100,8 @@ const images = [
     let autoPlayInterval: number | undefined;
 
     function showSlide(index: number) {
+      if (!slides) return;
+
       // Normalize index
       if (index >= totalSlides) index = 0;
       if (index < 0) index = totalSlides - 1;
