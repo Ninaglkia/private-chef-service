@@ -1,0 +1,189 @@
+---
+const images = [
+  {
+    src: "/images/chef-team.jpg",
+    alt: "Chef Nino and his professional culinary team",
+    caption: "Our dedicated team of culinary experts"
+  },
+  {
+    src: "/images/chef-dish-octopus.jpg",
+    alt: "Gourmet octopus tartlet appetizer",
+    caption: "Seasonal appetizers prepared with fresh local ingredients"
+  },
+  {
+    src: "/images/chef-dish-fish.jpg",
+    alt: "Red mullet with artistic presentation",
+    caption: "Fine dining presentation in the comfort of your home"
+  }
+];
+---
+
+<div class="relative w-full h-[600px] rounded-2xl overflow-hidden shadow-xl group" id="chef-carousel" aria-label="Chef Nino's Culinary Gallery">
+  <!-- Slides -->
+  <div class="relative h-full w-full">
+    {images.map((image, index) => (
+      <div 
+        class={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'} chef-slide`}
+        data-index={index}
+        role="group" 
+        aria-roledescription="slide"
+        aria-label={`${index + 1} of ${images.length}`}
+      >
+        <img
+          src={image.src}
+          alt={image.alt}
+          class="w-full h-full object-cover"
+          loading={index === 0 ? "eager" : "lazy"}
+        />
+        <!-- Gradient Overlay for Caption visibility -->
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-90"></div>
+        
+        <!-- Caption -->
+        <div class="absolute bottom-0 left-0 right-0 p-8 text-white transform transition-transform duration-500">
+          <p class="text-lg md:text-xl font-serif italic tracking-wide text-center text-gold-50">{image.caption}</p>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <!-- Navigation Buttons -->
+  <button 
+    id="chef-prev"
+    class="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white p-3 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100 transform hover:scale-110"
+    aria-label="Previous image"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+    </svg>
+  </button>
+  
+  <button 
+    id="chef-next"
+    class="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white p-3 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100 transform hover:scale-110"
+    aria-label="Next image"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    </svg>
+  </button>
+
+  <!-- Indicators -->
+  <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex space-x-2">
+    {images.map((_, index) => (
+      <button
+        class={`h-1.5 rounded-full transition-all duration-300 ${index === 0 ? 'bg-gold-500 w-8' : 'bg-white/40 w-4 hover:bg-white/60'}`}
+        aria-label={`Go to slide ${index + 1}`}
+        data-chef-slide={index}
+      ></button>
+    ))}
+  </div>
+</div>
+
+<script>
+  function setupChefCarousel() {
+    const container = document.getElementById('chef-carousel');
+    const slides = container?.querySelectorAll('.chef-slide');
+    const indicators = container?.querySelectorAll('[data-chef-slide]');
+    const prevBtn = document.getElementById('chef-prev');
+    const nextBtn = document.getElementById('chef-next');
+    
+    if (!container || !slides || slides.length === 0) return;
+
+    let currentSlide = 0;
+    const totalSlides = slides.length;
+    const intervalTime = 4000; // 4 seconds as requested
+    let autoPlayInterval: number | undefined;
+
+    function showSlide(index: number) {
+      // Normalize index
+      if (index >= totalSlides) index = 0;
+      if (index < 0) index = totalSlides - 1;
+
+      // Update Slides
+      slides.forEach((slide, i) => {
+        if (i === index) {
+          slide.classList.remove('opacity-0', 'z-0');
+          slide.classList.add('opacity-100', 'z-10');
+        } else {
+          slide.classList.remove('opacity-100', 'z-10');
+          slide.classList.add('opacity-0', 'z-0');
+        }
+      });
+
+      // Update Indicators
+      indicators?.forEach((ind, i) => {
+        if (i === index) {
+          ind.classList.remove('bg-white/40', 'w-4');
+          ind.classList.add('bg-gold-500', 'w-8');
+        } else {
+          ind.classList.remove('bg-gold-500', 'w-8');
+          ind.classList.add('bg-white/40', 'w-4');
+        }
+      });
+
+      currentSlide = index;
+    }
+
+    function nextSlide() {
+      showSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+      showSlide(currentSlide - 1);
+    }
+
+    // Auto Play Management
+    function startAutoPlay() {
+      stopAutoPlay();
+      autoPlayInterval = window.setInterval(nextSlide, intervalTime);
+    }
+
+    function stopAutoPlay() {
+      if (autoPlayInterval) {
+        clearInterval(autoPlayInterval);
+        autoPlayInterval = undefined;
+      }
+    }
+
+    // Event Listeners
+    prevBtn?.addEventListener('click', () => {
+      prevSlide();
+      startAutoPlay(); // Reset timer on interaction
+    });
+
+    nextBtn?.addEventListener('click', () => {
+      nextSlide();
+      startAutoPlay(); // Reset timer on interaction
+    });
+
+    indicators?.forEach((ind) => {
+      ind.addEventListener('click', () => {
+        const index = parseInt(ind.getAttribute('data-chef-slide') || '0', 10);
+        showSlide(index);
+        startAutoPlay();
+      });
+    });
+
+    // Keyboard Navigation & Accessibility
+    container.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        prevSlide();
+        startAutoPlay();
+      } else if (e.key === 'ArrowRight') {
+        nextSlide();
+        startAutoPlay();
+      }
+    });
+
+    // Pause on Hover
+    container.addEventListener('mouseenter', stopAutoPlay);
+    container.addEventListener('mouseleave', startAutoPlay);
+
+    // Initial Start
+    startAutoPlay();
+  }
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', setupChefCarousel);
+  setupChefCarousel(); // For immediate run if DOM is ready
+</script>
