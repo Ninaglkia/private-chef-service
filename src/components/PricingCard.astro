@@ -32,9 +32,8 @@ const {
 } = Astro.props;
 ---
 
-<a
-  href={buttonHref}
-  class={`block relative bg-white rounded-3xl shadow-soft hover:shadow-soft-xl transition-all duration-500 overflow-hidden cursor-pointer min-h-[600px] flex flex-col border ${highlighted ? 'border-gold-400 shadow-soft-lg group-hover:scale-110' : 'border-gray-100 hover:border-gold-200'} group`}
+<div
+  class={`block relative bg-white rounded-3xl shadow-soft hover:shadow-soft-xl transition-all duration-500 overflow-hidden min-h-[600px] flex flex-col border pricing-card ${highlighted ? 'border-gold-400 shadow-soft-lg group-hover:scale-110' : 'border-gray-100 hover:border-gold-200'} group`}
 >
   {badge && (
     <div class={`absolute top-0 left-0 right-0 text-center py-3 text-sm font-semibold tracking-wide shadow-soft ${highlighted ? 'bg-gradient-to-r from-gold-500 to-gold-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
@@ -99,6 +98,88 @@ const {
           ))}
         </ul>
       </div>
+
+      {weekendPrice ? (
+        <div class="mt-4 border-t border-gray-100 pt-4">
+          <h5 class="text-sm font-semibold text-gray-900 mb-3">Weekend Add-ons (Optional)</h5>
+          <div class="space-y-3">
+            <label class="flex items-center justify-between cursor-pointer group select-none">
+              <span class="flex items-center text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                <input type="checkbox" class="add-saturday-checkbox w-4 h-4 text-gold-500 rounded border-gray-300 focus:ring-gold-500 mr-2 transition-colors cursor-pointer" />
+                Add Saturday
+              </span>
+              <span class="text-sm font-medium text-gray-900">+€{(weekendPrice/100).toLocaleString()}</span>
+            </label>
+            <label class="flex items-center justify-between cursor-pointer group select-none">
+              <span class="flex items-center text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                <input type="checkbox" class="add-sunday-checkbox w-4 h-4 text-gold-500 rounded border-gray-300 focus:ring-gold-500 mr-2 transition-colors cursor-pointer" />
+                Add Sunday
+              </span>
+              <span class="text-sm font-medium text-gray-500 italic">su richiesta</span>
+            </label>
+          </div>
+        </div>
+      ) : null}
+
+      <div class="mt-8">
+        <a
+          href={buttonHref}
+          class={`block w-full py-3 px-4 text-center rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg book-now-btn ${
+            highlighted
+              ? 'bg-gold-500 text-white hover:bg-gold-600 shadow-gold/20'
+              : 'bg-gray-900 text-white hover:bg-gray-800'
+          }`}
+          data-base-href={buttonHref}
+        >
+          {buttonText}
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const cards = document.querySelectorAll('.pricing-card');
+
+    cards.forEach(card => {
+      const saturdayCheckbox = card.querySelector('.add-saturday-checkbox') as HTMLInputElement;
+      const sundayCheckbox = card.querySelector('.add-sunday-checkbox') as HTMLInputElement;
+      const bookBtn = card.querySelector('.book-now-btn') as HTMLAnchorElement;
+
+      if (!bookBtn) return;
+
+      const updateHref = () => {
+        const baseHref = bookBtn.dataset.baseHref || bookBtn.href;
+        const url = new URL(baseHref, window.location.origin);
+        
+        // Remove existing params first to avoid duplicates if re-running
+        url.searchParams.delete('add_saturday');
+        url.searchParams.delete('add_sunday');
+
+        if (saturdayCheckbox && saturdayCheckbox.checked) {
+          url.searchParams.append('add_saturday', 'true');
+        }
+        if (sundayCheckbox && sundayCheckbox.checked) {
+          url.searchParams.append('add_sunday', 'true');
+        }
+
+        // Keep the relative path + query
+        bookBtn.href = url.pathname + url.search;
+      };
+
+      if (saturdayCheckbox) {
+        saturdayCheckbox.addEventListener('change', updateHref);
+      }
+      if (sundayCheckbox) {
+        sundayCheckbox.addEventListener('change', updateHref);
+      }
+    });
+  });
+  
+  // Also run on initial load if view transitions are not used or for first render
+  window.dispatchEvent(new Event('astro:page-load'));
+</script>
     </div>
 
     <div class="mt-auto space-y-4">
