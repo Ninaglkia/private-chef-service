@@ -1,15 +1,7 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-TWILIO_ACCOUNT_SID=...
-TWILIO_AUTH_TOKEN=...
-TWILIO_FROM_NUMBER=+1234567890     # Il tuo numero Twilio SMS
-TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886 # Numero WhatsApp Sandbox o Business
-ORGANIZER_PHONE=+39333XXXXXXX       # Il tuo numero personaleTWILIO_ACCOUNT_SID=...
-TWILIO_AUTH_TOKEN=...
-TWILIO_FROM_NUMBER=+1234567890     # Il tuo numero Twilio SMS
-TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886 # Numero WhatsApp Sandbox o Business
-ORGANIZER_PHONE=+39333XXXXXXX       # Il tuo numero personaleimport { sendBookingConfirmationEmails } from '../../lib/email';
+import { sendBookingConfirmationEmails } from '../../lib/email';
 import { notifyOrganizer, notifyCustomer } from '../../lib/sms';
 
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY, {
@@ -62,25 +54,7 @@ export const POST: APIRoute = async ({ request }) => {
         .eq('id', bookingId)
         .single();
 
-ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_plan_check;
-ALTER TABLE bookings ADD CONSTRAINT bookings_plan_check CHECK (plan IN ('standard', 'plus', 'premium', 'luxury_experience'));
-
-ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_num_guests_check;
-ALTER TABLE bookings ADD CONSTRAINT bookings_num_guests_check CHECK (num_guests >= 1 AND num_guests <= 50);ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_plan_check;
-ALTER TABLE bookings ADD CONSTRAINT bookings_plan_check CHECK (plan IN ('standard', 'plus', 'premium', 'luxury_experience'));
-
-ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_num_guests_check;
-ALTER TABLE bookings ADD CONSTRAINT bookings_num_guests_check CHECK (num_guests >= 1 AND num_guests <= 50);-- Abilita prenotazioni da 1 persona e il piano luxury
-ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_plan_check;
-ALTER TABLE bookings ADD CONSTRAINT bookings_plan_check CHECK (plan IN ('standard', 'plus', 'premium', 'luxury_experience'));
-
-ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_num_guests_check;
-ALTER TABLE bookings ADD CONSTRAINT bookings_num_guests_check CHECK (num_guests >= 1 AND num_guests <= 50);-- Abilita prenotazioni da 1 persona e il piano luxury
-ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_plan_check;
-ALTER TABLE bookings ADD CONSTRAINT bookings_plan_check CHECK (plan IN ('standard', 'plus', 'premium', 'luxury_experience'));
-
-ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_num_guests_check;
-ALTER TABLE bookings ADD CONSTRAINT bookings_num_guests_check CHECK (num_guests >= 1 AND num_guests <= 50);      // Calculate end date manually if not in DB
+      // Calculate end date manually if not in DB
       let endDate = booking?.end_date;
       if (!endDate && booking?.start_date) {
         const startDateObj = new Date(booking.start_date);

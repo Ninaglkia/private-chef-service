@@ -70,19 +70,8 @@ export const POST: APIRoute = async ({ request, url }) => {
     // Handle potential numeric plan input (0, 1, 2) from frontend
     let planInput = plan;
     
-    // Check for luxury experience plan
-    if (plan === 'luxury_experience') {
-      planInput = 'luxury_experience';
-    } else if (typeof plan === 'number' || !isNaN(Number(plan))) {
-      const planIndex = Number(plan);
-      const planMap = ['standard', 'plus', 'premium'];
-      if (planIndex >= 0 && planIndex < planMap.length) {
-        planInput = planMap[planIndex];
-      }
-    }
-
     // Map input plan to valid DB values
-    const validPlans = ['standard', 'plus', 'premium', 'luxury_experience'];
+    const validPlans = ['standard', 'plus', 'premium'];
     const dbPlan = validPlans.includes(planInput) ? planInput : 'standard';
 
     const { data: booking, error: bookingError } = await supabaseAdmin
@@ -93,7 +82,7 @@ export const POST: APIRoute = async ({ request, url }) => {
         customer_phone: customer_phone || null,
         city,
         start_date,
-        num_guests: num_guests ? parseInt(num_guests) : 1, // Default to 1 for luxury plan if not specified
+        num_guests: num_guests ? parseInt(num_guests) : 1,
         total_price,
         status: 'pending',
         dietary_preferences: dietary_preferences || null,
@@ -117,7 +106,7 @@ export const POST: APIRoute = async ({ request, url }) => {
 
     const origin = url.origin;
     const successUrl = `${origin}/confirmation?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = dbPlan === 'luxury_experience' ? `${origin}/luxury-experience` : `${origin}/booking`;
+    const cancelUrl = `${origin}/booking`;
 
     // Combine company with name if provided
     const fullName = company ? `${customer_name} (${company})` : customer_name;
@@ -127,7 +116,6 @@ export const POST: APIRoute = async ({ request, url }) => {
       standard: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80', // High quality food
       plus: 'https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&w=800&q=80', // Chef cooking
       premium: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80', // Luxury service
-      luxury_experience: 'https://images.unsplash.com/photo-1551632436-cbf8dd354ca8?auto=format&fit=crop&w=800&q=80', // Ultra Luxury
     };
 
     const imageUrl = planImages[dbPlan] || planImages.standard;
@@ -139,8 +127,8 @@ export const POST: APIRoute = async ({ request, url }) => {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: dbPlan === 'luxury_experience' ? 'The Royal Indulgence Experience' : `Weekly Private Chef - ${dbPlan.charAt(0).toUpperCase() + dbPlan.slice(1)} Plan`,
-              description: dbPlan === 'luxury_experience' ? 'All-Inclusive Weekly Luxury Package' : `${num_guests} guests • ${city} • Starts ${start_date}`,
+              name: `Weekly Private Chef - ${dbPlan.charAt(0).toUpperCase() + dbPlan.slice(1)} Plan`,
+              description: `${num_guests} guests • ${city} • Starts ${start_date}`,
               images: [imageUrl],
             },
             unit_amount: total_price,
