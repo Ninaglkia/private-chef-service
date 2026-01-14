@@ -17,6 +17,9 @@ pnpm-debug.log*
 .env
 .env.production
 
+# vercel output (contains build artifacts and env-inlined bundles)
+.vercel/
+
 # macOS-specific files
 .DS_Store
 
