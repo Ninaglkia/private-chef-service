@@ -1,0 +1,130 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Dashboard Chef">
+  <div class="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-10">
+    <h1 class="text-3xl font-semibold text-gray-900 mb-4">Dashboard Chef</h1>
+
+    <section class="space-y-4">
+      <h2 class="text-xl font-semibold text-gray-800">Job Board</h2>
+      <p class="text-sm text-gray-600" id="chef-city-label"></p>
+      <div id="job-board" class="space-y-4"></div>
+    </section>
+
+    <section class="space-y-4">
+      <h2 class="text-xl font-semibold text-gray-800">I miei incarichi</h2>
+      <div id="my-assignments" class="space-y-4"></div>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+  import type { Booking, Profile } from '../../lib/supabase';
+
+  async function loadChefDashboard() {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    const p = profile as Profile | null;
+
+    if (!p || p.role !== 'chef') {
+      window.location.href = '/dashboard/customer';
+      return;
+    }
+
+    if (p.city) {
+      const cityLabel = document.getElementById('chef-city-label');
+      if (cityLabel) cityLabel.textContent = `Città impostata: ${p.city}`;
+    }
+
+    const { data: jobs } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('status', 'searching')
+      .eq('city', p.city || '')
+      .order('start_date', { ascending: true });
+
+    const jobBoard = document.getElementById('job-board');
+    if (jobBoard) {
+      jobBoard.innerHTML = '';
+      if (!jobs || jobs.length === 0) {
+        jobBoard.innerHTML = '<p class="text-sm text-gray-500">Nessun incarico disponibile nella tua città.</p>';
+      } else {
+        jobs.forEach((job) => {
+          const b = job as Booking;
+          const div = document.createElement('div');
+          div.className = 'border border-gray-200 rounded-lg p-4 flex items-center justify-between';
+          div.innerHTML = `
+            <div>
+              <p class="font-medium text-gray-900">${b.city} • ${new Date(b.start_date).toLocaleDateString()}</p>
+              <p class="text-sm text-gray-600">${b.num_guests} ospiti • Piano ${b.plan}</p>
+            </div>
+            <button data-booking-id="${b.id}" class="apply-btn px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800">Candidati</button>
+          `;
+          jobBoard.appendChild(div);
+        });
+      }
+    }
+
+    const { data: assignments } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('chef_id', user.id)
+      .order('start_date', { ascending: true });
+
+    const assignmentsContainer = document.getElementById('my-assignments');
+    if (assignmentsContainer) {
+      assignmentsContainer.innerHTML = '';
+      if (!assignments || assignments.length === 0) {
+        assignmentsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessun incarico assegnato.</p>';
+      } else {
+        assignments.forEach((job) => {
+          const b = job as Booking;
+          const div = document.createElement('div');
+          div.className = 'border border-gray-200 rounded-lg p-4';
+          div.innerHTML = `
+            <p class="font-medium text-gray-900">${b.city} • ${new Date(b.start_date).toLocaleDateString()}</p>
+            <p class="text-sm text-gray-600">Indirizzo: ${b.address || 'Non disponibile'}</p>
+            <p class="text-sm text-gray-600">Cliente: ${b.customer_name}</p>
+          `;
+          assignmentsContainer.appendChild(div);
+        });
+      }
+    }
+
+    document.addEventListener('click', async (e) => {
+      const target = e.target as HTMLElement;
+      if (target.matches('.apply-btn')) {
+        const bookingId = target.getAttribute('data-booking-id');
+        if (!bookingId) return;
+
+        const { error } = await supabase.from('chef_applications').insert({
+          booking_id: bookingId,
+          chef_id: user.id,
+        });
+
+        if (error) {
+          alert(error.message);
+        } else {
+          target.setAttribute('disabled', 'true');
+          target.textContent = 'Candidato';
+        }
+      }
+    });
+  }
+
+  loadChefDashboard();
+</script>
+

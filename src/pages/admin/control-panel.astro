@@ -1,0 +1,192 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Admin Control Panel">
+  <div class="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-10">
+    <h1 class="text-3xl font-semibold text-gray-900 mb-4">Admin Control Panel</h1>
+
+    <section class="space-y-4">
+      <h2 class="text-xl font-semibold text-gray-800">Prenotazioni pagate</h2>
+      <div id="bookings-list" class="space-y-4"></div>
+    </section>
+
+    <section class="space-y-4">
+      <h2 class="text-xl font-semibold text-gray-800">Candidature chef</h2>
+      <div id="applications-list" class="space-y-4"></div>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+  import type { Booking, Profile, ChefApplication } from '../../lib/supabase';
+
+  async function ensureAdmin() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      window.location.href = '/login';
+      return null;
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    const p = profile as Profile | null;
+    if (!p || p.role !== 'admin') {
+      window.location.href = '/';
+      return null;
+    }
+
+    return { user, profile: p };
+  }
+
+  async function loadAdminPanel() {
+    const ctx = await ensureAdmin();
+    if (!ctx) return;
+
+    const { data: bookings } = await supabase
+      .from('bookings')
+      .select('*')
+      .in('status', ['searching', 'assigned', 'completed'])
+      .order('created_at', { ascending: false });
+
+    const bookingsContainer = document.getElementById('bookings-list');
+    if (bookingsContainer) {
+      bookingsContainer.innerHTML = '';
+      if (!bookings || bookings.length === 0) {
+        bookingsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessuna prenotazione.</p>';
+      } else {
+        bookings.forEach((b) => {
+          const booking = b as Booking;
+          const div = document.createElement('div');
+          div.className = 'border border-gray-200 rounded-lg p-4 flex flex-col gap-2';
+          div.innerHTML = `
+            <div class="flex justify-between items-center">
+              <div>
+                <p class="font-medium text-gray-900">${booking.city} • ${new Date(booking.start_date).toLocaleDateString()}</p>
+                <p class="text-sm text-gray-600">${booking.num_guests} ospiti • Piano ${booking.plan}</p>
+                <p class="text-xs text-gray-500">Stato: ${booking.status}</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="text" placeholder="Chef ID" data-booking-id="${booking.id}" class="chef-id-input border border-gray-300 rounded px-2 py-1 text-xs" />
+                <button class="assign-btn px-3 py-1 text-xs font-medium text-white bg-gray-900 rounded-md" data-booking-id="${booking.id}">
+                  Assegna Chef
+                </button>
+              </div>
+            </div>
+          `;
+          bookingsContainer.appendChild(div);
+        });
+      }
+    }
+
+    const { data: applications } = await supabase
+      .from('chef_applications')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    const appsContainer = document.getElementById('applications-list');
+    if (appsContainer) {
+      appsContainer.innerHTML = '';
+      if (!applications || applications.length === 0) {
+        appsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessuna candidatura.</p>';
+      } else {
+        applications.forEach((a) => {
+          const app = a as ChefApplication;
+          const div = document.createElement('div');
+          div.className = 'border border-gray-200 rounded-lg p-4 flex justify-between items-center';
+          div.innerHTML = `
+            <div>
+              <p class="font-medium text-gray-900">Booking: ${app.booking_id}</p>
+              <p class="text-sm text-gray-600">Chef: ${app.chef_id}</p>
+              <p class="text-xs text-gray-500">Stato: ${app.status}</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="assign-from-app-btn px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md" data-booking-id="${app.booking_id}" data-chef-id="${app.chef_id}">
+                Assegna
+              </button>
+              <button class="strike-btn px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md" data-chef-id="${app.chef_id}">
+                Strike
+              </button>
+            </div>
+          `;
+          appsContainer.appendChild(div);
+        });
+      }
+    }
+
+    document.addEventListener('click', async (e) => {
+      const target = e.target as HTMLElement;
+
+      if (target.matches('.assign-btn')) {
+        const bookingId = target.getAttribute('data-booking-id');
+        if (!bookingId) return;
+        const input = document.querySelector(`.chef-id-input[data-booking-id="${bookingId}"]`) as HTMLInputElement | null;
+        const chefId = input?.value.trim();
+        if (!chefId) {
+          alert('Inserisci un Chef ID');
+          return;
+        }
+
+        const { error } = await supabase
+          .from('bookings')
+          .update({ chef_id: chefId, status: 'assigned' })
+          .eq('id', bookingId);
+
+        if (error) {
+          alert(error.message);
+        } else {
+          loadAdminPanel();
+        }
+      }
+
+      if (target.matches('.assign-from-app-btn')) {
+        const bookingId = target.getAttribute('data-booking-id');
+        const chefId = target.getAttribute('data-chef-id');
+        if (!bookingId || !chefId) return;
+
+        const { error } = await supabase
+          .from('bookings')
+          .update({ chef_id: chefId, status: 'assigned' })
+          .eq('id', bookingId);
+
+        if (error) {
+          alert(error.message);
+        } else {
+          loadAdminPanel();
+        }
+      }
+
+      if (target.matches('.strike-btn')) {
+        const chefId = target.getAttribute('data-chef-id');
+        if (!chefId) return;
+
+        const { data: chef } = await supabase
+          .from('profiles')
+          .select('strikes')
+          .eq('id', chefId)
+          .single();
+
+        const currentStrikes = (chef as Profile | null)?.strikes ?? 0;
+
+        const { error } = await supabase
+          .from('profiles')
+          .update({ strikes: currentStrikes + 1 })
+          .eq('id', chefId);
+
+        if (error) {
+          alert(error.message);
+        } else {
+          loadAdminPanel();
+        }
+      }
+    });
+  }
+
+  loadAdminPanel();
+</script>
+

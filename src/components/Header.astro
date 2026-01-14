@@ -66,11 +66,33 @@ const pathname = Astro.url.pathname;
 </header>
 
 <script>
+  import { supabase } from '../lib/supabase';
+
   const header = document.getElementById('main-header');
   const logo = document.getElementById('header-logo');
   const links = document.querySelectorAll('.header-link');
   const menuBtn = document.getElementById('mobile-menu-button');
   const isTransparent = header?.dataset.transparent === 'true';
+
+  // Auth Logic
+  const desktopAuthLink = document.getElementById('desktop-auth-link') as HTMLAnchorElement;
+  const mobileAuthLink = document.getElementById('mobile-auth-link') as HTMLAnchorElement;
+
+  async function checkUser() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        if (desktopAuthLink) {
+            desktopAuthLink.textContent = 'Dashboard';
+            desktopAuthLink.href = '/dashboard';
+        }
+        if (mobileAuthLink) {
+            mobileAuthLink.textContent = 'Dashboard';
+            mobileAuthLink.href = '/dashboard';
+        }
+    }
+  }
+  
+  checkUser();
 
   function updateHeader() {
     if (!header || !isTransparent) return;

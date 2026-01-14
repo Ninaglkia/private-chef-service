@@ -9,20 +9,48 @@ export type Booking = {
   id: string;
   city: string;
   start_date: string;
+  end_date?: string | null;
   num_guests: number;
   plan: 'standard' | 'plus' | 'premium';
   add_saturday: boolean;
   add_sunday: boolean;
   dietary_preferences: string;
   total_price: number;
+  chef_payout?: number | null;
+  grocery_budget?: number | null;
   stripe_session_id: string | null;
   stripe_payment_intent: string | null;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: 'pending' | 'searching' | 'assigned' | 'completed';
   customer_email: string;
   customer_name: string;
   customer_phone: string | null;
+  address?: string | null;
+  chef_id?: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type Profile = {
+  id: string;
+  full_name: string | null;
+  role: 'admin' | 'customer' | 'chef';
+  phone: string | null;
+  avatar_url: string | null;
+  city?: string | null;
+  haccp_url?: string | null;
+  bio?: string | null;
+  specialties?: string[] | null;
+  strikes: number;
+  is_verified: boolean;
+  updated_at: string | null;
+};
+
+export type ChefApplication = {
+  id: string;
+  booking_id: string;
+  chef_id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
 };
 
 export type QuoteRequest = {

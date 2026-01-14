@@ -1,0 +1,105 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Dashboard Cliente">
+  <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-8">
+    <h1 class="text-3xl font-semibold text-gray-900 mb-4">Dashboard Cliente</h1>
+
+    <section id="booking-section" class="space-y-4"></section>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+  import type { Booking, Profile } from '../../lib/supabase';
+
+  async function loadCustomerDashboard() {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    const p = profile as Profile | null;
+
+    if (!p || p.role !== 'customer') {
+      window.location.href = '/dashboard/chef';
+      return;
+    }
+
+    const { data: bookings } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('customer_email', user.email)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const container = document.getElementById('booking-section');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (!bookings || bookings.length === 0) {
+      container.innerHTML = '<p class="text-sm text-gray-500">Non hai ancora prenotazioni attive.</p>';
+      return;
+    }
+
+    const booking = bookings[0] as Booking;
+
+    if (!booking.chef_id) {
+      const div = document.createElement('div');
+      div.className = 'border border-yellow-200 bg-yellow-50 text-yellow-800 rounded-lg p-4';
+      div.innerHTML = `
+        <p class="font-medium">Ricerca chef in corso</p>
+        <p class="text-sm mt-1">Stiamo cercando lo chef ideale per la tua prenotazione a ${booking.city}.</p>
+      `;
+      container.appendChild(div);
+      return;
+    }
+
+    const { data: chefProfile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', booking.chef_id)
+      .single();
+
+    const chef = chefProfile as Profile | null;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'space-y-6';
+
+    const bookingCard = document.createElement('div');
+    bookingCard.className = 'border border-gray-200 rounded-lg p-4';
+    bookingCard.innerHTML = `
+      <p class="font-medium text-gray-900">Prenotazione a ${booking.city}</p>
+      <p class="text-sm text-gray-600">${new Date(booking.start_date).toLocaleDateString()} • ${booking.num_guests} ospiti • Piano ${booking.plan}</p>
+    `;
+
+    const chefCard = document.createElement('div');
+    chefCard.className = 'border border-gray-200 rounded-lg p-4 flex items-start gap-4';
+    chefCard.innerHTML = `
+      <div class="w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+        ${chef && chef.avatar_url ? `<img src="${chef.avatar_url}" alt="Chef" class="w-full h-full object-cover" />` : ''}
+      </div>
+      <div>
+        <p class="font-medium text-gray-900">${chef?.full_name || 'Chef assegnato'}</p>
+        <p class="text-sm text-gray-600 mt-1">${chef?.bio || 'Lo chef ti contatterà per definire il menu nei dettagli.'}</p>
+      </div>
+    `;
+
+    wrapper.appendChild(bookingCard);
+    wrapper.appendChild(chefCard);
+    container.appendChild(wrapper);
+  }
+
+  loadCustomerDashboard();
+</script>
+

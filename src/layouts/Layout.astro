@@ -6,7 +6,8 @@ interface Props {
 
 const {
 	title = 'Weekly Private Chef - Premium Home Chef Service',
-	description = 'Luxury private chef service bringing restaurant-quality dining to your home. Monday to Friday, breakfast, lunch, and dinner prepared fresh daily.'
+	description = 'Luxury private chef service bringing restaurant-quality dining to your home. Monday to Friday, breakfast, lunch, and dinner prepared fresh daily.',
+	bodyClass = 'bg-white text-gray-900'
 } = Astro.props;
 ---
 
@@ -74,7 +75,7 @@ const {
 			}
 		</style>
 	</head>
-	<body class="antialiased text-gray-900 bg-white">
+	<body class={`antialiased ${bodyClass}`}>
 		<slot />
 		<script>
 			// Restore scroll position to top on reload for mobile devices
