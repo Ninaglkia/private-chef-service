@@ -14,7 +14,7 @@ const {
 <html lang="en" class="scroll-smooth">
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content={description} />
@@ -76,5 +76,15 @@ const {
 	</head>
 	<body class="antialiased text-gray-900 bg-white">
 		<slot />
+		<script>
+			// Restore scroll position to top on reload for mobile devices
+			if (history.scrollRestoration) {
+				history.scrollRestoration = 'manual';
+			}
+			
+			window.addEventListener('load', () => {
+				window.scrollTo(0, 0);
+			});
+		</script>
 	</body>
 </html>

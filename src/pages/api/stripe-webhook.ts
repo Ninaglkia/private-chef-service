@@ -1,6 +1,16 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_FROM_NUMBER=+1234567890     # Il tuo numero Twilio SMS
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886 # Numero WhatsApp Sandbox o Business
+ORGANIZER_PHONE=+39333XXXXXXX       # Il tuo numero personaleTWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_FROM_NUMBER=+1234567890     # Il tuo numero Twilio SMS
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886 # Numero WhatsApp Sandbox o Business
+ORGANIZER_PHONE=+39333XXXXXXX       # Il tuo numero personaleimport { sendBookingConfirmationEmails } from '../../lib/email';
+import { notifyOrganizer, notifyCustomer } from '../../lib/sms';
 
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-12-15.clover',
@@ -52,7 +62,25 @@ export const POST: APIRoute = async ({ request }) => {
         .eq('id', bookingId)
         .single();
 
-      // Calculate end date manually if not in DB
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_plan_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_plan_check CHECK (plan IN ('standard', 'plus', 'premium', 'luxury_experience'));
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_num_guests_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_num_guests_check CHECK (num_guests >= 1 AND num_guests <= 50);ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_plan_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_plan_check CHECK (plan IN ('standard', 'plus', 'premium', 'luxury_experience'));
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_num_guests_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_num_guests_check CHECK (num_guests >= 1 AND num_guests <= 50);-- Abilita prenotazioni da 1 persona e il piano luxury
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_plan_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_plan_check CHECK (plan IN ('standard', 'plus', 'premium', 'luxury_experience'));
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_num_guests_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_num_guests_check CHECK (num_guests >= 1 AND num_guests <= 50);-- Abilita prenotazioni da 1 persona e il piano luxury
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_plan_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_plan_check CHECK (plan IN ('standard', 'plus', 'premium', 'luxury_experience'));
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_num_guests_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_num_guests_check CHECK (num_guests >= 1 AND num_guests <= 50);      // Calculate end date manually if not in DB
       let endDate = booking?.end_date;
       if (!endDate && booking?.start_date) {
         const startDateObj = new Date(booking.start_date);
@@ -62,37 +90,18 @@ export const POST: APIRoute = async ({ request }) => {
         endDate = endDateObj.toISOString().split('T')[0];
       }
 
-      const toEmail = booking?.customer_email || session.customer_details?.email || session.customer_email || null;
+      // Send confirmation emails (non-blocking)
+      sendBookingConfirmationEmails(booking).catch(err => console.error('Email sending failed:', err));
 
-      if (emailApiKey && toEmail) {
-        const html = `
-          <div style="font-family: Arial, sans-serif; color: #111;">
-            <h2>Booking Confirmed</h2>
-            <p>Thank you for your booking. Your payment has been received and your weekly private chef service is confirmed.</p>
-            ${booking ? `
-              <p><strong>Name:</strong> ${booking.customer_name}</p>
-              <p><strong>City:</strong> ${booking.city}</p>
-              <p><strong>Service Dates:</strong> ${booking.start_date} to ${endDate}</p>
-              <p><strong>Guests:</strong> ${booking.num_guests}</p>
-              <p><strong>Total:</strong> €${(booking.total_price / 100).toFixed(0)}</p>
-            ` : ''}
-            <p>Our team will contact you within 24–48 hours to finalize details and menu planning.</p>
-          </div>
-        `;
+      // 1. Notify Organizer
+      const formattedPrice = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(booking.total_price / 100);
+      const organizerMsg = `[NOTIFICA CHEF] Booking Paid - ${booking.customer_name}. Total: ${formattedPrice}. Plan: ${booking.plan}.`;
+      notifyOrganizer(organizerMsg).catch(err => console.error('Organizer SMS failed:', err));
 
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${emailApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: emailFrom,
-            to: toEmail,
-            subject: 'Your Weekly Private Chef – Booking Confirmed',
-            html,
-          }),
-        });
+      // 2. Notify Customer (if phone exists)
+      if (booking.customer_phone) {
+          const customerMsg = `[CONFERMA CLIENTE] Dear ${booking.customer_name}, your booking for ${booking.city} is confirmed! We look forward to serving you. Our team will be in touch shortly.`;
+          notifyCustomer(booking.customer_phone, customerMsg, true).catch(err => console.error('Customer WhatsApp failed:', err));
       }
     }
   }

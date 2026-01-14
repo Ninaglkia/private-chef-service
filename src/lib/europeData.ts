@@ -1,0 +1,55 @@
+export interface CountryData {
+  country: string;
+  capital: string;
+  prefix: string;
+  mobile: string;
+}
+
+export const europeanCapitals: CountryData[] = [
+  { country: "Albania", capital: "Tirana", prefix: "+355", mobile: "69 123 4567" },
+  { country: "Andorra", capital: "Andorra la Vella", prefix: "+376", mobile: "312 345" },
+  { country: "Armenia", capital: "Yerevan", prefix: "+374", mobile: "91 123 456" },
+  { country: "Austria", capital: "Vienna", prefix: "+43", mobile: "664 1234567" },
+  { country: "Azerbaijan", capital: "Baku", prefix: "+994", mobile: "50 123 4567" },
+  { country: "Belgium", capital: "Brussels", prefix: "+32", mobile: "470 12 34 56" },
+  { country: "Bosnia and Herzegovina", capital: "Sarajevo", prefix: "+387", mobile: "61 123 456" },
+  { country: "Bulgaria", capital: "Sofia", prefix: "+359", mobile: "88 123 4567" },
+  { country: "Croatia", capital: "Zagreb", prefix: "+385", mobile: "91 123 4567" },
+  { country: "Cyprus", capital: "Nicosia", prefix: "+357", mobile: "99 123456" },
+  { country: "Czech Republic", capital: "Prague", prefix: "+420", mobile: "601 123 456" },
+  { country: "Denmark", capital: "Copenhagen", prefix: "+45", mobile: "20 12 34 56" },
+  { country: "Estonia", capital: "Tallinn", prefix: "+372", mobile: "50 12 345" },
+  { country: "Finland", capital: "Helsinki", prefix: "+358", mobile: "50 123 4567" },
+  { country: "France", capital: "Paris", prefix: "+33", mobile: "6 12 34 56 78" },
+  { country: "Georgia", capital: "Tbilisi", prefix: "+995", mobile: "599 12 34 56" },
+  { country: "Germany", capital: "Berlin", prefix: "+49", mobile: "170 1234567" },
+  { country: "Greece", capital: "Athens", prefix: "+30", mobile: "69 1 234 5678" },
+  { country: "Hungary", capital: "Budapest", prefix: "+36", mobile: "20 123 4567" },
+  { country: "Iceland", capital: "Reykjavik", prefix: "+354", mobile: "612 3456" },
+  { country: "Ireland", capital: "Dublin", prefix: "+353", mobile: "87 123 4567" },
+  { country: "Italy", capital: "Rome", prefix: "+39", mobile: "330 1234567" },
+  { country: "Latvia", capital: "Riga", prefix: "+371", mobile: "20 12 34 56" },
+  { country: "Liechtenstein", capital: "Vaduz", prefix: "+423", mobile: "79 123 45 67" },
+  { country: "Lithuania", capital: "Vilnius", prefix: "+370", mobile: "60 12 34 56" },
+  { country: "Luxembourg", capital: "Luxembourg", prefix: "+352", mobile: "621 123 456" },
+  { country: "Malta", capital: "Valletta", prefix: "+356", mobile: "7912 3456" },
+  { country: "Moldova", capital: "Chisinau", prefix: "+373", mobile: "60 123 456" },
+  { country: "Monaco", capital: "Monaco", prefix: "+377", mobile: "6 12 34 56 78" },
+  { country: "Montenegro", capital: "Podgorica", prefix: "+382", mobile: "67 123 456" },
+  { country: "Netherlands", capital: "Amsterdam", prefix: "+31", mobile: "6 12345678" },
+  { country: "North Macedonia", capital: "Skopje", prefix: "+389", mobile: "70 123 456" },
+  { country: "Norway", capital: "Oslo", prefix: "+47", mobile: "912 34 567" },
+  { country: "Poland", capital: "Warsaw", prefix: "+48", mobile: "501 123 456" },
+  { country: "Portugal", capital: "Lisbon", prefix: "+351", mobile: "91 123 45 67" },
+  { country: "Romania", capital: "Bucharest", prefix: "+40", mobile: "721 123 456" },
+  { country: "San Marino", capital: "San Marino", prefix: "+378", mobile: "66 123456" },
+  { country: "Serbia", capital: "Belgrade", prefix: "+381", mobile: "60 123 4567" },
+  { country: "Slovakia", capital: "Bratislava", prefix: "+421", mobile: "901 123 456" },
+  { country: "Slovenia", capital: "Ljubljana", prefix: "+386", mobile: "41 123 456" },
+  { country: "Spain", capital: "Madrid", prefix: "+34", mobile: "600 123 456" },
+  { country: "Sweden", capital: "Stockholm", prefix: "+46", mobile: "70 123 45 67" },
+  { country: "Switzerland", capital: "Bern", prefix: "+41", mobile: "79 123 45 67" },
+  { country: "Turkey", capital: "Ankara", prefix: "+90", mobile: "532 123 45 67" },
+  { country: "Ukraine", capital: "Kyiv", prefix: "+380", mobile: "50 123 4567" },
+  { country: "United Kingdom", capital: "London", prefix: "+44", mobile: "7700 123456" }
+];

@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
 import { supabase } from '../../lib/supabase';
+import { sendQuoteRequestEmails } from '../../lib/email';
+import { notifyOrganizer, notifyCustomer } from '../../lib/sms';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -60,6 +62,22 @@ export const POST: APIRoute = async ({ request }) => {
           headers: { 'Content-Type': 'application/json' },
         }
       );
+    }
+
+    // Send emails (non-blocking)
+    sendQuoteRequestEmails(quoteRequest).catch(err => console.error('Email sending failed:', err));
+
+    // 1. Notify Organizer (Internal)
+    const organizerMsg = `[NOTIFICA CHEF] New Quote Request - ${customer_name} - ${city}. Guests: ${num_guests}. Date: ${start_date}.`;
+    notifyOrganizer(organizerMsg).catch(err => console.error('Organizer SMS failed:', err));
+
+    // 2. Notify Customer (WhatsApp)
+    if (customer_phone) {
+        // Template: "Hello {{1}}, thank you for your request regarding {{2}}. We will get back to you within 48 hours."
+        const customerMsg = `[CONFERMA CLIENTE] Hello ${customer_name}, thank you for your request regarding ${num_guests} guests. We will get back to you within 48 hours.`;
+        
+        // Use WhatsApp
+        notifyCustomer(customer_phone, customerMsg, true).catch(err => console.error('Customer WhatsApp failed:', err));
     }
 
     return new Response(

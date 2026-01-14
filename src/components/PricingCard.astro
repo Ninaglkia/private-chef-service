@@ -115,7 +115,7 @@ const {
                 <input type="checkbox" class="add-sunday-checkbox w-4 h-4 text-gold-500 rounded border-gray-300 focus:ring-gold-500 mr-2 transition-colors cursor-pointer" />
                 Add Sunday
               </span>
-              <span class="text-sm font-medium text-gray-500 italic">su richiesta</span>
+              <span class="text-sm font-medium text-gray-900">+€{(weekendPrice/100).toLocaleString()}</span>
             </label>
           </div>
         </div>
@@ -133,71 +133,113 @@ const {
         >
           {buttonText}
         </a>
+        <p class="text-xs text-gray-500 text-center leading-relaxed mt-3">
+          Subject to confirmation within 48 hours. Full refund if not confirmed.
+        </p>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  document.addEventListener('astro:page-load', () => {
+  function initPricingCards() {
     const cards = document.querySelectorAll('.pricing-card');
+    const STORAGE_KEY = 'weekend_preferences';
 
+    // Helper to load state
+    const loadState = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : { saturday: false, sunday: false };
+      } catch (e) {
+        return { saturday: false, sunday: false };
+      }
+    };
+
+    // Helper to save state
+    const saveState = (state: { saturday: boolean; sunday: boolean }) => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    };
+
+    // Helper to update UI visuals
+    const updateVisuals = (label: HTMLElement, isChecked: boolean) => {
+      if (isChecked) {
+        label.classList.add('bg-gold-50', 'rounded-lg', 'px-2', '-mx-2');
+      } else {
+        label.classList.remove('bg-gold-50', 'rounded-lg', 'px-2', '-mx-2');
+      }
+    };
+
+    // Initial state
+    let currentState = loadState();
+
+    // Function to sync all cards with current state
+    const syncAllCards = () => {
+      cards.forEach(card => {
+        const saturdayCheckbox = card.querySelector('.add-saturday-checkbox') as HTMLInputElement;
+        const sundayCheckbox = card.querySelector('.add-sunday-checkbox') as HTMLInputElement;
+        const bookBtn = card.querySelector('.book-now-btn') as HTMLAnchorElement;
+
+        if (saturdayCheckbox) {
+          saturdayCheckbox.checked = currentState.saturday;
+          const label = saturdayCheckbox.closest('label');
+          if (label) updateVisuals(label, currentState.saturday);
+        }
+
+        if (sundayCheckbox) {
+          sundayCheckbox.checked = currentState.sunday;
+          const label = sundayCheckbox.closest('label');
+          if (label) updateVisuals(label, currentState.sunday);
+        }
+
+        if (bookBtn) {
+          const baseHref = bookBtn.dataset.baseHref || bookBtn.href;
+          const url = new URL(baseHref, window.location.origin);
+          
+          url.searchParams.delete('add_saturday');
+          url.searchParams.delete('add_sunday');
+
+          if (currentState.saturday) {
+            url.searchParams.append('add_saturday', 'true');
+          }
+          if (currentState.sunday) {
+            url.searchParams.append('add_sunday', 'true');
+          }
+
+          bookBtn.href = url.pathname + url.search;
+        }
+      });
+    };
+
+    // Attach listeners
     cards.forEach(card => {
       const saturdayCheckbox = card.querySelector('.add-saturday-checkbox') as HTMLInputElement;
       const sundayCheckbox = card.querySelector('.add-sunday-checkbox') as HTMLInputElement;
-      const bookBtn = card.querySelector('.book-now-btn') as HTMLAnchorElement;
-
-      if (!bookBtn) return;
-
-      const updateHref = () => {
-        const baseHref = bookBtn.dataset.baseHref || bookBtn.href;
-        const url = new URL(baseHref, window.location.origin);
-        
-        // Remove existing params first to avoid duplicates if re-running
-        url.searchParams.delete('add_saturday');
-        url.searchParams.delete('add_sunday');
-
-        if (saturdayCheckbox && saturdayCheckbox.checked) {
-          url.searchParams.append('add_saturday', 'true');
-        }
-        if (sundayCheckbox && sundayCheckbox.checked) {
-          url.searchParams.append('add_sunday', 'true');
-        }
-
-        // Keep the relative path + query
-        bookBtn.href = url.pathname + url.search;
-      };
 
       if (saturdayCheckbox) {
-        saturdayCheckbox.addEventListener('change', updateHref);
+        saturdayCheckbox.addEventListener('change', (e) => {
+          currentState.saturday = (e.target as HTMLInputElement).checked;
+          saveState(currentState);
+          syncAllCards();
+        });
       }
+
       if (sundayCheckbox) {
-        sundayCheckbox.addEventListener('change', updateHref);
+        sundayCheckbox.addEventListener('change', (e) => {
+          currentState.sunday = (e.target as HTMLInputElement).checked;
+          saveState(currentState);
+          syncAllCards();
+        });
       }
     });
-  });
+
+    // Initial sync
+    syncAllCards();
+  }
+
+  // Run on standard load
+  document.addEventListener('DOMContentLoaded', initPricingCards);
   
-  // Also run on initial load if view transitions are not used or for first render
-  window.dispatchEvent(new Event('astro:page-load'));
+  // Run on Astro view transitions
+  document.addEventListener('astro:page-load', initPricingCards);
 </script>
-    </div>
-
-    <div class="mt-auto space-y-4">
-      <div class={weekendPrice ? "p-4 bg-gradient-to-br from-gold-50 to-cream-100 rounded-xl border border-gold-300 shadow-soft" : "h-[68px]"}>
-        {weekendPrice && (
-          <div class="text-center">
-            <div class="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Weekend Add-on</div>
-            <div class="text-2xl font-serif font-semibold text-gray-900">{formatPrice(weekendPrice)}<span class="text-sm font-normal text-gray-600">/day</span></div>
-          </div>
-        )}
-      </div>
-
-      <div class={`w-full py-3 rounded-xl font-semibold text-center text-base transition-all duration-300 ${highlighted ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-soft hover:shadow-soft-lg' : 'border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'}`}>
-        {buttonText}
-      </div>
-      <p class="text-xs text-gray-500 text-center leading-relaxed mt-3">
-        Subject to confirmation within 48 hours. Full refund if not confirmed.
-      </p>
-    </div>
-  </div>
-</a>

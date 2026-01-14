@@ -3,65 +3,125 @@ const { transparent = false } = Astro.props;
 const pathname = Astro.url.pathname;
 ---
 
-<header class={`fixed w-full top-0 z-50 transition-all duration-300 ${transparent ? 'bg-transparent' : 'bg-white/95 backdrop-blur-md shadow-soft border-b border-gray-100/50'}`}>
+<header id="main-header" class={`fixed w-full top-0 z-50 transition-all duration-300 ${transparent ? 'bg-transparent text-white' : 'bg-white/95 backdrop-blur-md shadow-soft border-b border-gray-100/50 text-gray-900'}`} data-transparent={transparent}>
   <nav class="container mx-auto px-6 py-4">
     <div class="flex items-center justify-between">
-      <a href="/" class="text-2xl font-semibold tracking-tight text-gold-600 hover:text-gold-500 transition-colors">
+      <a href="/" id="header-logo" class={`text-2xl font-semibold tracking-tight transition-colors ${transparent ? 'text-white' : 'text-gold-600'}`}>
         Private Chef
       </a>
 
       <div class="hidden md:flex items-center space-x-12">
         <a
           href="/#how-it-works"
-          class={`text-sm font-medium ${transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+          class={`text-sm font-medium transition-colors header-link ${transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
         >
           How It Works
         </a>
         <a
           href="/#pricing"
-          class={`text-sm font-medium ${transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+          class={`text-sm font-medium transition-colors header-link ${transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
         >
           Pricing
         </a>
+
         <a
           href="/#faq"
-          class={`text-sm font-medium ${transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+          class={`text-sm font-medium transition-colors header-link ${transparent ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
         >
           FAQ
         </a>
         <a
           href="/#pricing"
-          class="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-300 text-sm font-semibold"
+          class="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-300 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
           Book Now
         </a>
       </div>
 
-      <button
-        class={`md:hidden ${transparent ? 'text-white' : 'text-gray-900'}`}
-        id="mobile-menu-button"
-        aria-label="Toggle menu"
-      >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
+      <div class="flex items-center md:hidden gap-3">
+        <a
+          href="/#pricing"
+          class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-300 text-xs font-semibold shadow-md"
+        >
+          Book Now
+        </a>
+        <button
+          class={`focus:outline-none transition-colors ${transparent ? 'text-white' : 'text-gray-900'}`}
+          id="mobile-menu-button"
+          aria-label="Toggle menu"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <div class="hidden md:hidden mt-4 pb-4 space-y-3" id="mobile-menu">
-      <a href="/#how-it-works" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2">How It Works</a>
-      <a href="/#pricing" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2">Pricing</a>
-      <a href="/#faq" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2">FAQ</a>
-      <a href="/#pricing" class="block text-center px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 text-sm font-semibold">Book Now</a>
+    <div class="hidden md:hidden mt-4 pb-4 space-y-3 bg-white/95 backdrop-blur-md rounded-xl p-4 shadow-lg absolute left-4 right-4 top-20 border border-gray-100" id="mobile-menu">
+      <a href="/#how-it-works" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2 px-2 rounded hover:bg-gray-50">How It Works</a>
+      <a href="/luxury-experience" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2 px-2 rounded hover:bg-gray-50 text-gold-600">Luxury Experience</a>
+      <a href="/#pricing" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2 px-2 rounded hover:bg-gray-50">Pricing</a>
+      <a href="/#faq" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2 px-2 rounded hover:bg-gray-50">FAQ</a>
     </div>
   </nav>
 </header>
 
 <script>
+  const header = document.getElementById('main-header');
+  const logo = document.getElementById('header-logo');
+  const links = document.querySelectorAll('.header-link');
+  const menuBtn = document.getElementById('mobile-menu-button');
+  const isTransparent = header?.dataset.transparent === 'true';
+
+  function updateHeader() {
+    if (!header || !isTransparent) return;
+
+    if (window.scrollY > 20) {
+      header.classList.remove('bg-transparent', 'text-white');
+      header.classList.add('bg-white/95', 'backdrop-blur-md', 'shadow-soft', 'border-b', 'border-gray-100/50', 'text-gray-900');
+      
+      logo?.classList.remove('text-white');
+      logo?.classList.add('text-gold-600');
+      
+      menuBtn?.classList.remove('text-white');
+      menuBtn?.classList.add('text-gray-900');
+
+      links.forEach(link => {
+        link.classList.remove('text-white/80', 'hover:text-white');
+        link.classList.add('text-gray-600', 'hover:text-gray-900');
+      });
+    } else {
+      header.classList.add('bg-transparent', 'text-white');
+      header.classList.remove('bg-white/95', 'backdrop-blur-md', 'shadow-soft', 'border-b', 'border-gray-100/50', 'text-gray-900');
+      
+      logo?.classList.add('text-white');
+      logo?.classList.remove('text-gold-600');
+      
+      menuBtn?.classList.add('text-white');
+      menuBtn?.classList.remove('text-gray-900');
+
+      links.forEach(link => {
+        link.classList.add('text-white/80', 'hover:text-white');
+        link.classList.remove('text-gray-600', 'hover:text-gray-900');
+      });
+    }
+  }
+
+  window.addEventListener('scroll', updateHeader);
+  // Initial check
+  updateHeader();
+
   const mobileMenuButton = document.getElementById('mobile-menu-button');
   const mobileMenu = document.getElementById('mobile-menu');
 
   mobileMenuButton?.addEventListener('click', () => {
     mobileMenu?.classList.toggle('hidden');
+  });
+  
+  // Close menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!header?.contains(e.target as Node)) {
+      mobileMenu?.classList.add('hidden');
+    }
   });
 </script>

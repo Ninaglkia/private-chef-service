@@ -2,8 +2,21 @@
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { PLANS, CUSTOM_PLAN } from '../lib/pricing';
+import { EUROPEAN_COUNTRIES, ALL_CAPITALS } from '../lib/european-data';
 
 const preselectedGuests = Astro.url.searchParams.get('guests');
+const selectedPlanId = Astro.url.searchParams.get('plan');
+
+let selectedPlanName = '';
+if (selectedPlanId) {
+  if (selectedPlanId === 'custom') {
+    selectedPlanName = CUSTOM_PLAN.name;
+  } else if (Object.keys(PLANS).includes(selectedPlanId)) {
+    selectedPlanName = PLANS[selectedPlanId as keyof typeof PLANS].name;
+  }
+}
+
 ---
 
 <Layout title="Book Your Private Chef | Weekly Private Chef">
@@ -19,100 +32,87 @@ const preselectedGuests = Astro.url.searchParams.get('guests');
           <p class="text-lg text-gray-600 max-w-2xl mx-auto">
             Complete the form below to reserve your service
           </p>
+          <div id="selected-plan-placeholder" class="hidden"></div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-soft-xl p-10 md:p-16 border border-gray-200">
-          <form id="booking-form" class="space-y-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <label for="customer_name" class="block text-sm font-semibold text-gray-900 mb-2">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  id="customer_name"
-                  name="customer_name"
-                  required
-                  class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
-                  placeholder="John Smith"
-                />
+        <div class="bg-white rounded-2xl shadow-soft-xl p-8 md:p-12 border border-gray-200">
+          <form id="booking-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+              
+              <!-- Selected Plan Section -->
+              <div id="selected-plan" class="col-span-1 md:col-span-2 transition-all duration-500 ease-in-out empty:hidden"></div>
+
+              <!-- Personal Details -->
+              <div class="space-y-2">
+                <label for="customer_name" class="block text-sm font-bold text-gray-900">Full Name *</label>
+                <input type="text" id="customer_name" name="customer_name" required class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white" placeholder="John Smith" />
               </div>
 
-              <div>
-                <label for="customer_email" class="block text-sm font-semibold text-gray-900 mb-2">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  id="customer_email"
-                  name="customer_email"
-                  required
-                  class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
-                  placeholder="john@example.com"
-                />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <label for="customer_phone" class="block text-sm font-semibold text-gray-900 mb-2">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  id="customer_phone"
-                  name="customer_phone"
-                  class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
-                  placeholder="+34 612 345 678"
-                />
+              <div class="space-y-2">
+                <label for="customer_email" class="block text-sm font-bold text-gray-900">Email Address *</label>
+                <input type="email" id="customer_email" name="customer_email" required class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white" placeholder="john@example.com" />
               </div>
 
-              <div>
-                <label for="city" class="block text-sm font-semibold text-gray-900 mb-2">
-                  City *
-                </label>
-                <input
-                  type="text"
-                  id="city"
-                  name="city"
-                  required
-                  class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
-                  placeholder="Barcelona"
-                />
+              <!-- Phone & City -->
+              <div class="space-y-2">
+                <label for="phone_number_local" class="block text-sm font-bold text-gray-900">Phone Number</label>
+                <div class="flex flex-col md:flex-row gap-3">
+                  <div class="relative" id="country-selector">
+                    <input type="hidden" name="phone_country_code" id="phone_country_code" value="+34">
+                    <button type="button" id="country-trigger" class="w-full md:w-[140px] px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 bg-gray-50 focus:bg-white flex items-center justify-between gap-2 transition-all duration-200 h-[64px]">
+                      <span class="flex items-center gap-2">
+                        <span id="selected-flag" class="text-xl">🇪🇸</span>
+                        <span id="selected-dial-code" class="text-gray-900 font-medium">+34</span>
+                      </span>
+                      <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" id="country-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <div id="country-dropdown" class="hidden absolute top-full left-0 mt-2 w-80 max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50">
+                      <div class="p-3 sticky top-0 bg-white border-b border-gray-100 z-10">
+                        <input type="text" id="country-search" placeholder="Search country..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold-400 transition-colors">
+                      </div>
+                      <ul class="py-1">
+                        {EUROPEAN_COUNTRIES.map((country) => (
+                          <li>
+                            <button type="button" class="country-option w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-0" data-code={country.dial_code} data-flag={country.flag} data-name={country.name.toLowerCase()}>
+                              <span class="text-2xl">{country.flag}</span>
+                              <span class="flex-1 text-gray-900 font-medium">{country.name}</span>
+                              <span class="text-gray-500 text-sm font-mono">{country.dial_code}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="flex-1 relative">
+                    <input type="tel" id="phone_number_local" name="phone_number_local" class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white h-[64px]" placeholder="612 345 678" />
+                    <div id="phone-validation-msg" class="absolute -bottom-6 left-0 text-xs text-red-500 hidden">Please enter a valid phone number</div>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div class="relative">
-                <label for="start_date" class="block text-sm font-semibold text-gray-900 mb-2">
-                  Select Service Dates *
-                </label>
+              <div class="space-y-2">
+                <label for="city" class="block text-sm font-bold text-gray-900">City *</label>
                 <div class="relative">
-                  <input
-                    type="text"
-                    id="start_date"
-                    name="start_date"
-                    required
-                    readonly
-                    placeholder="Select start and end dates"
-                    class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg cursor-pointer bg-white"
-                  />
-                  <svg class="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                  <select id="city" name="city" required class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg appearance-none bg-gray-50 focus:bg-white cursor-pointer h-[64px]">
+                    <option value="" disabled selected>Select a city</option>
+                    {ALL_CAPITALS.map((capital) => (<option value={capital}>{capital}</option>))}
+                  </select>
+                  <div class="absolute inset-y-0 right-0 flex items-center px-5 pointer-events-none text-gray-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></div>
+                </div>
+              </div>
+
+              <!-- Dates & Guests -->
+              <div class="space-y-2 relative">
+                <label for="start_date" class="block text-sm font-bold text-gray-900">Select Service Dates *</label>
+                <div class="relative">
+                  <input type="text" id="start_date" name="start_date" required readonly placeholder="Select start and end dates" class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg cursor-pointer bg-gray-50 focus:bg-white h-[64px]" />
+                  <svg class="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  
                   <div id="calendar-container" class="hidden absolute left-0 z-50 mt-2 bg-white rounded-2xl shadow-2xl border-2 border-gray-200 p-6 w-[400px] max-w-[95vw]">
                     <div class="flex items-center justify-between mb-6">
-                      <button type="button" id="prev-month" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
+                      <button type="button" id="prev-month" class="p-2 hover:bg-gray-100 rounded-lg transition-colors"><svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
                       <h3 id="calendar-month-year" class="text-lg font-semibold text-gray-900"></h3>
-                      <button type="button" id="next-month" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
+                      <button type="button" id="next-month" class="p-2 hover:bg-gray-100 rounded-lg transition-colors"><svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
                     </div>
                     <div class="grid grid-cols-7 gap-2 mb-3">
                       <div class="text-center text-xs font-semibold text-gray-600 py-2">Mon</div>
@@ -129,16 +129,9 @@ const preselectedGuests = Astro.url.searchParams.get('guests');
                 <p class="mt-2 text-sm text-gray-500" id="date-help-text">Select a Monday as start date</p>
               </div>
 
-              <div>
-                <label for="num_guests" class="block text-sm font-semibold text-gray-900 mb-2">
-                  Number of Guests *
-                </label>
-                <select
-                  id="num_guests"
-                  name="num_guests"
-                  required
-                  class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
-                >
+              <div class="space-y-2">
+                <label for="num_guests" class="block text-sm font-bold text-gray-900">Number of Guests *</label>
+                <select id="num_guests" name="num_guests" required class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white h-[64px]">
                   <option value="">Select number of guests</option>
                   <option value="2">2 guests</option>
                   <option value="3">3 guests</option>
@@ -162,118 +155,75 @@ const preselectedGuests = Astro.url.searchParams.get('guests');
                   <option value="21">20+ guests</option>
                 </select>
               </div>
-            </div>
 
-            <div>
-              <label class="block text-sm font-semibold text-gray-900 mb-2">
-                Selected Plan
-              </label>
-              <div id="selected-plan" class="bg-cream-50 rounded-xl p-6 border-2 border-cream-200 shadow-soft">
-                <p class="text-gray-600 text-base">Select number of guests to see your plan</p>
-              </div>
-            </div>
-
-            <div id="weekend-extras" class="hidden">
-              <label class="block text-sm font-semibold text-gray-900 mb-3">
-                Weekend Add-ons (Optional)
-              </label>
-              <div class="space-y-3">
-                <label class="flex items-center p-4 bg-gray-50 rounded-xl border-2 border-gray-200 cursor-pointer hover:border-gold-400 transition-all duration-200">
-                  <input type="checkbox" id="add_saturday" name="add_saturday" class="w-5 h-5 text-gold-500 border-gray-300 rounded focus:ring-gold-400" />
-                  <span class="ml-3 text-gray-900 font-medium">Add Saturday</span>
-                  <span id="saturday-price" class="ml-auto text-gray-600 font-semibold"></span>
-                </label>
-                <label class="flex items-center p-4 bg-gray-50 rounded-xl border-2 border-gray-200 cursor-pointer hover:border-gold-400 transition-all duration-200">
-                  <input type="checkbox" id="add_sunday" name="add_sunday" class="w-5 h-5 text-gold-500 border-gray-300 rounded focus:ring-gold-400" />
-                  <span class="ml-3 text-gray-900 font-medium">Add Sunday</span>
-                  <span id="sunday-price" class="ml-auto text-gray-600 font-semibold"></span>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <label for="dietary_preferences" id="notes-label" class="block text-sm font-semibold text-gray-900 mb-2">
-                Dietary Preferences & Allergies
-              </label>
-              <textarea
-                id="dietary_preferences"
-                name="dietary_preferences"
-                rows="5"
-                class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg"
-                placeholder="Please specify any dietary restrictions, allergies, or food preferences..."
-              ></textarea>
-            </div>
-
-            <div id="price-section" class="bg-gray-900 text-white rounded-2xl p-8 shadow-soft-lg">
-              <div class="flex justify-between items-center mb-6">
-                <span class="text-lg font-semibold">Total Price</span>
-                <span id="total-price" class="text-4xl font-semibold">€0</span>
-              </div>
-              <div id="price-breakdown" class="text-base text-gray-300 space-y-2">
-                <p>Select number of guests to calculate price</p>
-              </div>
-            </div>
-
-            <div class="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-2xl p-8">
-              <div class="flex items-start">
-                <svg class="w-6 h-6 text-blue-600 mr-4 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900 mb-3">Booking Confirmation Policy</h3>
-                  <p class="text-sm text-gray-700 mb-2">
-                    When you complete your booking and payment, your request is subject to confirmation by our team.
-                  </p>
-                  <ul class="space-y-2 text-sm text-gray-700">
-                    <li class="flex items-start">
-                      <svg class="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                      </svg>
-                      <span>All booking requests are reviewed and confirmed within 48 hours</span>
-                    </li>
-                    <li class="flex items-start">
-                      <svg class="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                      </svg>
-                      <span>If we cannot assign a suitable chef within 48 hours, you will receive a full automatic refund</span>
-                    </li>
-                    <li class="flex items-start">
-                      <svg class="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                      </svg>
-                      <span>No charges are retained if your booking cannot be confirmed</span>
-                    </li>
-                  </ul>
+              <!-- Weekend Extras -->
+              <div id="weekend-extras" class="hidden col-span-1 md:col-span-2 bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <label class="block text-sm font-bold text-gray-900 mb-4">Weekend Add-ons (Optional)</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label class="flex items-center p-4 bg-white rounded-xl border-2 border-gray-200 cursor-pointer hover:border-gold-400 transition-all duration-200 shadow-sm">
+                    <input type="checkbox" id="add_saturday" name="add_saturday" class="w-5 h-5 text-gold-500 border-gray-300 rounded focus:ring-gold-400" />
+                    <span class="ml-3 text-gray-900 font-medium">Add Saturday</span>
+                    <span id="saturday-price" class="ml-auto text-gray-600 font-semibold"></span>
+                  </label>
+                  <label class="flex items-center p-4 bg-white rounded-xl border-2 border-gray-200 cursor-pointer hover:border-gold-400 transition-all duration-200 shadow-sm">
+                    <input type="checkbox" id="add_sunday" name="add_sunday" class="w-5 h-5 text-gold-500 border-gray-300 rounded focus:ring-gold-400" />
+                    <span class="ml-3 text-gray-900 font-medium">Add Sunday</span>
+                    <span id="sunday-price" class="ml-auto text-gray-600 font-semibold"></span>
+                  </label>
                 </div>
               </div>
+
+              <!-- Dietary -->
+              <div class="col-span-1 md:col-span-2 space-y-2">
+                <label for="dietary_preferences" id="notes-label" class="block text-sm font-bold text-gray-900">Dietary Preferences & Allergies</label>
+                <textarea id="dietary_preferences" name="dietary_preferences" rows="4" class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white" placeholder="Please specify any dietary restrictions, allergies, or food preferences..."></textarea>
+              </div>
+
+              <!-- Price Section (Redesigned) -->
+              <div id="price-section" class="col-span-1 md:col-span-2 bg-gray-50 rounded-xl p-8 border border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                  <span class="text-lg font-bold text-gray-900">Total Price</span>
+                  <span id="total-price" class="text-4xl font-bold text-gray-900">€0</span>
+                </div>
+                <div id="price-breakdown" class="text-base text-gray-600 space-y-1">
+                  <p>Select number of guests to calculate price</p>
+                </div>
+              </div>
+
+              <!-- Policy Section (Redesigned) -->
+              <div class="col-span-1 md:col-span-2 bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <div class="flex items-start">
+                  <svg class="w-6 h-6 text-gold-500 mr-4 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">Booking Confirmation Policy</h3>
+                    <p class="text-sm text-gray-600 mb-3">When you complete your booking and payment, your request is subject to confirmation by our team.</p>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                      <li class="flex items-start"><svg class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg><span>All booking requests are reviewed and confirmed within 48 hours</span></li>
+                      <li class="flex items-start"><svg class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg><span>If we cannot assign a suitable chef within 48 hours, you will receive a full automatic refund</span></li>
+                      <li class="flex items-start"><svg class="w-4 h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg><span>No charges are retained if your booking cannot be confirmed</span></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- GDPR -->
+              <div class="col-span-1 md:col-span-2 flex items-start pt-2">
+                <input type="checkbox" id="gdpr_consent" name="gdpr_consent" required class="w-5 h-5 mt-1 text-gold-600 border-gray-300 rounded focus:ring-gold-400" />
+                <label for="gdpr_consent" class="ml-3 text-sm text-gray-600 leading-relaxed">
+                  I agree to the <a href="/terms" class="text-gold-600 underline font-medium hover:text-gold-700">Terms & Conditions</a> and <a href="/privacy" class="text-gold-600 underline font-medium hover:text-gold-700">Privacy Policy</a>. I understand that payment is 100% upfront and non-refundable within 7 days of service start. *
+                </label>
+              </div>
+
+              <!-- Submit -->
+              <div class="col-span-1 md:col-span-2 space-y-3">
+                <button type="submit" id="submit-button" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">Proceed to Payment</button>
+                <p class="text-center text-sm text-gray-500 flex items-center justify-center gap-2">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5z"/></svg>
+                  Secure payment powered by Stripe
+                </p>
+              </div>
+
             </div>
-
-            <div class="flex items-start pt-4">
-              <input
-                type="checkbox"
-                id="gdpr_consent"
-                name="gdpr_consent"
-                required
-                class="w-6 h-6 mt-1 text-gold-600 border-gray-300 rounded-lg focus:ring-gold-400"
-              />
-              <label for="gdpr_consent" class="ml-4 text-base text-gray-600 leading-relaxed">
-                I agree to the <a href="/terms" class="text-gold-600 underline font-medium hover:text-gold-700">Terms & Conditions</a> and
-                <a href="/privacy" class="text-gold-600 underline font-medium hover:text-gold-700">Privacy Policy</a>. I understand that payment
-                is 100% upfront and non-refundable within 7 days of service start. *
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              id="submit-button"
-              class="w-full bg-gray-900 text-white py-4 rounded-lg font-semibold text-lg hover:bg-gray-800 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Proceed to Payment
-            </button>
-
-            <p class="text-center text-base text-gray-500">
-              Secure payment powered by Stripe
-            </p>
           </form>
         </div>
       </div>
@@ -653,11 +603,17 @@ const preselectedGuests = Astro.url.searchParams.get('guests');
 
     const formData = new FormData(bookingForm);
 
+    const phoneCountryCode = formData.get('phone_country_code');
+    const phoneNumberLocal = formData.get('phone_number_local');
+    const fullPhone = (phoneCountryCode && phoneNumberLocal) 
+      ? `${phoneCountryCode} ${phoneNumberLocal}`
+      : (formData.get('customer_phone') || null);
+
     if (isCustomQuote) {
       const quoteData = {
         customer_name: formData.get('customer_name'),
         customer_email: formData.get('customer_email'),
-        customer_phone: formData.get('customer_phone') || null,
+        customer_phone: fullPhone,
         city: formData.get('city'),
         start_date: startDateInput.getAttribute('data-start-date'),
         num_guests: numGuests,
@@ -739,11 +695,229 @@ const preselectedGuests = Astro.url.searchParams.get('guests');
 
   renderCalendar();
 
+  const STORAGE_KEY = 'weekend_preferences';
+  
+  // Helper to load state
+  const loadState = () => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : { saturday: false, sunday: false };
+    } catch (e) {
+      return { saturday: false, sunday: false };
+    }
+  };
+
+  // Helper to save state
+  const saveState = (state: { saturday: boolean; sunday: boolean }) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  };
+
   const urlParams = new URLSearchParams(window.location.search);
   const preselectedGuests = urlParams.get('guests');
+  const addSaturdayParam = urlParams.get('add_saturday');
+  const addSundayParam = urlParams.get('add_sunday');
+  const planParam = urlParams.get('plan');
+
+  console.log('Booking Page Loaded. Params:', {
+    guests: preselectedGuests,
+    add_saturday: addSaturdayParam,
+    add_sunday: addSundayParam,
+    plan: planParam
+  });
+
   if (preselectedGuests && numGuestsSelect) {
     numGuestsSelect.value = preselectedGuests;
   }
 
-  updatePricing();
+  // Handle Persistence Logic
+  let currentState = loadState();
+  const hasSaturdayParam = addSaturdayParam !== null;
+  const hasSundayParam = addSundayParam !== null;
+
+  if (hasSaturdayParam || hasSundayParam) {
+    // URL params take precedence and update storage
+    if (hasSaturdayParam) {
+      currentState.saturday = addSaturdayParam === 'true';
+    }
+    if (hasSundayParam) {
+      currentState.sunday = addSundayParam === 'true';
+    }
+    saveState(currentState);
+  }
+
+  // Apply state to checkboxes
+  if (addSaturdayCheckbox) {
+    addSaturdayCheckbox.checked = currentState.saturday;
+  }
+  if (addSundayCheckbox) {
+    addSundayCheckbox.checked = currentState.sunday;
+  }
+
+  function updateCheckboxStyles() {
+    [addSaturdayCheckbox, addSundayCheckbox].forEach(checkbox => {
+      if (!checkbox) return;
+      const label = checkbox.closest('label');
+      if (label) {
+        if (checkbox.checked) {
+          label.classList.add('border-gold-500', 'bg-gold-50');
+          label.classList.remove('border-gray-200', 'bg-gray-50');
+        } else {
+          label.classList.remove('border-gold-500', 'bg-gold-50');
+          label.classList.add('border-gray-200', 'bg-gray-50');
+        }
+      }
+    });
+  }
+
+  // Update storage on change
+  addSaturdayCheckbox?.addEventListener('change', () => {
+    currentState.saturday = addSaturdayCheckbox.checked;
+    saveState(currentState);
+    updateCheckboxStyles();
+  });
+
+  addSundayCheckbox?.addEventListener('change', () => {
+    currentState.sunday = addSundayCheckbox.checked;
+    saveState(currentState);
+    updateCheckboxStyles();
+  });
+
+  updateCheckboxStyles();
+  // updatePricing() moved to end of script for safety
+
+  // --- Phone Number Selector Logic ---
+  const countrySelector = document.getElementById('country-selector');
+  const countryTrigger = document.getElementById('country-trigger');
+  const countryDropdown = document.getElementById('country-dropdown');
+  const countrySearch = document.getElementById('country-search') as HTMLInputElement;
+  const countryOptions = document.querySelectorAll('.country-option');
+  const hiddenInput = document.getElementById('phone_country_code') as HTMLInputElement;
+  const selectedFlag = document.getElementById('selected-flag');
+  const selectedDialCode = document.getElementById('selected-dial-code');
+  const countryArrow = document.getElementById('country-arrow');
+  const phoneInput = document.getElementById('phone_number_local') as HTMLInputElement;
+  const phoneValidationMsg = document.getElementById('phone-validation-msg');
+
+  // Toggle Dropdown
+  countryTrigger?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = countryDropdown?.classList.contains('hidden');
+    
+    if (isHidden) {
+      countryDropdown?.classList.remove('hidden');
+      countryArrow?.classList.add('rotate-180');
+      countrySearch?.focus();
+    } else {
+      closeDropdown();
+    }
+  });
+
+  function closeDropdown() {
+    countryDropdown?.classList.add('hidden');
+    countryArrow?.classList.remove('rotate-180');
+    if (countrySearch) countrySearch.value = '';
+    filterCountries('');
+  }
+
+  // Close on click outside
+  document.addEventListener('click', (e) => {
+    if (countrySelector && !countrySelector.contains(e.target as Node)) {
+      closeDropdown();
+    }
+  });
+
+  // Filter Logic
+  function filterCountries(query: string) {
+    const lowerQuery = query.toLowerCase();
+    countryOptions.forEach(option => {
+      const name = option.getAttribute('data-name') || '';
+      const code = option.getAttribute('data-code') || '';
+      if (name.includes(lowerQuery) || code.includes(lowerQuery)) {
+        (option.parentElement as HTMLElement).style.display = 'block';
+      } else {
+        (option.parentElement as HTMLElement).style.display = 'none';
+      }
+    });
+  }
+
+  countrySearch?.addEventListener('input', (e) => {
+    filterCountries((e.target as HTMLInputElement).value);
+  });
+
+  // Selection Logic
+  countryOptions.forEach(option => {
+    option.addEventListener('click', () => {
+      const code = option.getAttribute('data-code');
+      const flag = option.getAttribute('data-flag');
+      
+      if (code && flag) {
+        hiddenInput.value = code;
+        if (selectedFlag) selectedFlag.textContent = flag;
+        if (selectedDialCode) selectedDialCode.textContent = code;
+        
+        // Update styling
+        countryOptions.forEach(opt => opt.classList.remove('bg-gold-50'));
+        option.classList.add('bg-gold-50');
+        
+        closeDropdown();
+        phoneInput?.focus();
+      }
+    });
+  });
+
+  // Phone Validation Logic
+  phoneInput?.addEventListener('input', (e) => {
+    const input = e.target as HTMLInputElement;
+    // Remove non-numeric characters
+    input.value = input.value.replace(/[^0-9]/g, '');
+    
+    validatePhone();
+  });
+
+  function validatePhone() {
+    if (!phoneInput) return false;
+    const value = phoneInput.value;
+    const isValid = value.length >= 7 && value.length <= 15; // Basic length validation
+    
+    if (value.length > 0 && !isValid) {
+      phoneInput.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+      phoneInput.classList.remove('border-gray-200', 'focus:border-gold-400', 'focus:ring-gold-400');
+      phoneValidationMsg?.classList.remove('hidden');
+      return false;
+    } else {
+      phoneInput.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+      phoneInput.classList.add('border-gray-200', 'focus:border-gold-400', 'focus:ring-gold-400');
+      phoneValidationMsg?.classList.add('hidden');
+      return isValid;
+    }
+  }
+
+  // Validate on blur too
+  phoneInput?.addEventListener('blur', validatePhone);
+
+  // Safe initialization of pricing
+  try {
+    updatePricing();
+  } catch (e) {
+    console.error('Error initializing pricing:', e);
+  }
+
+  // Diagnostic Test
+  (function runDiagnostics() {
+    console.log('--- Phone Selector Diagnostics ---');
+    const els = {
+      selector: document.getElementById('country-selector'),
+      trigger: document.getElementById('country-trigger'),
+      dropdown: document.getElementById('country-dropdown'),
+      options: document.querySelectorAll('.country-option').length,
+      input: document.getElementById('phone_number_local')
+    };
+    console.table(els);
+    
+    if (!els.trigger || !els.dropdown) {
+      console.error('CRITICAL: Phone selector elements missing!');
+    } else {
+      console.log('Phone selector initialized successfully');
+    }
+  })();
 </script>
