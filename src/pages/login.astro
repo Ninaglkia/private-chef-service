@@ -1,70 +1,70 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Header from '../components/Header.astro';
 ---
 
-<Layout title="Login - Private Chef Service" bodyClass="bg-gray-50 text-gray-900">
-  <Header transparent={false} />
-  
-  <div class="min-h-screen flex flex-col justify-center px-4 py-12 sm:px-6 lg:px-8 bg-gray-50 relative overflow-hidden">
-    
-    <div class="mx-auto w-full max-w-md bg-white py-8 px-4 shadow-xl border border-gray-200 sm:rounded-2xl sm:px-10 relative z-10">
-        
-        <div class="mb-8 text-center">
-            <h2 class="text-3xl font-bold text-gray-900">Log in</h2>
-            <p class="mt-2 text-sm text-gray-600">
-                Accedi al tuo account Private Chef
-            </p>
-        </div>
+<Layout title="Login - Private Chef Service">
+  <div class="min-h-screen bg-black text-white flex flex-col justify-center px-4">
+    <div class="mx-auto w-full max-w-sm">
+      <div class="flex justify-end mb-8">
+        <a href="/signup" class="text-xs font-medium px-3 py-1.5 rounded-full border border-neutral-700 hover:bg-white hover:text-black transition-colors">
+          Sign Up
+        </a>
+      </div>
 
-        <form class="space-y-6" id="login-form">
+      <h2 class="text-3xl font-semibold text-center">Log in</h2>
+      <p class="mt-2 text-center text-sm text-neutral-400">
+        Accedi al tuo account Private Chef
+      </p>
+
+      <div class="mt-8 rounded-2xl border border-neutral-800 bg-black/60 px-5 py-6 space-y-6">
+        <form class="space-y-4" id="login-form">
           <div>
-            <label for="email" class="block text-xs font-medium text-gray-700 mb-1">Email</label>
+            <label for="email" class="block text-xs font-medium text-neutral-300 mb-1">Email</label>
             <input
               id="email"
               name="email"
               type="email"
               autocomplete="email"
               required
-              class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors"
+              class="block w-full rounded-lg border border-neutral-800 bg-black px-3 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label for="password" class="block text-xs font-medium text-gray-700 mb-1">Password</label>
+            <label for="password" class="block text-xs font-medium text-neutral-300 mb-1">Password</label>
             <input
               id="password"
               name="password"
               type="password"
               autocomplete="current-password"
               required
-              class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors"
+              class="block w-full rounded-lg border border-neutral-800 bg-black px-3 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500"
               placeholder="••••••••"
             />
           </div>
 
           <button
             type="submit"
-            class="w-full flex justify-center rounded-lg bg-black py-2.5 text-sm font-bold text-white hover:bg-gray-800 transition-all transform hover:scale-[1.02] shadow-lg"
+            class="w-full mt-2 rounded-lg bg-white py-2.5 text-sm font-medium text-black hover:bg-neutral-200 transition-colors"
           >
             Continue with Email
           </button>
         </form>
 
-        <div class="mt-8 relative">
+        <div class="relative">
           <div class="absolute inset-0 flex items-center" aria-hidden="true">
-            <div class="w-full border-t border-gray-200"></div>
+            <div class="w-full border-t border-neutral-800"></div>
           </div>
           <div class="relative flex justify-center text-xs">
-            <span class="bg-white px-2 text-gray-500">Oppure continua con</span>
+            <span class="bg-black px-2 text-neutral-500">Oppure continua con</span>
           </div>
         </div>
 
-        <div class="mt-8 space-y-3">
+        <div class="space-y-3">
           <button
             id="google-login"
-            class="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+            class="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-800 bg-black py-2.5 text-sm font-medium text-white hover:bg-neutral-900 transition-colors"
           >
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"/>
@@ -73,42 +73,40 @@ import Header from '../components/Header.astro';
           </button>
         </div>
 
-        <div class="mt-6">
-             <button
-            id="toggle-phone"
-            class="w-full text-center text-xs text-gray-500 hover:text-black transition-colors"
-            >
-            Vuoi accedere con il numero di telefono?
-            </button>
-        </div>
-       
-        <form class="space-y-4 hidden mt-4" id="phone-form">
+        <button
+          id="toggle-phone"
+          class="w-full text-center text-xs text-neutral-500 hover:text-white transition-colors"
+        >
+          Vuoi accedere con il numero di telefono?
+        </button>
+
+        <form class="space-y-4 hidden" id="phone-form">
           <div>
-            <label for="phone" class="block text-xs font-medium text-gray-700 mb-1">Numero di telefono (es. +39...)</label>
+            <label for="phone" class="block text-xs font-medium text-neutral-300 mb-1">Numero di telefono (es. +39...)"</label>
             <input
               id="phone"
               name="phone"
               type="tel"
               autocomplete="tel"
               placeholder="+39 333 1234567"
-              class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors"
+              class="block w-full rounded-lg border border-neutral-800 bg-black px-3 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500"
             />
           </div>
 
           <button
             type="submit"
-            class="w-full rounded-lg bg-black py-2.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+            class="w-full rounded-lg bg-white py-2.5 text-sm font-medium text-black hover:bg-neutral-200 transition-colors"
           >
             Invia codice OTP
           </button>
         </form>
-        
-        <p class="mt-8 text-center text-xs text-gray-500 border-t border-gray-100 pt-6">
-            Non hai un account?
-            <a href="/signup" class="font-bold text-black hover:underline">Sign Up</a>
-        </p>
-
       </div>
+
+      <p class="mt-6 text-center text-xs text-neutral-500">
+        Non hai un account?
+        <a href="/signup" class="font-medium text-white hover:underline">Sign Up</a>
+      </p>
+    </div>
   </div>
 </Layout>
 
@@ -192,5 +190,4 @@ import Header from '../components/Header.astro';
     }
   });
 
-</script><!-- update style -->
-<!-- update style -->
+</script>
