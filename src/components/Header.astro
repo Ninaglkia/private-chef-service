@@ -30,6 +30,21 @@ const pathname = Astro.url.pathname;
         >
           FAQ
         </a>
+        <div class="flex items-center gap-4">
+          <a
+            id="desktop-auth-link"
+            href="/login"
+            class={`text-sm font-semibold rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 focus-visible:ring-offset-transparent ${transparent ? 'text-white hover:text-gray-200' : 'text-gray-800 hover:text-black'}`}
+          >
+            Login
+          </a>
+          <a
+            href="/signup"
+            class="px-5 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 active:bg-black transition-colors duration-200 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
+          >
+            Sign Up
+          </a>
+        </div>
         <a
           href="/#pricing"
           class="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-300 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -38,7 +53,20 @@ const pathname = Astro.url.pathname;
         </a>
       </div>
 
-      <div class="flex items-center md:hidden gap-3">
+      <div class="flex items-center md:hidden gap-2">
+        <a
+          id="mobile-auth-link"
+          href="/login"
+          class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 text-gray-800 bg-white/90 hover:bg-white active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
+        >
+          Login
+        </a>
+        <a
+          href="/signup"
+          class="px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 active:bg-black transition-colors duration-200 text-xs font-semibold shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
+        >
+          Sign Up
+        </a>
         <a
           href="/#pricing"
           class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-300 text-xs font-semibold shadow-md"
@@ -61,6 +89,8 @@ const pathname = Astro.url.pathname;
       <a href="/#how-it-works" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2 px-2 rounded hover:bg-gray-50">How It Works</a>
       <a href="/#pricing" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2 px-2 rounded hover:bg-gray-50">Pricing</a>
       <a href="/#faq" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2 px-2 rounded hover:bg-gray-50">FAQ</a>
+      <a href="/login" class="block text-gray-700 hover:text-gray-900 text-sm font-semibold py-2 px-2 rounded hover:bg-gray-50">Login</a>
+      <a href="/signup" class="block text-white bg-gray-900 hover:bg-gray-800 text-sm font-semibold py-2 px-2 rounded">Sign Up</a>
     </div>
   </nav>
 </header>
