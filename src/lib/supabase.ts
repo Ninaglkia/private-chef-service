@@ -33,19 +33,29 @@ export type Booking = {
 export type Profile = {
   id: string;
   full_name: string | null;
-  role: 'admin' | 'customer' | 'chef';
+  role: 'admin' | 'customer';
   phone: string | null;
   avatar_url: string | null;
   city?: string | null;
-  haccp_url?: string | null;
-  bio?: string | null;
-  specialties?: string[] | null;
   strikes: number;
   is_verified: boolean;
   updated_at: string | null;
 };
 
-export type ChefApplication = {
+export type ChefRecruitmentApplication = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  city: string;
+  tax_id?: string | null;
+  cv_url?: string | null;
+  photos_urls?: string[] | null;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+};
+
+export type ChefBookingApplication = {
   id: string;
   booking_id: string;
   chef_id: string;

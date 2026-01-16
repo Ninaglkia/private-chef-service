@@ -4,57 +4,42 @@ import Layout from '../layouts/Layout.astro';
 
 <Layout title="Dashboard - Private Chef Service">
   <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-      <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-        <div>
-            <h3 class="text-lg leading-6 font-medium text-gray-900">
-            Dashboard Utente
-            </h3>
-            <p class="mt-1 max-w-2xl text-sm text-gray-500" id="user-email">
-            Caricamento...
-            </p>
-        </div>
-        <button id="logout-btn" class="text-sm text-red-600 hover:text-red-800">
-            Esci
-        </button>
+    
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p class="text-gray-500" id="user-email">Loading...</p>
       </div>
-      <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
-        <dl class="sm:divide-y sm:divide-gray-200">
-          <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-            <dt class="text-sm font-medium text-gray-500">
-              Nome Completo
-            </dt>
-            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" id="user-name">
-              -
-            </dd>
-          </div>
-          <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-            <dt class="text-sm font-medium text-gray-500">
-              Ruolo
-            </dt>
-            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" id="user-role">
-              -
-            </dd>
-          </div>
-           <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-            <dt class="text-sm font-medium text-gray-500">
-              Stato Prenotazioni
-            </dt>
-            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-              Nessuna prenotazione attiva.
-            </dd>
-          </div>
-        </dl>
+      <button id="logout-btn" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+        Log Out
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+      <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Your Bookings</h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">Manage your private chef reservations.</p>
+      </div>
+      <div class="border-t border-gray-200 px-4 py-5 sm:p-6" id="booking-section">
+        <p class="text-gray-500 text-sm">Loading bookings...</p>
       </div>
     </div>
+
   </div>
 </Layout>
 
 <script>
   import { supabase } from '../lib/supabase';
-  import type { Profile } from '../lib/supabase';
+  import type { Booking, Profile } from '../lib/supabase';
 
-  async function loadProfile() {
+  const userEmailEl = document.getElementById('user-email');
+  const bookingSection = document.getElementById('booking-section');
+  const logoutBtn = document.getElementById('logout-btn');
+
+  async function init() {
+    // 1. Check Session
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -62,28 +47,112 @@ import Layout from '../layouts/Layout.astro';
       return;
     }
 
-    document.getElementById('user-email')!.textContent = user.email || user.phone || '';
+    if (userEmailEl) userEmailEl.textContent = user.email || '';
 
-    // Fetch profile
-    const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+    // 2. Check Profile & Role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
 
-    if (profile) {
-        const p = profile as Profile;
-        document.getElementById('user-name')!.textContent = p.full_name || 'Non impostato';
-        document.getElementById('user-role')!.textContent = p.role === 'chef' ? '👨‍🍳 Chef' : '👤 Cliente';
-    } else if (error) {
-        console.error('Error fetching profile:', error);
+    const p = profile as Profile | null;
+
+    if (p && p.role === 'admin') {
+      window.location.href = '/admin/control-panel';
+      return;
     }
+
+    // 3. Load Bookings
+    loadBookings(user.email!);
   }
 
-  loadProfile();
+  async function loadBookings(email: string) {
+    if (!bookingSection) return;
 
-  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+    const { data: bookings, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('customer_email', email)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error loading bookings:', error);
+        bookingSection.innerHTML = '<p class="text-red-500">Error loading bookings.</p>';
+        return;
+    }
+
+    if (!bookings || bookings.length === 0) {
+        bookingSection.innerHTML = `
+            <div class="text-center py-8">
+                <p class="text-gray-500 mb-4">You don't have any active bookings.</p>
+                <a href="/booking" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black hover:bg-gray-800 focus:outline-none">
+                    Book a Chef
+                </a>
+            </div>
+        `;
+        return;
+    }
+
+    bookingSection.innerHTML = '';
+    const list = document.createElement('div');
+    list.className = 'space-y-6';
+
+    for (const b of bookings) {
+        const booking = b as Booking;
+        
+        // Fetch Chef info if assigned
+        let chefHtml = '';
+        if (booking.chef_id) {
+            const { data: chef } = await supabase.from('profiles').select('*').eq('id', booking.chef_id).single();
+            const c = chef as Profile;
+            chefHtml = `
+                <div class="mt-4 flex items-center p-4 bg-gray-50 rounded-lg">
+                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
+                        ${c.avatar_url ? `<img src="${c.avatar_url}" class="h-full w-full object-cover" />` : ''}
+                    </div>
+                    <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">Chef: ${c.full_name}</div>
+                        <div class="text-sm text-gray-500">${c.phone || ''}</div>
+                    </div>
+                </div>
+            `;
+        } else {
+             chefHtml = `
+                <div class="mt-4 p-4 bg-yellow-50 border border-yellow-100 rounded-lg">
+                    <p class="text-sm text-yellow-800 font-medium">Finding the perfect chef for you...</p>
+                </div>
+            `;
+        }
+
+        const item = document.createElement('div');
+        item.className = 'border border-gray-200 rounded-lg p-6';
+        item.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <h4 class="text-lg font-bold text-gray-900">${booking.city}</h4>
+                    <p class="text-sm text-gray-500">${new Date(booking.start_date).toLocaleDateString()} • ${booking.num_guests} Guests • ${booking.plan.toUpperCase()} Plan</p>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    booking.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                    booking.status === 'searching' ? 'bg-yellow-100 text-yellow-800' : 
+                    'bg-gray-100 text-gray-800'
+                }">
+                    ${booking.status.toUpperCase()}
+                </span>
+            </div>
+            ${chefHtml}
+        `;
+        list.appendChild(item);
+    }
+    bookingSection.appendChild(list);
+  }
+
+  // Logout
+  logoutBtn?.addEventListener('click', async () => {
     await supabase.auth.signOut();
     window.location.href = '/login';
   });
+
+  init();
 </script>

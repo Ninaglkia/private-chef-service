@@ -1,0 +1,174 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+---
+
+<Layout title="Work With Us - Private Chef Service" bodyClass="bg-white text-gray-900">
+  <Header transparent={false} />
+
+  <div class="max-w-3xl mx-auto py-20 px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-900 mb-4">Join our Chef Community</h1>
+      <p class="text-lg text-gray-600">
+        Are you a talented chef? Apply now to join our exclusive network of private chefs.
+      </p>
+    </div>
+
+    <form id="application-form" class="space-y-8 bg-white border border-gray-200 rounded-2xl p-8 shadow-lg">
+      
+      <!-- Personal Info -->
+      <div class="space-y-4">
+        <h3 class="text-xl font-semibold text-gray-900 border-b pb-2">Personal Information</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+            <input type="text" name="first_name" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+            <input type="text" name="last_name" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <input type="email" name="email" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">City *</label>
+            <input type="text" name="city" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
+          </div>
+        </div>
+
+        <div>
+           <label class="block text-sm font-medium text-gray-700 mb-1">Tax ID (Codice Fiscale / P.IVA) *</label>
+           <input type="text" name="tax_id" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
+        </div>
+      </div>
+
+      <!-- Files -->
+      <div class="space-y-4">
+        <h3 class="text-xl font-semibold text-gray-900 border-b pb-2">Documents & Photos</h3>
+        
+        <div>
+           <label class="block text-sm font-medium text-gray-700 mb-1">CV (PDF) *</label>
+           <input type="file" name="cv_file" accept=".pdf" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"/>
+           <p class="text-xs text-gray-500 mt-1">Please upload your resume in PDF format.</p>
+        </div>
+
+        <div>
+           <label class="block text-sm font-medium text-gray-700 mb-1">Photos of your dishes (Max 5) *</label>
+           <input type="file" name="photos" multiple accept="image/*" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"/>
+        </div>
+      </div>
+
+      <div class="pt-4">
+        <button type="submit" id="btn-submit" class="w-full py-4 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2">
+          <span>Submit Application</span>
+          <div class="hidden animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" id="submit-spinner"></div>
+        </button>
+        <p id="submit-error" class="text-red-500 text-sm mt-2 text-center hidden"></p>
+        <p id="submit-success" class="text-green-600 text-sm mt-2 text-center hidden">Application submitted successfully! We will contact you soon.</p>
+      </div>
+
+    </form>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  const form = document.getElementById('application-form') as HTMLFormElement;
+  const btnSubmit = document.getElementById('btn-submit') as HTMLButtonElement;
+  const submitSpinner = document.getElementById('submit-spinner');
+  const submitError = document.getElementById('submit-error');
+  const submitSuccess = document.getElementById('submit-success');
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitError!.classList.add('hidden');
+    submitSuccess!.classList.add('hidden');
+    
+    btnSubmit.disabled = true;
+    submitSpinner!.classList.remove('hidden');
+
+    try {
+        const formData = new FormData(form);
+        const firstName = formData.get('first_name') as string;
+        const lastName = formData.get('last_name') as string;
+        const email = formData.get('email') as string;
+        const city = formData.get('city') as string;
+        const taxId = formData.get('tax_id') as string;
+        const cvFile = formData.get('cv_file') as File;
+        const photos = formData.getAll('photos') as File[];
+
+        // 1. Upload CV
+        let cvUrl = '';
+        if (cvFile && cvFile.size > 0) {
+            const fileExt = cvFile.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const { data, error } = await supabase.storage
+                .from('chef-applications')
+                .upload(`cvs/${fileName}`, cvFile);
+            
+            if (error) throw new Error('Error uploading CV: ' + error.message);
+            
+            // Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('chef-applications')
+                .getPublicUrl(`cvs/${fileName}`);
+            
+            cvUrl = publicUrl;
+        }
+
+        // 2. Upload Photos
+        const photoUrls: string[] = [];
+        for (const photo of photos) {
+            if (photo instanceof File && photo.size > 0) {
+                const fileExt = photo.name.split('.').pop();
+                const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const { data, error } = await supabase.storage
+                    .from('chef-applications')
+                    .upload(`photos/${fileName}`, photo);
+                
+                if (error) throw new Error('Error uploading photo: ' + error.message);
+                
+                const { data: { publicUrl } } = supabase.storage
+                    .from('chef-applications')
+                    .getPublicUrl(`photos/${fileName}`);
+                
+                photoUrls.push(publicUrl);
+            }
+        }
+
+        // 3. Insert into Database
+        const { error: dbError } = await supabase
+            .from('chef_applications')
+            .insert({
+                first_name: firstName,
+                last_name: lastName,
+                email,
+                city,
+                tax_id: taxId,
+                cv_url: cvUrl,
+                photos_urls: photoUrls,
+                status: 'pending'
+            });
+
+        if (dbError) throw dbError;
+
+        // Success
+        form.reset();
+        submitSuccess!.classList.remove('hidden');
+
+    } catch (err: any) {
+        console.error(err);
+        submitError!.textContent = err.message || 'An error occurred. Please try again.';
+        submitError!.classList.remove('hidden');
+    } finally {
+        btnSubmit.disabled = false;
+        submitSpinner!.classList.add('hidden');
+    }
+  });
+</script>
