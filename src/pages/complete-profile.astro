@@ -80,6 +80,8 @@ import Header from '../components/Header.astro';
   const submitBtn = document.getElementById('profile-submit') as HTMLButtonElement | null;
   const spinner = document.getElementById('profile-spinner') as HTMLSpanElement | null;
 
+  const ADMIN_EMAILS = ['ninaglia089@gmail.com'];
+
   const params = new URLSearchParams(window.location.search);
   const returnToParam = params.get('returnTo') || '/dashboard';
 
@@ -129,6 +131,7 @@ import Header from '../components/Header.astro';
       const phone = phoneInput.value.trim();
       const city = cityInput.value.trim();
       const completed = !!(fullName && phone && city);
+      const isAdmin = ADMIN_EMAILS.includes(user.email || '');
 
       const { error } = await supabase
         .from('profiles')
@@ -138,6 +141,7 @@ import Header from '../components/Header.astro';
           full_name: fullName,
           phone,
           city,
+          role: isAdmin ? 'admin' : 'customer',
           onboarding_completed: completed,
         });
 
