@@ -30,7 +30,7 @@ const pathname = Astro.url.pathname;
         >
           FAQ
         </a>
-        <div class="flex items-center gap-6">
+        <div class="flex items-center gap-6 ml-auto">
           <div id="desktop-guest-actions" class="flex items-center gap-4">
             <a
               id="desktop-auth-link"
@@ -45,18 +45,19 @@ const pathname = Astro.url.pathname;
             >
               Sign Up
             </a>
-          </div>
-          <div id="desktop-user-actions" class="hidden items-center gap-3">
             <a
-              id="desktop-user-icon"
-              href="/dashboard"
-              class="h-9 w-9 rounded-full bg-gray-900 text-white flex items-center justify-center hover:bg-gray-800 transition-colors shadow-md"
-              aria-label="Dashboard utente"
+              href="/#pricing"
+              class="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-300 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="8" r="3.5" />
-                <path d="M5 20.5c1.5-3 3.8-4.5 7-4.5s5.5 1.5 7 4.5" />
-              </svg>
+              Book Now
+            </a>
+          </div>
+          <div id="desktop-user-actions" class="hidden items-center gap-4">
+            <a
+              href="/#pricing"
+              class="px-5 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 active:bg-black transition-colors duration-200 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              Book Now
             </a>
             <span id="desktop-user-welcome" class="text-sm text-gray-700"></span>
             <button
@@ -66,14 +67,19 @@ const pathname = Astro.url.pathname;
             >
               Log out
             </button>
+            <a
+              id="desktop-user-icon"
+              href="/dashboard"
+              class="h-9 w-9 rounded-full bg-gold-600 text-white flex items-center justify-center hover:bg-gold-500 transition-colors shadow-md"
+              aria-label="Dashboard utente"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="3.5" />
+                <path d="M5 20.5c1.5-3 3.8-4.5 7-4.5s5.5 1.5 7 4.5" />
+              </svg>
+            </a>
           </div>
         </div>
-        <a
-          href="/#pricing"
-          class="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-300 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-        >
-          Book Now
-        </a>
       </div>
 
       <div class="flex items-center md:hidden gap-2">
