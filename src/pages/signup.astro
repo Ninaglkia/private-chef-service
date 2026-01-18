@@ -1,6 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
+
+const returnTo = Astro.url.searchParams.get('returnTo');
 ---
 
 <Layout title="Sign Up - Private Chef Service" bodyClass="bg-gray-50 text-gray-900">
@@ -78,7 +80,13 @@ import Header from '../components/Header.astro';
 
         <div class="text-center pt-4 border-t border-gray-100">
           <p class="text-sm text-gray-500">
-            Already have an account? <a href="/login" class="text-black underline hover:text-gray-700">Log in</a>
+            Already have an account?
+            <a
+              href={returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'}
+              class="text-black underline hover:text-gray-700"
+            >
+              Log in
+            </a>
           </p>
         </div>
       </div>
@@ -141,42 +149,43 @@ import Header from '../components/Header.astro';
 <script>
   import { supabase } from '../lib/supabase';
 
-  // State
   let currentStep = 1;
   let maxStepReached = 1;
   let userEmail = '';
+  const urlParams = new URLSearchParams(window.location.search);
+  const returnToParam = urlParams.get('returnTo');
 
-  // Elements
-  const steps = {
+  const steps: Record<number, HTMLElement | null> = {
     1: document.getElementById('step-1'),
     2: document.getElementById('step-2')
   };
   
-  const stepCircles = {
+  const stepCircles: Record<number, HTMLElement | null> = {
     1: document.getElementById('step-circle-1'),
     2: document.getElementById('step-circle-2')
   };
 
-  const stepTexts = {
+  const stepTexts: Record<number, HTMLElement | null> = {
     1: document.getElementById('step-text-1'),
     2: document.getElementById('step-text-2')
   };
   
-  const progressBar = document.getElementById('progress-bar-1');
+  const progressBar = document.getElementById('progress-bar-1') as HTMLDivElement | null;
 
   const loginForm = document.getElementById('login-form') as HTMLFormElement;
   const loginEmailInput = document.getElementById('login-email') as HTMLInputElement;
   const loginPasswordInput = document.getElementById('login-password') as HTMLInputElement;
-  const loginError = document.getElementById('login-error');
-  const btnGoogle = document.getElementById('btn-google');
+  const loginError = document.getElementById('login-error') as HTMLParagraphElement | null;
+  const btnGoogle = document.getElementById('btn-google') as HTMLButtonElement | null;
 
   const signupForm = document.getElementById('signup-form') as HTMLFormElement;
   const readonlyEmail = document.getElementById('readonly-email') as HTMLInputElement;
   const btnSubmit = document.getElementById('btn-submit') as HTMLButtonElement;
-  const submitSpinner = document.getElementById('submit-spinner');
-  const submitError = document.getElementById('submit-error');
+  const submitSpinner = document.getElementById('submit-spinner') as HTMLDivElement | null;
+  const submitError = document.getElementById('submit-error') as HTMLParagraphElement | null;
 
-  // Check if user is already logged in
+  const ADMIN_EMAILS = ['ninaglia089@gmail.com'];
+
   async function checkSession() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -188,17 +197,13 @@ import Header from '../components/Header.astro';
 
   checkSession();
 
-  // Navigation
-  function goToStep(step) {
+  function goToStep(step: number) {
     if (step > maxStepReached) maxStepReached = step;
 
-    // Hide all steps
     Object.values(steps).forEach(el => el?.classList.add('hidden'));
     
-    // Show current
     steps[step]?.classList.remove('hidden');
     
-    // Update indicators
     for (let i = 1; i <= 2; i++) {
         const circle = stepCircles[i];
         const text = stepTexts[i];
@@ -216,61 +221,70 @@ import Header from '../components/Header.astro';
         }
     }
 
-    // Update Progress Bar
-    if (step >= 2) progressBar!.style.width = '100%';
-    else progressBar!.style.width = '0%';
+    if (progressBar) {
+      if (step >= 2) progressBar.style.width = '100%';
+      else progressBar.style.width = '0%';
+    }
 
     currentStep = step;
   }
 
-  // Google Login
   btnGoogle?.addEventListener('click', async () => {
+    const params = new URLSearchParams(window.location.search);
+    const rt = params.get('returnTo');
+    const redirectUrl = rt
+      ? `${window.location.origin}/signup?returnTo=${encodeURIComponent(rt)}`
+      : `${window.location.origin}/signup`;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/signup`
+        redirectTo: redirectUrl
       }
     });
     if (error) alert(error.message);
   });
 
-  // Email Login/Signup
   loginForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      loginError!.classList.add('hidden');
+      if (loginError) {
+        loginError.classList.add('hidden');
+        loginError.textContent = '';
+      }
       
       const email = loginEmailInput.value;
       const password = loginPasswordInput.value;
 
-      // Try sign up first
       let { data, error } = await supabase.auth.signUp({
           email,
           password
       });
 
       if (error) {
-          // If user already exists, try sign in
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
               email,
               password
           });
           
           if (signInError) {
-              loginError!.textContent = signInError.message;
-              loginError!.classList.remove('hidden');
+              if (loginError) {
+                loginError.textContent = signInError.message;
+                loginError.classList.remove('hidden');
+              }
               return;
           }
           
-          // Signed in
           userEmail = email;
           readonlyEmail.value = email;
           goToStep(2);
       } else {
-          // Signed up
-          if (data.user) {
+          if (data.session && data.user) {
               userEmail = email;
               readonlyEmail.value = email;
               goToStep(2);
+          } else if (loginError) {
+            loginError.textContent = 'Controlla la tua email per verificare il tuo account, poi effettua l\'accesso.';
+            loginError.classList.remove('hidden');
           }
       }
   });
@@ -278,7 +292,10 @@ import Header from '../components/Header.astro';
   // Profile Completion
   signupForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    submitError!.classList.add('hidden');
+    if (submitError) {
+      submitError.classList.add('hidden');
+      submitError.textContent = '';
+    }
     
     if (!signupForm.checkValidity()) {
         signupForm.reportValidity();
@@ -298,35 +315,40 @@ import Header from '../components/Header.astro';
     }
 
     btnSubmit.disabled = true;
-    submitSpinner!.classList.remove('hidden');
+    if (submitSpinner) submitSpinner.classList.remove('hidden');
 
     try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('No user found');
 
+        const isAdmin = ADMIN_EMAILS.includes(user.email || '');
+        const completed = !!(firstName && lastName && phone && city);
+
         const { error } = await supabase
             .from('profiles')
             .upsert({
                 id: user.id,
-                email: userEmail,
+                email: user.email,
                 full_name: `${firstName} ${lastName}`.trim(),
                 phone,
                 city,
-                role: 'customer',
-                updated_at: new Date().toISOString()
+                role: isAdmin ? 'admin' : 'customer',
+                onboarding_completed: completed
             });
 
         if (error) throw error;
 
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
+        const rt = returnToParam || '/dashboard';
+        window.location.href = rt;
 
     } catch (err: any) {
         console.error(err);
-        submitError!.textContent = err.message || 'An error occurred';
-        submitError!.classList.remove('hidden');
+        if (submitError) {
+          submitError.textContent = err.message || 'An error occurred';
+          submitError.classList.remove('hidden');
+        }
         btnSubmit.disabled = false;
-        submitSpinner!.classList.add('hidden');
+        if (submitSpinner) submitSpinner.classList.add('hidden');
     }
   });
 

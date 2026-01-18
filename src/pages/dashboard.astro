@@ -6,15 +6,36 @@ import Layout from '../layouts/Layout.astro';
   <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
     
     <!-- Header -->
-    <div class="flex justify-between items-center mb-8">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p class="text-gray-500" id="user-email">Loading...</p>
+    <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-center gap-4">
+        <a href="/" class="inline-flex items-center gap-3 group">
+          <span class="inline-flex h-9 w-9 rounded-full bg-black text-white items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-[1.03] transition-transform transition-shadow">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 11c0-3.5 2.7-6 7-6s7 2.5 7 6" />
+              <path d="M7 11h10" />
+              <path d="M8 15h8" />
+              <path d="M9 19h6" />
+            </svg>
+          </span>
+          <span class="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 group-hover:text-black">
+            Private Chef
+          </span>
+        </a>
+        <div class="hidden sm:flex flex-col">
+          <span class="text-xs font-medium uppercase tracking-wide text-gray-400">Area Cliente</span>
+          <span class="text-sm text-gray-600" id="user-email">Loading...</span>
+        </div>
       </div>
-      <button id="logout-btn" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-        Log Out
-      </button>
-    </div>
+      <div class="flex items-center justify-between sm:justify-end gap-4">
+        <div class="sm:hidden flex flex-col text-right">
+          <span class="text-sm font-semibold text-gray-900">Dashboard</span>
+          <span class="text-xs text-gray-500" id="user-email-mobile">Loading...</span>
+        </div>
+        <button id="logout-btn" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+          Log Out
+        </button>
+      </div>
+    </header>
 
     <!-- Content -->
     <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
@@ -35,6 +56,7 @@ import Layout from '../layouts/Layout.astro';
   import type { Booking, Profile } from '../lib/supabase';
 
   const userEmailEl = document.getElementById('user-email');
+  const userEmailMobileEl = document.getElementById('user-email-mobile');
   const bookingSection = document.getElementById('booking-section');
   const logoutBtn = document.getElementById('logout-btn');
 
@@ -43,11 +65,13 @@ import Layout from '../layouts/Layout.astro';
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      window.location.href = '/login';
+      const rt = encodeURIComponent('/dashboard');
+      window.location.href = `/login?returnTo=${rt}`;
       return;
     }
 
     if (userEmailEl) userEmailEl.textContent = user.email || '';
+    if (userEmailMobileEl) userEmailMobileEl.textContent = user.email || '';
 
     // 2. Check Profile & Role
     const { data: profile } = await supabase

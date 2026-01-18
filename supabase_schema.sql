@@ -9,8 +9,12 @@ create table if not exists public.profiles (
   phone text,
   city text,
   role text check (role in ('admin', 'customer')) default 'customer',
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  onboarding_completed boolean default false
 );
+
+alter table public.profiles
+  add column if not exists onboarding_completed boolean default false;
 
 -- Enable RLS on profiles
 alter table public.profiles enable row level security;

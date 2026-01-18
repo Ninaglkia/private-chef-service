@@ -32,14 +32,13 @@ export type Booking = {
 
 export type Profile = {
   id: string;
+  email: string;
   full_name: string | null;
   role: 'admin' | 'customer';
   phone: string | null;
-  avatar_url: string | null;
-  city?: string | null;
-  strikes: number;
-  is_verified: boolean;
-  updated_at: string | null;
+  city: string | null;
+  created_at: string | null;
+  onboarding_completed: boolean;
 };
 
 export type ChefRecruitmentApplication = {

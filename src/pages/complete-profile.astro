@@ -1,0 +1,160 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+---
+
+<Layout title="Complete Your Profile - Private Chef Service" bodyClass="bg-gray-50 text-gray-900">
+  <Header transparent={false} />
+
+  <div class="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+    <div class="w-full max-w-lg">
+      <div class="bg-white shadow-xl rounded-2xl border border-gray-100 p-8">
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-gray-900">Complete your profile</h1>
+          <p class="mt-2 text-sm text-gray-500">We use this information to personalize your Private Chef experience.</p>
+        </div>
+
+        <form id="profile-form" class="space-y-5" novalidate>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Full name *</label>
+            <input
+              id="full_name"
+              name="full_name"
+              type="text"
+              required
+              class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              placeholder="Name Surname"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Phone *</label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              required
+              class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              placeholder="+39 333 1234567"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">City *</label>
+            <input
+              id="city"
+              name="city"
+              type="text"
+              required
+              class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              placeholder="Your city"
+            />
+          </div>
+
+          <p id="profile-error" class="text-sm text-red-500 hidden"></p>
+
+          <div class="pt-2 flex items-center justify-between gap-3">
+            <button
+              id="profile-submit"
+              type="submit"
+              class="inline-flex items-center justify-center gap-2 rounded-lg bg-black text-white px-5 py-2.5 text-sm font-semibold shadow-lg hover:bg-gray-900 active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <span>Save and continue</span>
+              <span id="profile-spinner" class="hidden h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  const form = document.getElementById('profile-form') as HTMLFormElement;
+  const fullNameInput = document.getElementById('full_name') as HTMLInputElement;
+  const phoneInput = document.getElementById('phone') as HTMLInputElement;
+  const cityInput = document.getElementById('city') as HTMLInputElement;
+  const errorBox = document.getElementById('profile-error') as HTMLParagraphElement | null;
+  const submitBtn = document.getElementById('profile-submit') as HTMLButtonElement | null;
+  const spinner = document.getElementById('profile-spinner') as HTMLSpanElement | null;
+
+  const params = new URLSearchParams(window.location.search);
+  const returnToParam = params.get('returnTo') || '/dashboard';
+
+  async function init() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      const rt = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.href = `/login?returnTo=${rt}`;
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, phone, city')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profile) {
+      if (profile.full_name) fullNameInput.value = profile.full_name;
+      if (profile.phone) phoneInput.value = profile.phone;
+      if (profile.city) cityInput.value = profile.city;
+    }
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (errorBox) {
+      errorBox.textContent = '';
+      errorBox.classList.add('hidden');
+    }
+
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+    }
+    if (spinner) spinner.classList.remove('hidden');
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Session expired, please log in again.');
+
+      const fullName = fullNameInput.value.trim();
+      const phone = phoneInput.value.trim();
+      const city = cityInput.value.trim();
+      const completed = !!(fullName && phone && city);
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          email: user.email,
+          full_name: fullName,
+          phone,
+          city,
+          onboarding_completed: completed,
+        });
+
+      if (error) throw error;
+
+      window.location.href = returnToParam || '/dashboard';
+    } catch (err: any) {
+      if (errorBox) {
+        errorBox.textContent = err.message || 'An error occurred';
+        errorBox.classList.remove('hidden');
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+      if (spinner) spinner.classList.add('hidden');
+    }
+  });
+
+  init();
+</script>
+

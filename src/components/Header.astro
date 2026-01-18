@@ -30,20 +30,43 @@ const pathname = Astro.url.pathname;
         >
           FAQ
         </a>
-        <div class="flex items-center gap-4">
-          <a
-            id="desktop-auth-link"
-            href="/login"
-            class={`text-sm font-semibold rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 focus-visible:ring-offset-transparent ${transparent ? 'text-white hover:text-gray-200' : 'text-gray-800 hover:text-black'}`}
-          >
-            Login
-          </a>
-          <a
-            href="/signup"
-            class="px-5 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 active:bg-black transition-colors duration-200 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
-          >
-            Sign Up
-          </a>
+        <div class="flex items-center gap-6">
+          <div id="desktop-guest-actions" class="flex items-center gap-4">
+            <a
+              id="desktop-auth-link"
+              href="/login"
+              class={`text-sm font-semibold rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 focus-visible:ring-offset-transparent ${transparent ? 'text-white hover:text-gray-200' : 'text-gray-800 hover:text-black'}`}
+            >
+              Login
+            </a>
+            <a
+              href="/signup"
+              class="px-5 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 active:bg-black transition-colors duration-200 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
+            >
+              Sign Up
+            </a>
+          </div>
+          <div id="desktop-user-actions" class="hidden items-center gap-3">
+            <a
+              id="desktop-user-icon"
+              href="/dashboard"
+              class="h-9 w-9 rounded-full bg-gray-900 text-white flex items-center justify-center hover:bg-gray-800 transition-colors shadow-md"
+              aria-label="Dashboard utente"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="3.5" />
+                <path d="M5 20.5c1.5-3 3.8-4.5 7-4.5s5.5 1.5 7 4.5" />
+              </svg>
+            </a>
+            <span id="desktop-user-welcome" class="text-sm text-gray-700"></span>
+            <button
+              id="desktop-logout"
+              type="button"
+              class="text-xs font-medium text-gray-500 hover:text-gray-900 underline-offset-2 hover:underline"
+            >
+              Log out
+            </button>
+          </div>
         </div>
         <a
           href="/#pricing"
@@ -54,25 +77,47 @@ const pathname = Astro.url.pathname;
       </div>
 
       <div class="flex items-center md:hidden gap-2">
-        <a
-          id="mobile-auth-link"
-          href="/login"
-          class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 text-gray-800 bg-white/90 hover:bg-white active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
-        >
-          Login
-        </a>
-        <a
-          href="/signup"
-          class="px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 active:bg-black transition-colors duration-200 text-xs font-semibold shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
-        >
-          Sign Up
-        </a>
-        <a
-          href="/#pricing"
-          class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-300 text-xs font-semibold shadow-md"
-        >
-          Book Now
-        </a>
+        <div id="mobile-guest-actions" class="flex items-center gap-2">
+          <a
+            id="mobile-auth-link"
+            href="/login"
+            class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 text-gray-800 bg-white/90 hover:bg-white active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
+          >
+            Login
+          </a>
+          <a
+            href="/signup"
+            class="px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 active:bg-black transition-colors duration-200 text-xs font-semibold shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
+          >
+            Sign Up
+          </a>
+          <a
+            href="/#pricing"
+            class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-300 text-xs font-semibold shadow-md"
+          >
+            Book Now
+          </a>
+        </div>
+        <div id="mobile-user-actions" class="hidden items-center gap-2">
+          <a
+            id="mobile-dashboard-link"
+            href="/dashboard"
+            class="px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 active:bg-black transition-colors duration-200 text-xs font-semibold shadow-md flex items-center gap-2"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="3.5" />
+              <path d="M5 20.5c1.5-3 3.8-4.5 7-4.5s5.5 1.5 7 4.5" />
+            </svg>
+            <span>Dashboard</span>
+          </a>
+          <button
+            id="mobile-logout"
+            type="button"
+            class="text-[11px] font-medium text-gray-600 hover:text-gray-900"
+          >
+            Log out
+          </button>
+        </div>
         <button
           class={`focus:outline-none transition-colors ${transparent ? 'text-white' : 'text-gray-900'}`}
           id="mobile-menu-button"
@@ -105,24 +150,67 @@ const pathname = Astro.url.pathname;
   const isTransparent = header?.dataset.transparent === 'true';
 
   // Auth Logic
-  const desktopAuthLink = document.getElementById('desktop-auth-link') as HTMLAnchorElement;
-  const mobileAuthLink = document.getElementById('mobile-auth-link') as HTMLAnchorElement;
+  const desktopGuest = document.getElementById('desktop-guest-actions');
+  const desktopUser = document.getElementById('desktop-user-actions');
+  const desktopWelcome = document.getElementById('desktop-user-welcome') as HTMLSpanElement | null;
+  const desktopLogout = document.getElementById('desktop-logout') as HTMLButtonElement | null;
 
-  async function checkUser() {
+  const mobileGuest = document.getElementById('mobile-guest-actions');
+  const mobileUser = document.getElementById('mobile-user-actions');
+  const mobileLogout = document.getElementById('mobile-logout') as HTMLButtonElement | null;
+  const mobileDashboardLink = document.getElementById('mobile-dashboard-link') as HTMLAnchorElement | null;
+
+  async function applyAuthState() {
     const { data: { user } } = await supabase.auth.getUser();
+
     if (user) {
-        if (desktopAuthLink) {
-            desktopAuthLink.textContent = 'Dashboard';
-            desktopAuthLink.href = '/dashboard';
-        }
-        if (mobileAuthLink) {
-            mobileAuthLink.textContent = 'Dashboard';
-            mobileAuthLink.href = '/dashboard';
-        }
+      const meta = user.user_metadata || {};
+      const name = (meta.full_name || meta.name || '') as string;
+      const displayName = name || user.email || '';
+
+      if (desktopGuest && desktopUser) {
+        desktopGuest.classList.add('hidden');
+        desktopUser.classList.remove('hidden');
+      }
+      if (desktopWelcome) {
+        desktopWelcome.textContent = displayName ? `Benvenuto, ${displayName}` : 'Benvenuto';
+      }
+
+      if (mobileGuest && mobileUser) {
+        mobileGuest.classList.add('hidden');
+        mobileUser.classList.remove('hidden');
+      }
+      if (mobileDashboardLink) {
+        mobileDashboardLink.href = '/dashboard';
+      }
+    } else {
+      if (desktopGuest && desktopUser) {
+        desktopGuest.classList.remove('hidden');
+        desktopUser.classList.add('hidden');
+      }
+      if (mobileGuest && mobileUser) {
+        mobileGuest.classList.remove('hidden');
+        mobileUser.classList.add('hidden');
+      }
     }
   }
-  
-  checkUser();
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  }
+
+  desktopLogout?.addEventListener('click', (e) => {
+    e.preventDefault();
+    handleLogout();
+  });
+
+  mobileLogout?.addEventListener('click', (e) => {
+    e.preventDefault();
+    handleLogout();
+  });
+
+  applyAuthState();
 
   function updateHeader() {
     if (!header || !isTransparent) return;
