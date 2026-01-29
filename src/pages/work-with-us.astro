@@ -3,29 +3,87 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 ---
 
-<Layout title="Work With Us - Private Chef Service" bodyClass="bg-white text-gray-900">
+<Layout title="Lavora con noi - Private Chef & Staff" bodyClass="bg-white text-gray-900">
   <Header transparent={false} />
 
-  <div class="max-w-3xl mx-auto py-20 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-4xl mx-auto py-20 px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-12">
-      <h1 class="text-4xl font-bold text-gray-900 mb-4">Join our Chef Community</h1>
-      <p class="text-lg text-gray-600">
-        Are you a talented chef? Apply now to join our exclusive network of private chefs.
+      <h1 class="text-4xl font-bold text-gray-900 mb-4">Unisciti al nostro Team</h1>
+      <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+        Siamo sempre alla ricerca di talenti appassionati. Che tu sia uno Chef creativo o un professionista di Sala, inviaci la tua candidatura per entrare a far parte della nostra rete esclusiva.
       </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <!-- Card Chef -->
+        <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 hover:shadow-md transition-shadow">
+            <div class="h-12 w-12 bg-black text-white rounded-xl flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2">Chef Privato</h3>
+            <ul class="text-sm text-gray-600 space-y-2 mb-4">
+                <li>• Esperienza comprovata nel settore</li>
+                <li>• Creatività e cura del dettaglio</li>
+                <li>• Gestione autonoma della spesa e cucina</li>
+                <li>• HACCP in regola</li>
+            </ul>
+        </div>
+
+        <!-- Card Cameriere -->
+        <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 hover:shadow-md transition-shadow">
+            <div class="h-12 w-12 bg-black text-white rounded-xl flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2">Cameriere / Staff di Sala</h3>
+            <ul class="text-sm text-gray-600 space-y-2 mb-4">
+                <li>• Esperienza nel servizio al tavolo</li>
+                <li>• Ottime doti comunicative</li>
+                <li>• Bella presenza e professionalità</li>
+                <li>• Conoscenza lingue straniere (plus)</li>
+            </ul>
+        </div>
     </div>
 
     <form id="application-form" class="space-y-8 bg-white border border-gray-200 rounded-2xl p-8 shadow-lg">
       
+      <!-- Position Selection -->
+      <div class="space-y-4">
+        <h3 class="text-xl font-semibold text-gray-900 border-b pb-2">Posizione Richiesta</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ruolo *</label>
+                <select name="role" id="role-select" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black">
+                    <option value="" disabled selected>Seleziona un ruolo</option>
+                    <option value="chef">Chef Privato</option>
+                    <option value="waiter">Cameriere / Staff Sala</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Disponibilità *</label>
+                <select name="availability" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black">
+                    <option value="" disabled selected>Seleziona disponibilità</option>
+                    <option value="full-time">Full Time</option>
+                    <option value="part-time">Part Time / A chiamata</option>
+                    <option value="weekends">Solo Weekend</option>
+                </select>
+            </div>
+        </div>
+      </div>
+
       <!-- Personal Info -->
       <div class="space-y-4">
-        <h3 class="text-xl font-semibold text-gray-900 border-b pb-2">Personal Information</h3>
+        <h3 class="text-xl font-semibold text-gray-900 border-b pb-2">Dati Personali</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
             <input type="text" name="first_name" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cognome *</label>
             <input type="text" name="last_name" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
           </div>
         </div>
@@ -36,40 +94,59 @@ import Header from '../components/Header.astro';
             <input type="email" name="email" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">City *</label>
-            <input type="text" name="city" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">Telefono *</label>
+            <input type="tel" name="phone" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
           </div>
         </div>
 
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Città di Residenza *</label>
+                <input type="text" name="city" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
+            </div>
+            <div>
+               <label class="block text-sm font-medium text-gray-700 mb-1">Codice Fiscale / P.IVA *</label>
+               <input type="text" name="tax_id" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
+            </div>
+        </div>
+      </div>
+
+      <!-- Motivation & Skills -->
+      <div class="space-y-4">
+        <h3 class="text-xl font-semibold text-gray-900 border-b pb-2">Competenze & Motivazione</h3>
         <div>
-           <label class="block text-sm font-medium text-gray-700 mb-1">Tax ID (Codice Fiscale / P.IVA) *</label>
-           <input type="text" name="tax_id" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">Presentazione Breve *</label>
+            <p class="text-xs text-gray-500 mb-2">Descrivi brevemente le tue esperienze principali, competenze linguistiche e perché vuoi lavorare con noi.</p>
+            <textarea name="bio" rows="4" required class="w-full rounded-lg border-gray-300 focus:ring-black focus:border-black"></textarea>
         </div>
       </div>
 
       <!-- Files -->
       <div class="space-y-4">
-        <h3 class="text-xl font-semibold text-gray-900 border-b pb-2">Documents & Photos</h3>
+        <h3 class="text-xl font-semibold text-gray-900 border-b pb-2">Documenti</h3>
         
         <div>
-           <label class="block text-sm font-medium text-gray-700 mb-1">CV (PDF) *</label>
-           <input type="file" name="cv_file" accept=".pdf" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"/>
-           <p class="text-xs text-gray-500 mt-1">Please upload your resume in PDF format.</p>
+           <label class="block text-sm font-medium text-gray-700 mb-1">Curriculum Vitae (PDF/DOC) *</label>
+           <input type="file" name="cv_file" accept=".pdf,.doc,.docx" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"/>
         </div>
 
-        <div>
-           <label class="block text-sm font-medium text-gray-700 mb-1">Photos of your dishes (Max 5) *</label>
-           <input type="file" name="photos" multiple accept="image/*" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"/>
+        <div id="chef-photos-section" class="hidden">
+           <label class="block text-sm font-medium text-gray-700 mb-1">Foto dei tuoi piatti (Max 5) *</label>
+           <p class="text-xs text-gray-500 mb-2">Richiesto per la posizione di Chef.</p>
+           <input type="file" name="photos" multiple accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"/>
         </div>
       </div>
 
       <div class="pt-4">
         <button type="submit" id="btn-submit" class="w-full py-4 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2">
-          <span>Submit Application</span>
+          <span>Invia Candidatura</span>
           <div class="hidden animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" id="submit-spinner"></div>
         </button>
         <p id="submit-error" class="text-red-500 text-sm mt-2 text-center hidden"></p>
-        <p id="submit-success" class="text-green-600 text-sm mt-2 text-center hidden">Application submitted successfully! We will contact you soon.</p>
+        <div id="submit-success" class="hidden text-center mt-4 p-4 bg-green-50 rounded-xl border border-green-100">
+            <h4 class="text-green-800 font-bold text-lg">Candidatura inviata con successo!</h4>
+            <p class="text-green-600">Grazie per il tuo interesse. Il nostro team valuterà il tuo profilo e ti contatterà presto.</p>
+        </div>
       </div>
 
     </form>
@@ -84,6 +161,21 @@ import Header from '../components/Header.astro';
   const submitSpinner = document.getElementById('submit-spinner');
   const submitError = document.getElementById('submit-error');
   const submitSuccess = document.getElementById('submit-success');
+  const roleSelect = document.getElementById('role-select') as HTMLSelectElement;
+  const chefPhotosSection = document.getElementById('chef-photos-section');
+  const photosInput = chefPhotosSection?.querySelector('input');
+
+  // Show/Hide Photos based on Role
+  roleSelect?.addEventListener('change', (e) => {
+      const role = (e.target as HTMLSelectElement).value;
+      if (role === 'chef') {
+          chefPhotosSection?.classList.remove('hidden');
+          if (photosInput) photosInput.required = true;
+      } else {
+          chefPhotosSection?.classList.add('hidden');
+          if (photosInput) photosInput.required = false;
+      }
+  });
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -98,8 +190,12 @@ import Header from '../components/Header.astro';
         const firstName = formData.get('first_name') as string;
         const lastName = formData.get('last_name') as string;
         const email = formData.get('email') as string;
+        const phone = formData.get('phone') as string;
         const city = formData.get('city') as string;
         const taxId = formData.get('tax_id') as string;
+        const role = formData.get('role') as string;
+        const availability = formData.get('availability') as string;
+        const bio = formData.get('bio') as string;
         const cvFile = formData.get('cv_file') as File;
         const photos = formData.getAll('photos') as File[];
 
@@ -107,14 +203,13 @@ import Header from '../components/Header.astro';
         let cvUrl = '';
         if (cvFile && cvFile.size > 0) {
             const fileExt = cvFile.name.split('.').pop();
-            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const fileName = `cv_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
             const { data, error } = await supabase.storage
-                .from('chef-applications')
+                .from('chef-applications') // Using existing bucket
                 .upload(`cvs/${fileName}`, cvFile);
             
-            if (error) throw new Error('Error uploading CV: ' + error.message);
+            if (error) throw new Error('Errore caricamento CV: ' + error.message);
             
-            // Get Public URL
             const { data: { publicUrl } } = supabase.storage
                 .from('chef-applications')
                 .getPublicUrl(`cvs/${fileName}`);
@@ -122,37 +217,70 @@ import Header from '../components/Header.astro';
             cvUrl = publicUrl;
         }
 
-        // 2. Upload Photos
+        // 2. Upload Photos (if Chef)
         const photoUrls: string[] = [];
-        for (const photo of photos) {
-            if (photo instanceof File && photo.size > 0) {
-                const fileExt = photo.name.split('.').pop();
-                const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-                const { data, error } = await supabase.storage
-                    .from('chef-applications')
-                    .upload(`photos/${fileName}`, photo);
-                
-                if (error) throw new Error('Error uploading photo: ' + error.message);
-                
-                const { data: { publicUrl } } = supabase.storage
-                    .from('chef-applications')
-                    .getPublicUrl(`photos/${fileName}`);
-                
-                photoUrls.push(publicUrl);
+        if (role === 'chef') {
+            for (const photo of photos) {
+                if (photo instanceof File && photo.size > 0) {
+                    const fileExt = photo.name.split('.').pop();
+                    const fileName = `dish_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                    const { data, error } = await supabase.storage
+                        .from('chef-applications')
+                        .upload(`photos/${fileName}`, photo);
+                    
+                    if (error) throw new Error('Errore caricamento foto: ' + error.message);
+                    
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('chef-applications')
+                        .getPublicUrl(`photos/${fileName}`);
+                    
+                    photoUrls.push(publicUrl);
+                }
             }
         }
 
-        // 3. Insert into Database
+        // 3. Create Extra Data JSON (to preserve fields not in table)
+        const extraData = {
+            role,
+            availability,
+            bio,
+            phone,
+            submitted_at: new Date().toISOString()
+        };
+        
+        // Upload Extra Data as JSON file
+        const jsonBlob = new Blob([JSON.stringify(extraData, null, 2)], { type: 'application/json' });
+        const jsonFileName = `details_${Date.now()}_${Math.random().toString(36).substring(7)}.json`;
+        
+        const { error: jsonError } = await supabase.storage
+            .from('chef-applications')
+            .upload(`details/${jsonFileName}`, jsonBlob);
+
+        let detailsUrl = '';
+        if (!jsonError) {
+             const { data: { publicUrl } } = supabase.storage
+                .from('chef-applications')
+                .getPublicUrl(`details/${jsonFileName}`);
+             detailsUrl = publicUrl;
+             // Append details URL to photos so it's accessible
+             photoUrls.push(detailsUrl);
+        }
+
+        // 4. Insert into Database
+        // We use the existing table 'chef_applications'
+        // We pack Role and Availability into 'city' for immediate visibility in dashboard
+        const cityWithMetadata = `${city} [${role.toUpperCase()} - ${availability}]`;
+
         const { error: dbError } = await supabase
             .from('chef_applications')
             .insert({
                 first_name: firstName,
                 last_name: lastName,
                 email,
-                city,
+                city: cityWithMetadata, // Hack to show role
                 tax_id: taxId,
                 cv_url: cvUrl,
-                photos_urls: photoUrls,
+                photos_urls: photoUrls, // Contains photos + details.json link
                 status: 'pending'
             });
 
@@ -160,11 +288,12 @@ import Header from '../components/Header.astro';
 
         // Success
         form.reset();
+        chefPhotosSection?.classList.add('hidden');
         submitSuccess!.classList.remove('hidden');
 
     } catch (err: any) {
         console.error(err);
-        submitError!.textContent = err.message || 'An error occurred. Please try again.';
+        submitError!.textContent = err.message || 'Si è verificato un errore. Riprova più tardi.';
         submitError!.classList.remove('hidden');
     } finally {
         btnSubmit.disabled = false;
