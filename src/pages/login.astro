@@ -127,8 +127,14 @@ import Header from '../components/Header.astro';
   }
 
   async function handlePostAuthRedirect() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user || !session) return;
+
+    // Set cookies for server-side auth (valid for 7 days)
+    const maxAge = 60 * 60 * 24 * 7; 
+    document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`;
+    document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`;
 
     const { data: profile } = await supabase
       .from('profiles')

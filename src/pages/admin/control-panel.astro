@@ -1,5 +1,40 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+// Server-side Route Protection
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+
+if (!accessToken) {
+  return Astro.redirect('/login');
+}
+
+const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  }
+});
+
+// Verify user
+const { data: { user }, error } = await supabaseServer.auth.getUser(accessToken);
+
+if (error || !user) {
+   return Astro.redirect('/login');
+}
+
+// Check Role
+const { data: profile } = await supabaseServer
+  .from('profiles')
+  .select('role')
+  .eq('id', user.id)
+  .single();
+
+if (!profile || profile.role !== 'admin') {
+  return Astro.redirect('/');
+}
 ---
 
 <Layout title="Admin Control Panel">
