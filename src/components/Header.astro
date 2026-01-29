@@ -205,8 +205,20 @@ const pathname = Astro.url.pathname;
         .single();
 
       // HARDCODED OVERRIDE FOR OWNER
-      const isOwner = user.email === 'ninaglia089@gmail.com';
+      const email = user.email?.toLowerCase() || '';
+      const isOwner = email === 'ninaglia089@gmail.com';
       const isAdmin = profile?.role === 'admin' || isOwner;
+
+      if (desktopWelcome) {
+         // Debug info to help user confirm login state
+         const roleDisplay = isAdmin ? 'ADMIN' : (profile?.role || 'user');
+         desktopWelcome.innerHTML = `
+           <div class="flex flex-col items-end leading-tight">
+             <span class="font-bold text-gray-900">${isAdmin ? 'Pannello Admin' : `Benvenuto, ${displayName}`}</span>
+             <span class="text-[10px] text-gray-500">${user.email} (${roleDisplay})</span>
+           </div>
+         `;
+      }
 
       if (isAdmin) {
         const desktopIcon = document.getElementById('desktop-user-icon');

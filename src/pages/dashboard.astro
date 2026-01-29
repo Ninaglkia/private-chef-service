@@ -83,7 +83,8 @@ import Layout from '../layouts/Layout.astro';
     const p = profile as Profile | null;
 
     // HARDCODED OVERRIDE FOR OWNER
-    const isOwner = user.email === 'ninaglia089@gmail.com';
+    const email = user.email?.toLowerCase() || '';
+    const isOwner = email === 'ninaglia089@gmail.com';
 
     if ((p && p.role === 'admin') || isOwner) {
       window.location.href = '/admin/control-panel';

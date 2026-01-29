@@ -5,11 +5,21 @@ import { createClient } from '@supabase/supabase-js';
 // Server-side Route Protection
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY; // Access service role key
+
 const accessToken = Astro.cookies.get('sb-access-token')?.value;
 
 if (!accessToken) {
   return Astro.redirect('/login');
 }
+
+// Use Service Role for Admin Operations (Bypass RLS)
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  }
+});
 
 const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -26,199 +36,150 @@ if (error || !user) {
 }
 
 // Check Role
-const { data: profile } = await supabaseServer
+const { data: profile } = await supabaseAdmin
   .from('profiles')
   .select('role')
   .eq('id', user.id)
   .single();
 
 // HARDCODED OVERRIDE FOR OWNER
-const isOwner = user.email === 'ninaglia089@gmail.com';
+const email = user.email?.toLowerCase() || '';
+const isOwner = email === 'ninaglia089@gmail.com';
 
 if ((!profile || profile.role !== 'admin') && !isOwner) {
   return Astro.redirect('/');
 }
+
+// FETCH DATA SERVER-SIDE (Using Admin Client to bypass RLS issues)
+const { data: bookings } = await supabaseAdmin
+  .from('bookings')
+  .select('*')
+  .in('status', ['searching', 'assigned', 'completed'])
+  .order('created_at', { ascending: false });
+
+const { data: applications } = await supabaseAdmin
+  .from('chef_applications')
+  .select('*')
+  .order('created_at', { ascending: false });
+
+const { data: recruitments } = await supabaseAdmin
+  .from('chef_recruitment_applications')
+  .select('*')
+  .order('created_at', { ascending: false });
 ---
 
 <Layout title="Admin Control Panel">
   <div class="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-10">
-    <h1 class="text-3xl font-semibold text-gray-900 mb-4">Admin Control Panel</h1>
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-semibold text-gray-900">Admin Control Panel</h1>
+        <div class="text-sm text-gray-500">
+            Loggato come: <span class="font-medium text-gray-900">{user.email}</span>
+            {isOwner && <span class="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs">Owner Override</span>}
+        </div>
+    </div>
 
     <section class="space-y-4">
       <h2 class="text-xl font-semibold text-gray-800">Prenotazioni pagate</h2>
-      <div id="bookings-list" class="space-y-4"></div>
+      <div id="bookings-list" class="space-y-4">
+        {(!bookings || bookings.length === 0) ? (
+            <p class="text-sm text-gray-500">Nessuna prenotazione.</p>
+        ) : (
+            bookings.map((booking: any) => (
+                <div class="border border-gray-200 rounded-lg p-4 flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-medium text-gray-900">{booking.city} • {new Date(booking.start_date).toLocaleDateString()}</p>
+                            <p class="text-sm text-gray-600">{booking.num_guests} ospiti • Piano {booking.plan}</p>
+                            <p class="text-xs text-gray-500">Stato: {booking.status}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="text" placeholder="Chef ID" data-booking-id={booking.id} class="chef-id-input border border-gray-300 rounded px-2 py-1 text-xs" />
+                            <button class="assign-btn px-3 py-1 text-xs font-medium text-white bg-gray-900 rounded-md" data-booking-id={booking.id}>
+                                Assegna Chef
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ))
+        )}
+      </div>
     </section>
 
     <section class="space-y-4">
       <h2 class="text-xl font-semibold text-gray-800">Candidature Prenotazioni (Booking)</h2>
-      <div id="applications-list" class="space-y-4"></div>
+      <div id="applications-list" class="space-y-4">
+         {(!applications || applications.length === 0) ? (
+            <p class="text-sm text-gray-500">Nessuna candidatura per booking.</p>
+         ) : (
+            applications.map((app: any) => (
+                <div class="border border-gray-200 rounded-lg p-4 flex justify-between items-center">
+                    <div>
+                        <p class="font-medium text-gray-900">Booking: {app.booking_id}</p>
+                        <p class="text-sm text-gray-600">Chef: {app.chef_id}</p>
+                        <p class="text-xs text-gray-500">Stato: {app.status}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="assign-from-app-btn px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md" data-booking-id={app.booking_id} data-chef-id={app.chef_id}>
+                            Assegna
+                        </button>
+                        <button class="strike-btn px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md" data-chef-id={app.chef_id}>
+                            Strike
+                        </button>
+                    </div>
+                </div>
+            ))
+         )}
+      </div>
     </section>
 
     <section class="space-y-4">
       <h2 class="text-xl font-semibold text-gray-800">Nuove Candidature (Lavora con noi)</h2>
-      <div id="recruitment-list" class="space-y-4"></div>
+      <div id="recruitment-list" class="space-y-4">
+        {(!recruitments || recruitments.length === 0) ? (
+            <p class="text-sm text-gray-500">Nessuna nuova candidatura "Lavora con noi".</p>
+        ) : (
+            recruitments.map((app: any) => (
+                <div class="border border-gray-200 rounded-lg p-4 flex flex-col gap-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-gray-900">{app.first_name} {app.last_name}</p>
+                            <p class="text-sm text-gray-600">{app.email} • {app.city}</p>
+                            <p class="text-xs text-gray-500 mt-1">Stato: <span class={`uppercase font-semibold ${app.status === 'approved' ? 'text-green-600' : app.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'}`}>{app.status}</span></p>
+                        </div>
+                        <div class="flex gap-2">
+                             {app.cv_url && <a href={app.cv_url} target="_blank" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">Vedi CV</a>}
+                        </div>
+                    </div>
+                    {app.photos_urls && app.photos_urls.length > 0 && (
+                        <div class="flex gap-2 mt-2 overflow-x-auto pb-2">
+                            {app.photos_urls.map((url: string) => {
+                                if (url.endsWith('.json')) {
+                                    return <a href={url} target="_blank" class="flex items-center justify-center w-16 h-16 bg-gray-100 rounded text-xs text-gray-600 border hover:bg-gray-200" title="Dettagli extra">JSON</a>;
+                                }
+                                return <a href={url} target="_blank"><img src={url} class="w-16 h-16 object-cover rounded hover:opacity-75 transition" /></a>;
+                            })}
+                        </div>
+                    )}
+                    <div class="flex gap-2 pt-2 border-t border-gray-100 mt-1">
+                         <button class="recruitment-action-btn px-3 py-1 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700" data-id={app.id} data-action="approved">Approva</button>
+                         <button class="recruitment-action-btn px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700" data-id={app.id} data-action="rejected">Rifiuta</button>
+                    </div>
+                </div>
+            ))
+        )}
+      </div>
     </section>
   </div>
 </Layout>
 
 <script>
   import { supabase } from '../../lib/supabase';
-  import type { Booking, Profile, ChefBookingApplication, ChefRecruitmentApplication } from '../../lib/supabase';
+  import type { Booking, Profile } from '../../lib/supabase';
 
-  async function ensureAdmin() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      window.location.href = '/login';
-      return null;
-    }
+  // Client-side script ONLY handles interactions now. 
+  // Initial data loading is done Server-Side for security and reliability.
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    const p = profile as Profile | null;
-    
-    // HARDCODED OVERRIDE FOR OWNER
-    const isOwner = user.email === 'ninaglia089@gmail.com';
-    
-    if ((!p || p.role !== 'admin') && !isOwner) {
-      window.location.href = '/';
-      return null;
-    }
-
-    return { user, profile: p };
-  }
-
-  async function loadAdminPanel() {
-    const ctx = await ensureAdmin();
-    if (!ctx) return;
-
-    const { data: bookings } = await supabase
-      .from('bookings')
-      .select('*')
-      .in('status', ['searching', 'assigned', 'completed'])
-      .order('created_at', { ascending: false });
-
-    const bookingsContainer = document.getElementById('bookings-list');
-    if (bookingsContainer) {
-      bookingsContainer.innerHTML = '';
-      if (!bookings || bookings.length === 0) {
-        bookingsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessuna prenotazione.</p>';
-      } else {
-        bookings.forEach((b) => {
-          const booking = b as Booking;
-          const div = document.createElement('div');
-          div.className = 'border border-gray-200 rounded-lg p-4 flex flex-col gap-2';
-          div.innerHTML = `
-            <div class="flex justify-between items-center">
-              <div>
-                <p class="font-medium text-gray-900">${booking.city} • ${new Date(booking.start_date).toLocaleDateString()}</p>
-                <p class="text-sm text-gray-600">${booking.num_guests} ospiti • Piano ${booking.plan}</p>
-                <p class="text-xs text-gray-500">Stato: ${booking.status}</p>
-              </div>
-              <div class="flex items-center gap-2">
-                <input type="text" placeholder="Chef ID" data-booking-id="${booking.id}" class="chef-id-input border border-gray-300 rounded px-2 py-1 text-xs" />
-                <button class="assign-btn px-3 py-1 text-xs font-medium text-white bg-gray-900 rounded-md" data-booking-id="${booking.id}">
-                  Assegna Chef
-                </button>
-              </div>
-            </div>
-          `;
-          bookingsContainer.appendChild(div);
-        });
-      }
-    }
-
-    const { data: applications } = await supabase
-      .from('chef_applications')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    const appsContainer = document.getElementById('applications-list');
-    if (appsContainer) {
-      appsContainer.innerHTML = '';
-      if (!applications || applications.length === 0) {
-        appsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessuna candidatura per booking.</p>';
-      } else {
-        applications.forEach((a) => {
-          const app = a as ChefBookingApplication;
-          const div = document.createElement('div');
-          div.className = 'border border-gray-200 rounded-lg p-4 flex justify-between items-center';
-          div.innerHTML = `
-            <div>
-              <p class="font-medium text-gray-900">Booking: ${app.booking_id}</p>
-              <p class="text-sm text-gray-600">Chef: ${app.chef_id}</p>
-              <p class="text-xs text-gray-500">Stato: ${app.status}</p>
-            </div>
-            <div class="flex items-center gap-2">
-              <button class="assign-from-app-btn px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md" data-booking-id="${app.booking_id}" data-chef-id="${app.chef_id}">
-                Assegna
-              </button>
-              <button class="strike-btn px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md" data-chef-id="${app.chef_id}">
-                Strike
-              </button>
-            </div>
-          `;
-          appsContainer.appendChild(div);
-        });
-      }
-    }
-
-    // Load Recruitment Applications
-    const { data: recruitments } = await supabase
-      .from('chef_recruitment_applications')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    const recContainer = document.getElementById('recruitment-list');
-    if (recContainer) {
-        recContainer.innerHTML = '';
-        if (!recruitments || recruitments.length === 0) {
-            recContainer.innerHTML = '<p class="text-sm text-gray-500">Nessuna nuova candidatura "Lavora con noi".</p>';
-        } else {
-            recruitments.forEach((r) => {
-                const app = r as ChefRecruitmentApplication;
-                const div = document.createElement('div');
-                div.className = 'border border-gray-200 rounded-lg p-4 flex flex-col gap-3';
-                
-                let photosHtml = '';
-                if (app.photos_urls && app.photos_urls.length > 0) {
-                    photosHtml = `<div class="flex gap-2 mt-2 overflow-x-auto pb-2">
-                        ${app.photos_urls.map(url => {
-                            // Check if it's a JSON details file
-                            if (url.endsWith('.json')) {
-                                return `<a href="${url}" target="_blank" class="flex items-center justify-center w-16 h-16 bg-gray-100 rounded text-xs text-gray-600 border hover:bg-gray-200" title="Dettagli extra">JSON</a>`;
-                            }
-                            return `<a href="${url}" target="_blank"><img src="${url}" class="w-16 h-16 object-cover rounded hover:opacity-75 transition" /></a>`;
-                        }).join('')}
-                    </div>`;
-                }
-
-                div.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="font-bold text-gray-900">${app.first_name} ${app.last_name}</p>
-                            <p class="text-sm text-gray-600">${app.email} • ${app.city}</p>
-                            <p class="text-xs text-gray-500 mt-1">Stato: <span class="uppercase font-semibold ${app.status === 'approved' ? 'text-green-600' : app.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'}">${app.status}</span></p>
-                        </div>
-                        <div class="flex gap-2">
-                             ${app.cv_url ? `<a href="${app.cv_url}" target="_blank" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">Vedi CV</a>` : ''}
-                        </div>
-                    </div>
-                    ${photosHtml}
-                    <div class="flex gap-2 pt-2 border-t border-gray-100 mt-1">
-                         <button class="recruitment-action-btn px-3 py-1 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700" data-id="${app.id}" data-action="approved">Approva</button>
-                         <button class="recruitment-action-btn px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700" data-id="${app.id}" data-action="rejected">Rifiuta</button>
-                    </div>
-                `;
-                recContainer.appendChild(div);
-            });
-        }
-    }
-
-    document.addEventListener('click', async (e) => {
+  document.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
 
       if (target.matches('.recruitment-action-btn')) {
@@ -236,7 +197,7 @@ if ((!profile || profile.role !== 'admin') && !isOwner) {
           if (error) {
               alert(error.message);
           } else {
-              loadAdminPanel();
+              window.location.reload(); // Reload to fetch updated data server-side
           }
       }
 
@@ -258,7 +219,7 @@ if ((!profile || profile.role !== 'admin') && !isOwner) {
         if (error) {
           alert(error.message);
         } else {
-          loadAdminPanel();
+          window.location.reload();
         }
       }
 
@@ -275,7 +236,7 @@ if ((!profile || profile.role !== 'admin') && !isOwner) {
         if (error) {
           alert(error.message);
         } else {
-          loadAdminPanel();
+          window.location.reload();
         }
       }
 
@@ -299,12 +260,8 @@ if ((!profile || profile.role !== 'admin') && !isOwner) {
         if (error) {
           alert(error.message);
         } else {
-          loadAdminPanel();
+          window.location.reload();
         }
       }
     });
-  }
-
-  loadAdminPanel();
 </script>
-
