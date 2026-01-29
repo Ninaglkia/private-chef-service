@@ -446,6 +446,24 @@ import Header from '../components/Header.astro';
 
         if (dbError) throw dbError;
 
+        // 5. Send Notifications (Email & WhatsApp)
+        try {
+            await fetch('/api/notify-recruitment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    firstName,
+                    lastName,
+                    email,
+                    phone,
+                    role,
+                    city
+                })
+            });
+        } catch (notifyErr) {
+            console.warn('Notification failed but application saved:', notifyErr);
+        }
+
         // Success
         form.reset();
         chefPhotosSection?.classList.add('hidden');
