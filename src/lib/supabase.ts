@@ -39,6 +39,7 @@ export type Profile = {
   city: string | null;
   created_at: string | null;
   onboarding_completed: boolean;
+  strikes?: number;
 };
 
 export type ChefRecruitmentApplication = {

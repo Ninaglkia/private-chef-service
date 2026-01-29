@@ -127,18 +127,20 @@ import Header from '../components/Header.astro';
         
         <div>
            <label class="block text-sm font-medium text-gray-700 mb-1">Curriculum Vitae (PDF/DOC) *</label>
-           <input type="file" name="cv_file" accept=".pdf,.doc,.docx" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"/>
+           <input type="file" name="cv_file" id="cv_file" accept=".pdf,.doc,.docx,.txt" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"/>
+           <div id="cv-status" class="text-xs mt-2 min-h-[1.25rem]"></div>
         </div>
 
         <div id="chef-photos-section" class="hidden">
            <label class="block text-sm font-medium text-gray-700 mb-1">Foto dei tuoi piatti (Max 5) *</label>
-           <p class="text-xs text-gray-500 mb-2">Richiesto per la posizione di Chef.</p>
-           <input type="file" name="photos" multiple accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"/>
+           <p class="text-xs text-gray-500 mb-2">Richiesto per la posizione di Chef. Il nostro sistema AI verificherà che siano foto di cibo.</p>
+           <input type="file" name="photos" id="photos_input" multiple accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"/>
+           <div id="photos-status" class="text-xs mt-2 space-y-1"></div>
         </div>
       </div>
 
       <div class="pt-4">
-        <button type="submit" id="btn-submit" class="w-full py-4 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2">
+        <button type="submit" id="btn-submit" class="w-full py-4 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
           <span>Invia Candidatura</span>
           <div class="hidden animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" id="submit-spinner"></div>
         </button>
@@ -163,7 +165,147 @@ import Header from '../components/Header.astro';
   const submitSuccess = document.getElementById('submit-success');
   const roleSelect = document.getElementById('role-select') as HTMLSelectElement;
   const chefPhotosSection = document.getElementById('chef-photos-section');
-  const photosInput = chefPhotosSection?.querySelector('input');
+  
+  // File inputs
+  const cvInput = document.getElementById('cv_file') as HTMLInputElement;
+  const photosInput = document.getElementById('photos_input') as HTMLInputElement;
+  
+  // Status elements
+  const cvStatus = document.getElementById('cv-status');
+  const photosStatus = document.getElementById('photos-status');
+
+  // State
+  let isCvValid = false;
+  let arePhotosValid = true; // Default true unless chef role selected and files added
+
+  // Helper to update submit button state
+  function updateSubmitState() {
+     const role = roleSelect?.value;
+     const chefReqs = role === 'chef' ? arePhotosValid : true;
+     
+     // Note: HTML5 validation handles 'required' fields on submit attempt, 
+     // but we want to disable if known INVALID files are present.
+     // However, we rely on browser 'required' for empty check.
+     // We only disable if we explicitly found INVALID content.
+     
+     if (isCvValid && chefReqs) {
+         btnSubmit.disabled = false;
+     } else {
+         btnSubmit.disabled = true;
+     }
+  }
+
+  // --- AI Verification Logic ---
+
+  async function verifyCV(file: File) {
+      if (!file) return;
+      
+      cvStatus!.innerHTML = '<span class="text-blue-600 flex items-center gap-1"><svg class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Analisi documento in corso...</span>';
+      btnSubmit.disabled = true;
+
+      try {
+          const { verifyCVDocument } = await import('../lib/ai-verification');
+          const result = await verifyCVDocument(file);
+
+          if (result.valid) {
+              isCvValid = true;
+              cvStatus!.innerHTML = `<span class="text-green-600 flex items-center gap-1">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 
+                  Documento valido ${result.isAI ? '(Verificato da AI)' : ''}
+              </span>`;
+          } else {
+              isCvValid = false;
+              cvInput.value = ''; // Clear input
+              cvStatus!.innerHTML = `<span class="text-red-600 flex items-center gap-1">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  ${result.reason} <button type="button" class="underline ml-1" onclick="alert('Grazie per il feedback. Il nostro team revisionerà il modello.')">Segnala errore</button>
+              </span>`;
+          }
+      } catch (e) {
+          console.error(e);
+          // Fallback allow
+          isCvValid = true;
+          cvStatus!.innerHTML = '<span class="text-yellow-600">Verifica AI saltata (errore tecnico).</span>';
+      } finally {
+          updateSubmitState();
+      }
+  }
+
+  async function verifyPhotos(files: FileList | null) {
+      if (!files || files.length === 0) {
+          arePhotosValid = false; // Required for chef
+          updateSubmitState();
+          return;
+      }
+
+      photosStatus!.innerHTML = '<span class="text-blue-600 flex items-center gap-1"><svg class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Analisi immagini in corso...</span>';
+      btnSubmit.disabled = true;
+
+      try {
+          const { verifyChefImage } = await import('../lib/ai-verification');
+          
+          let allValid = true;
+          let errors: string[] = [];
+
+          for (let i = 0; i < files.length; i++) {
+              const file = files[i];
+              const result = await verifyChefImage(file);
+              if (!result.valid) {
+                  allValid = false;
+                  errors.push(`${file.name}: ${result.reason}`);
+              }
+          }
+
+          if (allValid) {
+              arePhotosValid = true;
+              photosStatus!.innerHTML = `<span class="text-green-600 flex items-center gap-1">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 
+                  Tutte le immagini sono pertinenti.
+              </span>`;
+          } else {
+              arePhotosValid = false;
+              photosInput.value = ''; // Clear all because we can't remove specific ones easily
+              photosStatus!.innerHTML = `<div class="text-red-600 text-sm">
+                  <p class="font-bold flex items-center gap-1"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Alcune immagini sono state rifiutate:</p>
+                  <ul class="list-disc pl-5 mt-1 text-xs text-gray-700">
+                      ${errors.map(e => `<li>${e}</li>`).join('')}
+                  </ul>
+                  <p class="mt-1">Per favore carica solo foto di piatti o preparazioni culinarie.</p>
+              </div>`;
+          }
+
+      } catch (e) {
+          console.error(e);
+          arePhotosValid = true;
+          photosStatus!.innerHTML = '<span class="text-yellow-600">Verifica AI saltata (errore tecnico).</span>';
+      } finally {
+          updateSubmitState();
+      }
+  }
+
+  // --- Event Listeners ---
+
+  cvInput?.addEventListener('change', (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+          verifyCV(file);
+      } else {
+          isCvValid = false;
+          cvStatus!.innerHTML = '';
+          updateSubmitState();
+      }
+  });
+
+  photosInput?.addEventListener('change', (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files.length > 0) {
+          verifyPhotos(files);
+      } else {
+          arePhotosValid = false; // reset
+          photosStatus!.innerHTML = '';
+          updateSubmitState();
+      }
+  });
 
   // Show/Hide Photos based on Role
   roleSelect?.addEventListener('change', (e) => {
@@ -171,16 +313,34 @@ import Header from '../components/Header.astro';
       if (role === 'chef') {
           chefPhotosSection?.classList.remove('hidden');
           if (photosInput) photosInput.required = true;
+          arePhotosValid = false; // Reset validity when switching to chef
+          if (photosInput.files && photosInput.files.length > 0) {
+             verifyPhotos(photosInput.files); // Re-verify if files present
+          }
       } else {
           chefPhotosSection?.classList.add('hidden');
           if (photosInput) photosInput.required = false;
+          arePhotosValid = true; // Not required for others
       }
+      updateSubmitState();
   });
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     submitError!.classList.add('hidden');
     submitSuccess!.classList.add('hidden');
+    
+    // Final check
+    if (!isCvValid) {
+        submitError!.textContent = 'Per favore carica un CV valido prima di inviare.';
+        submitError!.classList.remove('hidden');
+        return;
+    }
+    if (roleSelect.value === 'chef' && !arePhotosValid) {
+        submitError!.textContent = 'Per favore carica foto valide dei tuoi piatti.';
+        submitError!.classList.remove('hidden');
+        return;
+    }
     
     btnSubmit.disabled = true;
     submitSpinner!.classList.remove('hidden');
@@ -267,12 +427,12 @@ import Header from '../components/Header.astro';
         }
 
         // 4. Insert into Database
-        // We use the existing table 'chef_applications'
+        // We use the new table 'chef_recruitment_applications' to avoid conflict with booking apps
         // We pack Role and Availability into 'city' for immediate visibility in dashboard
         const cityWithMetadata = `${city} [${role.toUpperCase()} - ${availability}]`;
 
         const { error: dbError } = await supabase
-            .from('chef_applications')
+            .from('chef_recruitment_applications')
             .insert({
                 first_name: firstName,
                 last_name: lastName,
@@ -289,6 +449,11 @@ import Header from '../components/Header.astro';
         // Success
         form.reset();
         chefPhotosSection?.classList.add('hidden');
+        cvStatus!.innerHTML = '';
+        photosStatus!.innerHTML = '';
+        isCvValid = false;
+        arePhotosValid = true;
+        
         submitSuccess!.classList.remove('hidden');
 
     } catch (err: any) {

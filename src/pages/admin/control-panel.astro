@@ -12,15 +12,20 @@ import Layout from '../../layouts/Layout.astro';
     </section>
 
     <section class="space-y-4">
-      <h2 class="text-xl font-semibold text-gray-800">Candidature chef</h2>
+      <h2 class="text-xl font-semibold text-gray-800">Candidature Prenotazioni (Booking)</h2>
       <div id="applications-list" class="space-y-4"></div>
+    </section>
+
+    <section class="space-y-4">
+      <h2 class="text-xl font-semibold text-gray-800">Nuove Candidature (Lavora con noi)</h2>
+      <div id="recruitment-list" class="space-y-4"></div>
     </section>
   </div>
 </Layout>
 
 <script>
   import { supabase } from '../../lib/supabase';
-  import type { Booking, Profile, ChefApplication } from '../../lib/supabase';
+  import type { Booking, Profile, ChefBookingApplication, ChefRecruitmentApplication } from '../../lib/supabase';
 
   async function ensureAdmin() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -93,10 +98,10 @@ import Layout from '../../layouts/Layout.astro';
     if (appsContainer) {
       appsContainer.innerHTML = '';
       if (!applications || applications.length === 0) {
-        appsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessuna candidatura.</p>';
+        appsContainer.innerHTML = '<p class="text-sm text-gray-500">Nessuna candidatura per booking.</p>';
       } else {
         applications.forEach((a) => {
-          const app = a as ChefApplication;
+          const app = a as ChefBookingApplication;
           const div = document.createElement('div');
           div.className = 'border border-gray-200 rounded-lg p-4 flex justify-between items-center';
           div.innerHTML = `
@@ -119,8 +124,79 @@ import Layout from '../../layouts/Layout.astro';
       }
     }
 
+    // Load Recruitment Applications
+    const { data: recruitments } = await supabase
+      .from('chef_recruitment_applications')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    const recContainer = document.getElementById('recruitment-list');
+    if (recContainer) {
+        recContainer.innerHTML = '';
+        if (!recruitments || recruitments.length === 0) {
+            recContainer.innerHTML = '<p class="text-sm text-gray-500">Nessuna nuova candidatura "Lavora con noi".</p>';
+        } else {
+            recruitments.forEach((r) => {
+                const app = r as ChefRecruitmentApplication;
+                const div = document.createElement('div');
+                div.className = 'border border-gray-200 rounded-lg p-4 flex flex-col gap-3';
+                
+                let photosHtml = '';
+                if (app.photos_urls && app.photos_urls.length > 0) {
+                    photosHtml = `<div class="flex gap-2 mt-2 overflow-x-auto pb-2">
+                        ${app.photos_urls.map(url => {
+                            // Check if it's a JSON details file
+                            if (url.endsWith('.json')) {
+                                return `<a href="${url}" target="_blank" class="flex items-center justify-center w-16 h-16 bg-gray-100 rounded text-xs text-gray-600 border hover:bg-gray-200" title="Dettagli extra">JSON</a>`;
+                            }
+                            return `<a href="${url}" target="_blank"><img src="${url}" class="w-16 h-16 object-cover rounded hover:opacity-75 transition" /></a>`;
+                        }).join('')}
+                    </div>`;
+                }
+
+                div.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-gray-900">${app.first_name} ${app.last_name}</p>
+                            <p class="text-sm text-gray-600">${app.email} • ${app.city}</p>
+                            <p class="text-xs text-gray-500 mt-1">Stato: <span class="uppercase font-semibold ${app.status === 'approved' ? 'text-green-600' : app.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'}">${app.status}</span></p>
+                        </div>
+                        <div class="flex gap-2">
+                             ${app.cv_url ? `<a href="${app.cv_url}" target="_blank" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">Vedi CV</a>` : ''}
+                        </div>
+                    </div>
+                    ${photosHtml}
+                    <div class="flex gap-2 pt-2 border-t border-gray-100 mt-1">
+                         <button class="recruitment-action-btn px-3 py-1 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700" data-id="${app.id}" data-action="approved">Approva</button>
+                         <button class="recruitment-action-btn px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700" data-id="${app.id}" data-action="rejected">Rifiuta</button>
+                    </div>
+                `;
+                recContainer.appendChild(div);
+            });
+        }
+    }
+
     document.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
+
+      if (target.matches('.recruitment-action-btn')) {
+          const id = target.getAttribute('data-id');
+          const action = target.getAttribute('data-action');
+          if (!id || !action) return;
+          
+          if (!confirm(`Sei sicuro di voler impostare lo stato a ${action}?`)) return;
+
+          const { error } = await supabase
+              .from('chef_recruitment_applications')
+              .update({ status: action })
+              .eq('id', id);
+
+          if (error) {
+              alert(error.message);
+          } else {
+              loadAdminPanel();
+          }
+      }
 
       if (target.matches('.assign-btn')) {
         const bookingId = target.getAttribute('data-booking-id');
