@@ -196,6 +196,33 @@ const pathname = Astro.url.pathname;
       if (mobileDashboardLink) {
         mobileDashboardLink.href = '/dashboard';
       }
+
+      // Check Admin Role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.role === 'admin') {
+        const desktopIcon = document.getElementById('desktop-user-icon');
+        if (desktopIcon) {
+          desktopIcon.setAttribute('href', '/admin/control-panel');
+          desktopIcon.classList.remove('bg-gold-600', 'hover:bg-gold-500');
+          desktopIcon.classList.add('bg-gray-900', 'hover:bg-gray-800');
+          desktopIcon.setAttribute('title', 'Pannello Admin');
+        }
+        
+        if (desktopWelcome) {
+           desktopWelcome.innerHTML = `<span class="font-bold text-gray-900">ADMIN</span>`;
+        }
+
+        if (mobileDashboardLink) {
+            mobileDashboardLink.href = '/admin/control-panel';
+            const span = mobileDashboardLink.querySelector('span');
+            if (span) span.textContent = 'Admin Panel';
+        }
+      }
     } else {
       if (desktopGuest && desktopUser) {
         desktopGuest.classList.remove('hidden');
