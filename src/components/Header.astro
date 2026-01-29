@@ -204,7 +204,11 @@ const pathname = Astro.url.pathname;
         .eq('id', user.id)
         .single();
 
-      if (profile?.role === 'admin') {
+      // HARDCODED OVERRIDE FOR OWNER
+      const isOwner = user.email === 'ninaglia089@gmail.com';
+      const isAdmin = profile?.role === 'admin' || isOwner;
+
+      if (isAdmin) {
         const desktopIcon = document.getElementById('desktop-user-icon');
         if (desktopIcon) {
           desktopIcon.setAttribute('href', '/admin/control-panel');

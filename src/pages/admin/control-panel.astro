@@ -32,7 +32,10 @@ const { data: profile } = await supabaseServer
   .eq('id', user.id)
   .single();
 
-if (!profile || profile.role !== 'admin') {
+// HARDCODED OVERRIDE FOR OWNER
+const isOwner = user.email === 'ninaglia089@gmail.com';
+
+if ((!profile || profile.role !== 'admin') && !isOwner) {
   return Astro.redirect('/');
 }
 ---
@@ -76,7 +79,11 @@ if (!profile || profile.role !== 'admin') {
       .single();
 
     const p = profile as Profile | null;
-    if (!p || p.role !== 'admin') {
+    
+    // HARDCODED OVERRIDE FOR OWNER
+    const isOwner = user.email === 'ninaglia089@gmail.com';
+    
+    if ((!p || p.role !== 'admin') && !isOwner) {
       window.location.href = '/';
       return null;
     }
