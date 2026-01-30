@@ -10,7 +10,8 @@ const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY; // Access 
 const accessToken = Astro.cookies.get('sb-access-token')?.value;
 
 if (!accessToken) {
-  return Astro.redirect('/login');
+  const returnTo = Astro.url.pathname;
+  return Astro.redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
 }
 
 // Use Service Role for Admin Operations (Bypass RLS)

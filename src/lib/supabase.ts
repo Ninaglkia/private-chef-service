@@ -40,6 +40,7 @@ export type Profile = {
   created_at: string | null;
   onboarding_completed: boolean;
   strikes?: number;
+  avatar_url?: string | null;
 };
 
 export type ChefRecruitmentApplication = {

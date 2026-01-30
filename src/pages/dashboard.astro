@@ -1,5 +1,46 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  }
+});
+
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+
+if (!accessToken) {
+  const returnTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+}
+
+const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+
+if (error || !user) {
+  const returnTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+}
+
+// HARDCODED OVERRIDE FOR OWNER
+const email = user.email?.toLowerCase() || '';
+const isOwner = email === 'ninaglia089@gmail.com';
+
+// Optional: Redirect admin/owner to control panel if they land here? 
+// The client-side code does this. We can do it here too for faster redirect.
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('role')
+  .eq('id', user.id)
+  .single();
+
+if ((profile?.role === 'admin' || isOwner)) {
+   return Astro.redirect('/admin/control-panel');
+}
 ---
 
 <Layout title="Dashboard - Private Chef Service">
@@ -23,13 +64,13 @@ import Layout from '../layouts/Layout.astro';
         </a>
         <div class="hidden sm:flex flex-col">
           <span class="text-xs font-medium uppercase tracking-wide text-gray-400">Area Cliente</span>
-          <span class="text-sm text-gray-600" id="user-email">Loading...</span>
+          <span class="text-sm text-gray-600" id="user-email">{user.email}</span>
         </div>
       </div>
       <div class="flex items-center justify-between sm:justify-end gap-4">
         <div class="sm:hidden flex flex-col text-right">
           <span class="text-sm font-semibold text-gray-900">Dashboard</span>
-          <span class="text-xs text-gray-500" id="user-email-mobile">Loading...</span>
+          <span class="text-xs text-gray-500" id="user-email-mobile">{user.email}</span>
         </div>
         <button id="logout-btn" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors">
           Log Out
@@ -51,51 +92,24 @@ import Layout from '../layouts/Layout.astro';
   </div>
 </Layout>
 
-<script>
+<script define:vars={{ userEmail: user.email }}>
   import { supabase } from '../lib/supabase';
-  import type { Booking, Profile } from '../lib/supabase';
 
-  const userEmailEl = document.getElementById('user-email');
-  const userEmailMobileEl = document.getElementById('user-email-mobile');
   const bookingSection = document.getElementById('booking-section');
   const logoutBtn = document.getElementById('logout-btn');
 
   async function init() {
-    // 1. Check Session
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      const rt = encodeURIComponent('/dashboard');
-      window.location.href = `/login?returnTo=${rt}`;
-      return;
+    // 1. Session is already checked server-side.
+    // We can directly load bookings using the email passed from frontmatter.
+    if (userEmail) {
+        loadBookings(userEmail);
+    } else {
+        // Fallback if something went wrong (shouldn't happen due to server check)
+        window.location.href = '/login';
     }
-
-    if (userEmailEl) userEmailEl.textContent = user.email || '';
-    if (userEmailMobileEl) userEmailMobileEl.textContent = user.email || '';
-
-    // 2. Check Profile & Role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    const p = profile as Profile | null;
-
-    // HARDCODED OVERRIDE FOR OWNER
-    const email = user.email?.toLowerCase() || '';
-    const isOwner = email === 'ninaglia089@gmail.com';
-
-    if ((p && p.role === 'admin') || isOwner) {
-      window.location.href = '/admin/control-panel';
-      return;
-    }
-
-    // 3. Load Bookings
-    loadBookings(user.email!);
   }
 
-  async function loadBookings(email: string) {
+  async function loadBookings(email) {
     if (!bookingSection) return;
 
     const { data: bookings, error } = await supabase

@@ -4,6 +4,32 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { PLANS, CUSTOM_PLAN } from '../lib/pricing';
 import { EUROPEAN_COUNTRIES, ALL_CAPITALS } from '../lib/european-data';
+import { createClient } from '@supabase/supabase-js';
+
+// Server-side Route Protection
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  }
+});
+
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+
+if (!accessToken) {
+  const returnTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+}
+
+const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+
+if (error || !user) {
+  const returnTo = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+}
 
 const preselectedGuests = Astro.url.searchParams.get('guests');
 const selectedPlanId = Astro.url.searchParams.get('plan');

@@ -1,6 +1,8 @@
 ---
 const { transparent = false } = Astro.props;
 const pathname = Astro.url.pathname;
+const loginUrl = `/login?returnTo=${encodeURIComponent(pathname)}`;
+const signupUrl = `/signup?returnTo=${encodeURIComponent(pathname)}`;
 ---
 
 <header id="main-header" class={`fixed w-full top-0 z-50 transition-all duration-300 ${transparent ? 'bg-transparent text-white' : 'bg-white/95 backdrop-blur-md shadow-soft border-b border-gray-100/50 text-gray-900'}`} data-transparent={transparent}>
@@ -92,13 +94,13 @@ const pathname = Astro.url.pathname;
         <div id="mobile-guest-actions" class="flex items-center gap-2">
           <a
             id="mobile-auth-link"
-            href="/login"
+            href={loginUrl}
             class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 text-gray-800 bg-white/90 hover:bg-white active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
           >
             Login
           </a>
           <a
-            href="/signup"
+            href={signupUrl}
             class="px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 active:bg-black transition-colors duration-200 text-xs font-semibold shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900"
           >
             Sign Up
@@ -147,8 +149,8 @@ const pathname = Astro.url.pathname;
       <a href="/#pricing" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2 px-2 rounded hover:bg-gray-50">Pricing</a>
       <a href="/#faq" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2 px-2 rounded hover:bg-gray-50">FAQ</a>
       <a href="/work-with-us" class="block text-gray-700 hover:text-gray-900 text-sm font-medium py-2 px-2 rounded hover:bg-gray-50">Lavora con noi</a>
-      <a href="/login" class="block text-gray-700 hover:text-gray-900 text-sm font-semibold py-2 px-2 rounded hover:bg-gray-50">Login</a>
-      <a href="/signup" class="block text-white bg-gray-900 hover:bg-gray-800 text-sm font-semibold py-2 px-2 rounded">Sign Up</a>
+      <a href={loginUrl} class="block text-gray-700 hover:text-gray-900 text-sm font-semibold py-2 px-2 rounded hover:bg-gray-50">Login</a>
+      <a href={signupUrl} class="block text-white bg-gray-900 hover:bg-gray-800 text-sm font-semibold py-2 px-2 rounded">Sign Up</a>
     </div>
   </nav>
 </header>
@@ -165,7 +167,13 @@ const pathname = Astro.url.pathname;
   // Auth Logic
   const desktopGuest = document.getElementById('desktop-guest-actions');
   const desktopUser = document.getElementById('desktop-user-actions');
-  const desktopWelcome = document.getElementById('desktop-user-welcome') as HTMLSpanElement | null;
+  
+  // Dropdown elements
+  const headerUserName = document.getElementById('header-user-name');
+  const headerUserRole = document.getElementById('header-user-role');
+  const headerAvatar = document.getElementById('header-avatar');
+  const dropdownEmail = document.getElementById('dropdown-email');
+  const adminPanelLink = document.getElementById('admin-panel-link');
   const desktopLogout = document.getElementById('desktop-logout') as HTMLButtonElement | null;
 
   const mobileGuest = document.getElementById('mobile-guest-actions');
@@ -179,22 +187,13 @@ const pathname = Astro.url.pathname;
     if (user) {
       const meta = user.user_metadata || {};
       const name = (meta.full_name || meta.name || '') as string;
-      const displayName = name || user.email || '';
+      const displayName = name || user.email?.split('@')[0] || 'Utente';
 
       if (desktopGuest && desktopUser) {
         desktopGuest.classList.add('hidden');
         desktopUser.classList.remove('hidden');
-      }
-      if (desktopWelcome) {
-        desktopWelcome.textContent = displayName ? `Benvenuto, ${displayName}` : 'Benvenuto';
-      }
-
-      if (mobileGuest && mobileUser) {
-        mobileGuest.classList.add('hidden');
-        mobileUser.classList.remove('hidden');
-      }
-      if (mobileDashboardLink) {
-        mobileDashboardLink.href = '/dashboard';
+        // Make sure it's flex
+        desktopUser.classList.add('flex');
       }
 
       // Check Admin Role
@@ -208,45 +207,36 @@ const pathname = Astro.url.pathname;
       const email = user.email?.toLowerCase() || '';
       const isOwner = email === 'ninaglia089@gmail.com';
       const isAdmin = profile?.role === 'admin' || isOwner;
+      const roleDisplay = isAdmin ? 'Admin' : 'Cliente';
 
-      if (desktopWelcome) {
-         // Debug info to help user confirm login state
-         const roleDisplay = isAdmin ? 'ADMIN' : (profile?.role || 'user');
-         desktopWelcome.innerHTML = `
-           <div class="flex flex-col items-end leading-tight">
-             <span class="font-bold text-gray-900">${isAdmin ? 'Pannello Admin' : `Benvenuto, ${displayName}`}</span>
-             <span class="text-[10px] text-gray-500">${user.email} (${roleDisplay})</span>
-           </div>
-         `;
+      // Update Desktop Header
+      if (headerUserName) headerUserName.textContent = displayName;
+      if (headerUserRole) headerUserRole.textContent = roleDisplay;
+      if (dropdownEmail) dropdownEmail.textContent = user.email || '';
+      
+      if (isAdmin && adminPanelLink) {
+          adminPanelLink.classList.remove('hidden');
+          if (headerAvatar) {
+              headerAvatar.classList.remove('bg-gray-900');
+              headerAvatar.classList.add('bg-purple-600');
+          }
       }
 
-      if (isAdmin) {
-        const desktopIcon = document.getElementById('desktop-user-icon');
-        if (desktopIcon) {
-          desktopIcon.setAttribute('href', '/admin/control-panel');
-          desktopIcon.classList.remove('bg-gold-600', 'hover:bg-gold-500');
-          desktopIcon.classList.add('bg-gray-900', 'hover:bg-gray-800');
-          desktopIcon.setAttribute('title', 'Pannello Admin');
-        }
-        
-        if (desktopWelcome) {
-           desktopWelcome.innerHTML = `<span class="font-bold text-gray-900">ADMIN</span>`;
-        }
-
-        if (mobileDashboardLink) {
-            mobileDashboardLink.href = '/admin/control-panel';
-            const span = mobileDashboardLink.querySelector('span');
-            if (span) span.textContent = 'Admin Panel';
-        }
+      if (mobileGuest && mobileUser) {
+        mobileGuest.classList.add('hidden');
+        mobileUser.classList.remove('hidden');
+        mobileUser.classList.add('flex');
       }
     } else {
       if (desktopGuest && desktopUser) {
         desktopGuest.classList.remove('hidden');
         desktopUser.classList.add('hidden');
+        desktopUser.classList.remove('flex');
       }
       if (mobileGuest && mobileUser) {
         mobileGuest.classList.remove('hidden');
         mobileUser.classList.add('hidden');
+        mobileUser.classList.remove('flex');
       }
     }
   }

@@ -1,6 +1,31 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  }
+});
+
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+
+if (!accessToken) {
+  const currentPath = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?returnTo=${encodeURIComponent(currentPath)}`);
+}
+
+const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+
+if (error || !user) {
+  const currentPath = Astro.url.pathname + Astro.url.search;
+  return Astro.redirect(`/login?returnTo=${encodeURIComponent(currentPath)}`);
+}
 ---
 
 <Layout title="Complete Your Profile - Private Chef Service" bodyClass="bg-gray-50 text-gray-900">
