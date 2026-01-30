@@ -16,7 +16,7 @@ interface EmailData {
 /**
  * Generic function to send email via Resend
  */
-async function sendEmail(data: EmailData): Promise<boolean> {
+export async function sendEmail(data: EmailData): Promise<boolean> {
   if (!RESEND_API_KEY) {
     console.warn('RESEND_API_KEY is not defined. Email not sent.');
     return false;
