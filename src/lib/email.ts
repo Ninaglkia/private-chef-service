@@ -3,8 +3,8 @@ import { type APIContext } from 'astro';
 
 const RESEND_API_KEY = import.meta.env.RESEND_API_KEY;
 const ORGANIZER_EMAIL = 'ninaglia089@gmail.com';
-const FROM_EMAIL_CUSTOMER = import.meta.env.EMAIL_FROM || 'info@weeklyprivatechef.com';
-const FROM_EMAIL_SYSTEM = import.meta.env.EMAIL_SYSTEM || 'sistema@weeklyprivatechef.com';
+const FROM_EMAIL_CUSTOMER = import.meta.env.EMAIL_FROM || 'info@ninos-privatechefs.com';
+const FROM_EMAIL_SYSTEM = import.meta.env.EMAIL_SYSTEM || 'sistema@ninos-privatechefs.com';
 
 interface EmailData {
   to: string;
@@ -196,5 +196,51 @@ export async function sendBookingConfirmationEmails(booking: any) {
   await Promise.all([
     sendEmail({ to: customer_email, subject: 'Booking Confirmation - Private Chef Service', html: customerHtml, from: FROM_EMAIL_CUSTOMER }),
     sendEmail({ to: ORGANIZER_EMAIL, subject: `[NEW BOOKING] ${customer_name} - ${formattedPrice}`, html: organizerHtml, from: FROM_EMAIL_SYSTEM })
+  ]);
+}
+
+// 3. WELCOME EMAIL (new user signup or first Google login)
+export async function sendWelcomeEmail(user: { email: string; full_name?: string | null }) {
+  const name = user.full_name?.trim() || user.email.split('@')[0];
+
+  const customerHtml = getHtmlTemplate(
+    'Welcome to Private Chef',
+    `
+      <h2>Benvenuto, ${name}!</h2>
+      <p>Grazie per esserti registrato a <strong>Weekly Private Chef</strong>.</p>
+      <p>Da oggi puoi prenotare il tuo chef privato a domicilio: colazione, pranzo e cena preparati freschi a casa tua, dal lunedì al venerdì.</p>
+
+      <div class="details-box">
+        <p style="margin:0;"><strong>Cosa puoi fare ora:</strong></p>
+        <ul style="margin:10px 0 0 18px;padding:0;">
+          <li>Scegli il piano adatto alla tua famiglia</li>
+          <li>Prenota in pochi click con pagamento sicuro</li>
+          <li>Personalizza il menù con il tuo chef</li>
+        </ul>
+      </div>
+
+      <p style="text-align:center;">
+        <a class="btn" href="https://ninos-privatechefs.com/#pricing">Scopri i piani</a>
+      </p>
+
+      <p>Se hai domande, rispondi pure a questa email — il nostro team è a tua disposizione.</p>
+      <p>Buon appetito,<br>Chef Nino &amp; il Team</p>
+    `
+  );
+
+  const organizerHtml = getHtmlTemplate(
+    'New user registered',
+    `
+      <h2>Nuovo utente registrato</h2>
+      <div class="details-box">
+        <div class="details-row"><span class="label">Nome:</span> <span class="value">${name}</span></div>
+        <div class="details-row"><span class="label">Email:</span> <span class="value">${user.email}</span></div>
+      </div>
+    `
+  );
+
+  await Promise.all([
+    sendEmail({ to: user.email, subject: 'Benvenuto su Private Chef', html: customerHtml, from: FROM_EMAIL_CUSTOMER }),
+    sendEmail({ to: ORGANIZER_EMAIL, subject: `[NEW USER] ${user.email}`, html: organizerHtml, from: FROM_EMAIL_SYSTEM }),
   ]);
 }
