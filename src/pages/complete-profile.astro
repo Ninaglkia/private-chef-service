@@ -306,11 +306,11 @@ if (error || !user) {
       // NOTE: `role` is intentionally NOT written here. It is assigned
       // server-side by the handle_new_user trigger (default 'customer').
       // The client must never be able to set role:'admin' from the browser.
+      // Note: email is NOT stored on profiles (it lives on auth.users / user.email).
       const { error } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
-          email: user.email,
           full_name: fullName,
           phone,
           city,
