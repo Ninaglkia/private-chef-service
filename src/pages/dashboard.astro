@@ -26,6 +26,21 @@ if (error || !user) {
   return Astro.redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
 }
 
+// Onboarding gate: a complete profile (name, phone, city) is required to continue.
+const { data: onboardingProfile, error: profileError } = await supabase
+  .from('profiles')
+  .select('full_name, phone, city')
+  .eq('id', user.id)
+  .maybeSingle();
+// Fail OPEN on query error to avoid redirect loops; only gate when we can read the profile.
+if (!profileError) {
+  const incomplete = !onboardingProfile || !onboardingProfile.full_name || !onboardingProfile.phone || !onboardingProfile.city;
+  if (incomplete) {
+    const returnTo = Astro.url.pathname + Astro.url.search;
+    return Astro.redirect('/complete-profile?returnTo=' + encodeURIComponent(returnTo));
+  }
+}
+
 // HARDCODED OVERRIDE FOR OWNER
 const email = user.email?.toLowerCase() || '';
 const isOwner = email === 'ninaglia089@gmail.com';

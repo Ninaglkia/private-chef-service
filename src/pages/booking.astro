@@ -37,6 +37,21 @@ if (error || !user) {
   return Astro.redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
 }
 
+// Onboarding gate: a complete profile (name, phone, city) is required to continue.
+const { data: profile, error: profileError } = await supabase
+  .from('profiles')
+  .select('full_name, phone, city')
+  .eq('id', user.id)
+  .maybeSingle();
+// Fail OPEN on query error to avoid redirect loops; only gate when we can read the profile.
+if (!profileError) {
+  const incomplete = !profile || !profile.full_name || !profile.phone || !profile.city;
+  if (incomplete) {
+    const returnTo = Astro.url.pathname + Astro.url.search;
+    return Astro.redirect('/complete-profile?returnTo=' + encodeURIComponent(returnTo));
+  }
+}
+
 const preselectedGuests = Astro.url.searchParams.get('guests');
 const selectedProduct = Astro.url.searchParams.get('product'); // day | weekend | week | custom
 
