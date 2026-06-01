@@ -2,9 +2,26 @@ import type { APIRoute } from 'astro';
 import { supabase } from '../../lib/supabase';
 import { sendQuoteRequestEmails } from '../../lib/email';
 import { notifyOrganizer, notifyCustomer } from '../../lib/sms';
+import { rateLimit, getClientIp } from '../../lib/rate-limit';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    // Basic per-IP rate limiting before any DB/email/SMS work.
+    const ip = getClientIp(request);
+    const limit = rateLimit(`request-quote:${ip}`, { limit: 5, windowMs: 60_000 });
+    if (!limit.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Too many requests, please try again shortly.' }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': String(limit.retryAfterSec),
+          },
+        }
+      );
+    }
+
     const data = await request.json();
 
     const {

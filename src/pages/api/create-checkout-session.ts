@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { PRODUCTS, getProductPrice, getProductDays, isValidProduct, MAX_GUESTS } from '../../lib/pricing';
+import { rateLimit, getClientIp } from '../../lib/rate-limit';
 
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-12-15.clover',
@@ -20,6 +21,22 @@ const PRODUCT_IMAGES: Record<string, string> = {
 
 export const POST: APIRoute = async ({ request, url }) => {
   try {
+    // Basic per-IP rate limiting before any DB/Stripe work.
+    const ip = getClientIp(request);
+    const limit = rateLimit(`create-checkout-session:${ip}`, { limit: 8, windowMs: 60_000 });
+    if (!limit.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Too many requests, please try again shortly.' }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': String(limit.retryAfterSec),
+          },
+        }
+      );
+    }
+
     let data: Record<string, any>;
     const contentType = request.headers.get('content-type');
 
