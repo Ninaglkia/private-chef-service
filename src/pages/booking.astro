@@ -57,6 +57,19 @@ if (!profileError) {
   }
 }
 
+// Prefill the form from the logged-in user's profile so they don't retype.
+const pf = profile || {};
+const prefillName = pf.full_name || '';
+const prefillCity = pf.city || '';
+const prefillEmail = user.email || '';
+let prefillDial = '+39';
+let prefillLocal = '';
+if (pf.phone) {
+  const phoneMatch = String(pf.phone).trim().match(/^(\+\d{1,4})\s*(.*)$/);
+  if (phoneMatch) { prefillDial = phoneMatch[1]; prefillLocal = (phoneMatch[2] || '').replace(/\D/g, ''); }
+  else { prefillLocal = String(pf.phone).replace(/\D/g, ''); }
+}
+
 const preselectedGuests = Astro.url.searchParams.get('guests');
 const selectedProduct = Astro.url.searchParams.get('product'); // day | weekend | week | custom
 
@@ -122,12 +135,12 @@ function cadenceLabel(days: number): string {
               <!-- Personal details -->
               <div class="space-y-2">
                 <label for="customer_name" class="block text-sm font-bold text-gray-900">Full Name *</label>
-                <input type="text" id="customer_name" name="customer_name" required class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white" placeholder="John Smith" />
+                <input type="text" id="customer_name" name="customer_name" required value={prefillName} class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white" placeholder="John Smith" />
               </div>
 
               <div class="space-y-2">
                 <label for="customer_email" class="block text-sm font-bold text-gray-900">Email Address *</label>
-                <input type="email" id="customer_email" name="customer_email" required class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white" placeholder="john@example.com" />
+                <input type="email" id="customer_email" name="customer_email" required value={prefillEmail} class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white" placeholder="john@example.com" />
               </div>
 
               <!-- Phone & City -->
@@ -135,11 +148,11 @@ function cadenceLabel(days: number): string {
                 <label for="phone_number_local" class="block text-sm font-bold text-gray-900">Phone Number</label>
                 <div class="flex flex-col md:flex-row gap-3">
                   <div class="relative" id="country-selector">
-                    <input type="hidden" name="phone_country_code" id="phone_country_code" value="+39">
+                    <input type="hidden" name="phone_country_code" id="phone_country_code" value={prefillDial}>
                     <button type="button" id="country-trigger" class="w-full md:w-[140px] px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 bg-gray-50 focus:bg-white flex items-center justify-between gap-2 transition-all duration-200 h-[64px]">
                       <span class="flex items-center gap-2">
                         <span id="selected-flag" class="text-xl">🇮🇹</span>
-                        <span id="selected-dial-code" class="text-gray-900 font-medium">+39</span>
+                        <span id="selected-dial-code" class="text-gray-900 font-medium">{prefillDial}</span>
                       </span>
                       <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" id="country-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </button>
@@ -161,7 +174,7 @@ function cadenceLabel(days: number): string {
                     </div>
                   </div>
                   <div class="flex-1 relative">
-                    <input type="tel" id="phone_number_local" name="phone_number_local" class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white h-[64px]" placeholder="333 123 4567" />
+                    <input type="tel" id="phone_number_local" name="phone_number_local" value={prefillLocal} class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white h-[64px]" placeholder="333 123 4567" />
                     <div id="phone-validation-msg" class="absolute -bottom-6 left-0 text-xs text-red-500 hidden">Please enter a valid phone number</div>
                   </div>
                 </div>
@@ -171,14 +184,15 @@ function cadenceLabel(days: number): string {
                 <label for="city" class="block text-sm font-bold text-gray-900">City *</label>
                 <div id="city-picker" class="relative" data-cities={JSON.stringify(LOMBARDY_CITIES)}>
                   <select id="city" name="city" required class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg appearance-none bg-gray-50 focus:bg-white cursor-pointer h-[64px]">
-                    <option value="" disabled selected>Select a city</option>
-                    {LOMBARDY_CITIES.map((c) => (<option value={c}>{c}</option>))}
+                    <option value="" disabled selected={!prefillCity}>Select a city</option>
+                    {prefillCity && !LOMBARDY_CITIES.includes(prefillCity) && (<option value={prefillCity} selected>{prefillCity}</option>)}
+                    {LOMBARDY_CITIES.map((c) => (<option value={c} selected={c === prefillCity}>{c}</option>))}
                   </select>
                   <div id="city-select-icon" class="absolute inset-y-0 right-0 flex items-center px-5 pointer-events-none text-gray-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></div>
 
                   <div id="city-enhanced" class="hidden">
                     <div class="relative">
-                      <input id="city-search" type="text" inputmode="search" autocomplete="off" spellcheck="false" class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white h-[64px]" placeholder="Type to filter cities..." role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="city-listbox" />
+                      <input id="city-search" type="text" inputmode="search" autocomplete="off" spellcheck="false" value={prefillCity} class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white h-[64px]" placeholder="Type to filter cities..." role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="city-listbox" />
                       <button type="button" id="city-clear" class="hidden absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors text-gray-500 flex items-center justify-center" aria-label="Clear city">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 6L6 18M6 6l12 12" /></svg>
                       </button>
