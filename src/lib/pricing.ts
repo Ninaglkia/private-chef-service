@@ -1,97 +1,76 @@
-export type Plan = 'standard' | 'plus' | 'premium';
+// Private Chef — pricing model.
+//
+// Single chef (Nino), flat rate, up to 15 guests (price does NOT change with
+// headcount). Groceries are always billed separately, at cost. Service in
+// Lombardy; travel abroad is quoted per destination (accommodation on top,
+// unless the client provides a room for the chef).
 
-export interface PlanDetails {
+export type Product = 'day' | 'weekend' | 'week';
+
+export interface ProductDetails {
+  id: Product;
   name: string;
-  guestRange: string;
-  guests: string;
-  weekPrice: number;
-  saturdayPrice: number;
-  sundayPrice: number;
-  staff: string[];
+  /** Number of service days the package covers. */
+  days: number;
+  /** Price in euro cents (integer, no floating point). */
+  priceCents: number;
+  tagline: string;
+  highlight?: boolean;
   features: string[];
 }
 
-export const PLANS: Record<Plan, PlanDetails> = {
-  standard: {
-    name: 'Weekly Private Chef',
-    guestRange: '2-4',
-    guests: 'from 2 up to 4 people',
-    weekPrice: 250000,
-    saturdayPrice: 80000,
-    sundayPrice: 80000,
-    staff: ['1 private chef'],
-    features: [
-      'Monday to Friday service',
-      'Breakfast, lunch & dinner',
-      '2 to 4 guests',
-      'Menu planning included',
-      'Kitchen management',
-      'Groceries handled internally',
-    ],
+/** Max guests served at the flat price. Beyond this -> custom / abroad quote. */
+export const MAX_GUESTS = 15;
+
+const SHARED_FEATURES = [
+  'Breakfast, lunch & dinner — or whatever you prefer',
+  `Up to ${MAX_GUESTS} guests, same price`,
+  'Personalised menu planning',
+  'Full kitchen management',
+  'Groceries billed separately, at cost',
+];
+
+export const PRODUCTS: Record<Product, ProductDetails> = {
+  day: {
+    id: 'day',
+    name: 'Single Day',
+    days: 1,
+    priceCents: 60000, // €600
+    tagline: 'A full day with your private chef',
+    features: ['One full service day', ...SHARED_FEATURES],
   },
-  plus: {
-    name: 'Weekly Private Chef Plus',
-    guestRange: '5-7',
-    guests: 'from 5 up to 7 people',
-    weekPrice: 400000,
-    saturdayPrice: 125000,
-    sundayPrice: 125000,
-    staff: ['1 private chef', '1 waiter'],
-    features: [
-      'Monday to Friday service',
-      'Breakfast, lunch & dinner',
-      '5 to 7 guests',
-      'Professional waiter service',
-      'Menu planning included',
-      'Kitchen management',
-      'Groceries handled internally',
-    ],
+  weekend: {
+    id: 'weekend',
+    name: 'Weekend',
+    days: 2,
+    priceCents: 120000, // €1,200
+    tagline: 'Saturday & Sunday at home',
+    features: ['Two consecutive service days', ...SHARED_FEATURES],
   },
-  premium: {
-    name: 'Weekly Private Chef Premium',
-    guestRange: '8-10',
-    guests: 'from 8 up to 10 people',
-    weekPrice: 600000,
-    saturdayPrice: 180000,
-    sundayPrice: 180000,
-    staff: ['2 private chefs', '1 waiter'],
-    features: [
-      'Monday to Friday service',
-      'Breakfast, lunch & dinner',
-      '8 to 10 guests',
-      'Dual chef service',
-      'Professional waiter service',
-      'Menu planning included',
-      'Kitchen management',
-      'Groceries handled internally',
-    ],
+  week: {
+    id: 'week',
+    name: 'Full Week',
+    days: 7,
+    priceCents: 370000, // €3,700
+    tagline: 'Seven days — best value',
+    highlight: true,
+    features: ['Seven consecutive service days', 'Best value — save vs the daily rate', ...SHARED_FEATURES],
   },
 };
 
-export function getPlanForGuests(numGuests: number): Plan {
-  if (numGuests >= 2 && numGuests <= 4) return 'standard';
-  if (numGuests >= 5 && numGuests <= 7) return 'plus';
-  if (numGuests >= 8 && numGuests <= 10) return 'premium';
-  return 'standard';
+export const PRODUCT_LIST: ProductDetails[] = [PRODUCTS.day, PRODUCTS.weekend, PRODUCTS.week];
+
+export function isValidProduct(value: unknown): value is Product {
+  return value === 'day' || value === 'weekend' || value === 'week';
 }
 
-export function calculatePrice(
-  plan: Plan,
-  addSaturday: boolean,
-  addSunday: boolean
-): number {
-  const planDetails = PLANS[plan];
-  let total = planDetails.weekPrice;
+/** Authoritative, server-side price for a product (in cents). */
+export function getProductPrice(product: Product): number {
+  return PRODUCTS[product].priceCents;
+}
 
-  if (addSaturday) {
-    total += planDetails.saturdayPrice;
-  }
-
-  if (addSunday) {
-    total += planDetails.sundayPrice;
-  }
-
-  return total;
+export function getProductDays(product: Product): number {
+  return PRODUCTS[product].days;
 }
 
 export function formatPrice(cents: number): string {
@@ -101,17 +80,17 @@ export function formatPrice(cents: number): string {
   })}`;
 }
 
+// Custom / abroad: handled as a quote request, not instant checkout.
 export const CUSTOM_PLAN = {
-  name: 'Custom Plan',
-  guestRange: '10+',
-  guests: '10+ guests',
-  staff: ['Tailored staffing', 'Multiple chefs and waiters if needed'],
+  name: 'Abroad & Bespoke',
+  guestRange: '15+ / outside Lombardy',
+  guests: 'Larger events or service outside Lombardy',
+  tagline: 'Tailored to your destination',
   features: [
-    'Tailored staffing solution',
-    'Personalized menu and dietary preferences',
-    'Location-based logistics',
+    'Service anywhere outside Lombardy',
+    'Travel & accommodation quoted per destination',
+    'Or provide a room for the chef — no extra cost',
+    'Tailored menus & dietary needs',
     'Response within 24 hours',
-    'Flexible service arrangements',
-    'Dedicated account manager',
   ],
 };

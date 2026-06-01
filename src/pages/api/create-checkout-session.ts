@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { PRODUCTS, getProductPrice, getProductDays, isValidProduct, MAX_GUESTS } from '../../lib/pricing';
 
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-12-15.clover',
@@ -11,18 +12,27 @@ const supabaseAdmin = createClient(
   import.meta.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const PRODUCT_IMAGES: Record<string, string> = {
+  day: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
+  weekend: 'https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&w=800&q=80',
+  week: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80',
+};
+
 export const POST: APIRoute = async ({ request, url }) => {
   try {
-    let data;
+    let data: Record<string, any>;
     const contentType = request.headers.get('content-type');
 
     if (contentType?.includes('application/json')) {
       data = await request.json();
-    } else if (contentType?.includes('application/x-www-form-urlencoded') || contentType?.includes('multipart/form-data')) {
+    } else if (
+      contentType?.includes('application/x-www-form-urlencoded') ||
+      contentType?.includes('multipart/form-data')
+    ) {
       const formData = await request.formData();
       data = Object.fromEntries(formData);
     } else {
-      return new Response(JSON.stringify({ error: 'Unsupported content type' }), { status: 400 });
+      return json({ error: 'Unsupported content type' }, 400);
     }
 
     const {
@@ -33,46 +43,35 @@ export const POST: APIRoute = async ({ request, url }) => {
       city,
       start_date,
       num_guests,
-      plan,
-      add_saturday,
-      add_sunday,
+      product,
       dietary_preferences,
-      total_price,
     } = data;
 
-    if (
-      !customer_name ||
-      !customer_email ||
-      !city ||
-      !start_date ||
-      !plan ||
-      total_price === undefined
-    ) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+    // --- Validation (server is the source of truth; never trust client price) ---
+    if (!customer_name || !customer_email || !city || !start_date || !product) {
+      return json({ error: 'Missing required fields' }, 400);
     }
 
+    if (!isValidProduct(product)) {
+      return json({ error: 'Invalid product' }, 400);
+    }
+
+    const guests = num_guests ? parseInt(String(num_guests), 10) : 1;
+    if (Number.isNaN(guests) || guests < 1 || guests > MAX_GUESTS) {
+      return json({ error: `Guests must be between 1 and ${MAX_GUESTS}` }, 400);
+    }
+
+    // Price is computed here, from the product — the client value is ignored.
+    const totalPrice = getProductPrice(product);
+    const days = getProductDays(product);
+
     const startDateObj = new Date(start_date);
-    const daysToAdd = 4 + (add_saturday ? 1 : 0) + (add_sunday ? 1 : 0);
+    if (Number.isNaN(startDateObj.getTime())) {
+      return json({ error: 'Invalid start date' }, 400);
+    }
     const endDateObj = new Date(startDateObj);
-    endDateObj.setDate(startDateObj.getDate() + daysToAdd);
+    endDateObj.setDate(startDateObj.getDate() + (days - 1));
     const end_date = endDateObj.toISOString().split('T')[0];
-
-    const selected_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-    if (add_saturday) selected_days.push('Saturday');
-    if (add_sunday) selected_days.push('Sunday');
-
-    // Handle potential numeric plan input (0, 1, 2) from frontend
-    let planInput = plan;
-    
-    // Map input plan to valid DB values
-    const validPlans = ['standard', 'plus', 'premium'];
-    const dbPlan = validPlans.includes(planInput) ? planInput : 'standard';
 
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
@@ -82,43 +81,27 @@ export const POST: APIRoute = async ({ request, url }) => {
         customer_phone: customer_phone || null,
         city,
         start_date,
-        num_guests: num_guests ? parseInt(num_guests) : 1,
-        total_price,
+        end_date,
+        num_guests: guests,
+        total_price: totalPrice,
         status: 'pending',
         dietary_preferences: dietary_preferences || null,
-        plan: dbPlan,
-        add_saturday: add_saturday || false,
-        add_sunday: add_sunday || false,
+        plan: product,
+        add_saturday: false,
+        add_sunday: false,
       })
-      .select('id, customer_email, customer_name, city, start_date, num_guests, total_price')
+      .select('id')
       .single();
 
     if (bookingError || !booking) {
       console.error('Supabase booking error:', bookingError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to create booking: ' + (bookingError?.message || 'Unknown error') }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+      return json({ error: 'Failed to create booking' }, 500);
     }
 
     const origin = url.origin;
-    const successUrl = `${origin}/confirmation?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${origin}/booking`;
-
-    // Combine company with name if provided
     const fullName = company ? `${customer_name} (${company})` : customer_name;
-
-    // Images for different plans
-    const planImages: Record<string, string> = {
-      standard: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80', // High quality food
-      plus: 'https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&w=800&q=80', // Chef cooking
-      premium: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80', // Luxury service
-    };
-
-    const imageUrl = planImages[dbPlan] || planImages.standard;
+    const productName = PRODUCTS[product].name;
+    const imageUrl = PRODUCT_IMAGES[product] || PRODUCT_IMAGES.day;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -127,22 +110,24 @@ export const POST: APIRoute = async ({ request, url }) => {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: `Weekly Private Chef - ${dbPlan.charAt(0).toUpperCase() + dbPlan.slice(1)} Plan`,
-              description: `${num_guests} guests • ${city} • Starts ${start_date}`,
+              name: `Private Chef — ${productName}`,
+              description: `${guests} guest${guests > 1 ? 's' : ''} • ${city} • from ${start_date} • groceries billed separately`,
               images: [imageUrl],
             },
-            unit_amount: total_price,
+            unit_amount: totalPrice,
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
-      locale: 'it',
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      customer_email: customer_email,
+      locale: 'auto',
+      success_url: `${origin}/confirmation?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/booking`,
+      customer_email,
       metadata: {
         booking_id: booking.id,
+        product,
+        customer_name: fullName,
       },
     });
 
@@ -151,21 +136,16 @@ export const POST: APIRoute = async ({ request, url }) => {
       .update({ stripe_session_id: session.id })
       .eq('id', booking.id);
 
-    return new Response(
-      JSON.stringify({ url: session.url }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return json({ url: session.url }, 200);
   } catch (error: any) {
     console.error('General error creating checkout session:', error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to create checkout session: ' + (error?.message || 'Unknown error') }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return json({ error: 'Failed to create checkout session' }, 500);
   }
 };
+
+function json(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}

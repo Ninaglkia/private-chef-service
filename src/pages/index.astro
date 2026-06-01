@@ -6,7 +6,10 @@ import Button from '../components/Button.astro';
 import PricingCard from '../components/PricingCard.astro';
 import HeroCarousel from '../components/HeroCarousel.astro';
 import ChefCarousel from '../components/ChefCarousel.astro';
-import { PLANS, CUSTOM_PLAN } from '../lib/pricing';
+import { PRODUCT_LIST, CUSTOM_PLAN, MAX_GUESTS } from '../lib/pricing';
+
+const cadenceFor = (days: number) =>
+  days >= 7 ? 'per week' : days === 2 ? 'per weekend' : 'per day';
 ---
 
 <Layout>
@@ -230,57 +233,50 @@ import { PLANS, CUSTOM_PLAN } from '../lib/pricing';
       <div class="container mx-auto px-4 md:px-6">
         <div class="text-center mb-12 md:mb-20">
           <h2 class="text-3xl md:text-5xl font-semibold text-gray-900 mb-4 md:mb-6">
-            Pricing Plans
+            Pricing
           </h2>
           <p class="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
-            Select the perfect plan for your household size. All plans include Monday to Friday service.
+            One flat rate, for up to {MAX_GUESTS} guests — the price is the same regardless of headcount. Choose the length of service that suits you.
           </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-7xl mx-auto items-stretch">
-          <PricingCard
-            name={PLANS.standard.name}
-            price={PLANS.standard.weekPrice}
-            guests={PLANS.standard.guests}
-            staff={PLANS.standard.staff}
-            features={['Monday to Friday service', 'Breakfast, lunch & dinner', '2 to 4 guests', 'Menu planning included', 'Kitchen management', 'Groceries handled internally']}
-            missingFeatures={['Professional waiter service', 'Dual chef service']}
-            weekendPrice={80000}
-            buttonHref="/booking?guests=3&plan=standard"
-            badge="Standard"
-          />
-          <PricingCard
-            name={PLANS.plus.name}
-            price={PLANS.plus.weekPrice}
-            guests={PLANS.plus.guests}
-            staff={PLANS.plus.staff}
-            features={['Monday to Friday service', 'Breakfast, lunch & dinner', '5 to 7 guests', 'Professional waiter service', 'Menu planning included', 'Kitchen management', 'Groceries handled internally']}
-            missingFeatures={['Dual chef service']}
-            weekendPrice={125000}
-            highlighted={true}
-            buttonHref="/booking?guests=6&plan=plus"
-            badge="Most Popular"
-          />
-          <PricingCard
-            name={PLANS.premium.name}
-            price={PLANS.premium.weekPrice}
-            guests={PLANS.premium.guests}
-            staff={PLANS.premium.staff}
-            features={['Monday to Friday service', 'Breakfast, lunch & dinner', '8 to 10 guests', 'Dual chef service', 'Professional waiter service', 'Menu planning included', 'Kitchen management', 'Groceries handled internally']}
-            weekendPrice={180000}
-            buttonHref="/booking?guests=9&plan=premium"
-            badge="Premium"
-          />
+          {PRODUCT_LIST.map((product) => (
+            <PricingCard
+              name={product.name}
+              priceCents={product.priceCents}
+              cadence={cadenceFor(product.days)}
+              tagline={product.tagline}
+              features={product.features}
+              highlighted={product.highlight}
+              buttonText="Book Now"
+              buttonHref={`/booking?product=${product.id}`}
+              badge={product.highlight ? 'Best value' : undefined}
+            />
+          ))}
           <PricingCard
             name={CUSTOM_PLAN.name}
-            priceLabel="Custom quote"
-            guests={CUSTOM_PLAN.guests}
-            staff={CUSTOM_PLAN.staff}
+            priceLabel="By quote"
+            cadenceLabel="tailored to your destination"
+            tagline={CUSTOM_PLAN.tagline}
             features={CUSTOM_PLAN.features}
             buttonText="Request a Quote"
-            buttonHref="/booking?guests=15&plan=custom"
-            badge="Customized"
+            buttonHref="/booking?product=custom"
+            badge="Custom"
           />
+        </div>
+
+        <div class="max-w-3xl mx-auto mt-10 md:mt-14">
+          <div class="flex flex-col sm:flex-row items-start gap-3 bg-gold-50 border border-gold-200 rounded-2xl px-6 py-5 text-sm text-gray-700">
+            <svg class="w-5 h-5 text-gold-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="leading-relaxed">
+              <span class="font-semibold text-gray-900">Groceries are billed separately, at cost.</span>
+              Service is provided in Lombardy — anywhere else is quoted on request, with travel and
+              accommodation arranged per destination.
+            </p>
+          </div>
         </div>
       </div>
     </section>

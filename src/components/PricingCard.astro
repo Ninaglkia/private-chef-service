@@ -2,38 +2,42 @@
 import { formatPrice } from '../lib/pricing';
 
 interface Props {
+  /** Card title (e.g. "Single Day", "Abroad & Bespoke"). */
   name: string;
-  price?: number;
+  /** Price in euro cents. Omit for quote-only cards (Custom / Abroad). */
+  priceCents?: number;
+  /** Shown instead of a price for quote-only cards (e.g. "By quote"). */
   priceLabel?: string;
-  guests: string;
-  staff: string[];
+  /** Small cadence line under the price (e.g. "per day", "per weekend", "per week"). */
+  cadence?: string;
+  /** Sub-line shown for quote-only cards under the price label. */
+  cadenceLabel?: string;
+  /** Short tagline shown under the title. */
+  tagline: string;
   features: string[];
-  missingFeatures?: string[];
   highlighted?: boolean;
   buttonText?: string;
   buttonHref?: string;
-  weekendPrice?: number;
   badge?: string;
 }
 
 const {
   name,
-  price,
+  priceCents,
   priceLabel,
-  guests,
-  staff,
+  cadence,
+  cadenceLabel = 'tailored to your needs',
+  tagline,
   features,
-  missingFeatures = [],
   highlighted = false,
-  buttonText = 'Select Plan',
+  buttonText = 'Book Now',
   buttonHref = '/booking',
-  weekendPrice,
-  badge
+  badge,
 } = Astro.props;
 ---
 
 <div
-  class={`block relative bg-white rounded-3xl shadow-soft hover:shadow-soft-xl transition-all duration-500 overflow-hidden h-full flex flex-col border pricing-card ${highlighted ? 'border-gold-400 shadow-soft-lg group-hover:scale-110' : 'border-gray-100 hover:border-gold-200'} group`}
+  class={`block relative bg-white rounded-3xl shadow-soft hover:shadow-soft-xl transition-all duration-500 overflow-hidden h-full flex flex-col border pricing-card ${highlighted ? 'border-gold-400 shadow-soft-lg' : 'border-gray-100 hover:border-gold-200'} group`}
 >
   {badge && (
     <div class={`absolute top-0 left-0 right-0 text-center py-3 text-sm font-semibold tracking-wide shadow-soft ${highlighted ? 'bg-gradient-to-r from-gold-500 to-gold-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
@@ -42,43 +46,28 @@ const {
   )}
 
   <div class={`p-8 ${badge ? 'pt-16' : ''} flex flex-col flex-1`}>
-    <div class="min-h-[6.5rem] mb-6 flex flex-col justify-start">
+    <div class="min-h-[6rem] mb-6 flex flex-col justify-start">
       <h3 class="text-2xl font-serif font-semibold text-gray-900 mb-2 leading-tight">{name}</h3>
-      <p class="text-gray-600 text-sm">{guests}</p>
+      <p class="text-gray-600 text-sm">{tagline}</p>
     </div>
 
     <div class="min-h-[5.5rem] mb-8 flex flex-col justify-center">
-      {price ? (
+      {priceCents !== undefined ? (
         <>
-          <div class="text-4xl font-serif font-semibold text-gray-900 leading-tight">{formatPrice(price)}</div>
-          <div class="text-gray-600 mt-1 text-sm">per week</div>
+          <div class="text-4xl font-serif font-semibold text-gray-900 leading-tight">{formatPrice(priceCents)}</div>
+          {cadence && <div class="text-gray-600 mt-1 text-sm">{cadence}</div>}
         </>
       ) : (
         <>
           <div class="text-3xl font-serif font-semibold text-gray-900 leading-tight">{priceLabel || 'Custom quote'}</div>
-          <div class="text-gray-600 mt-1 text-sm">tailored to your needs</div>
+          <div class="text-gray-600 mt-1 text-sm">{cadenceLabel}</div>
         </>
       )}
     </div>
 
     <div class="flex-1 flex flex-col">
-
-      <div class="mb-6">
-        <h4 class="font-semibold text-gray-900 mb-3 text-base">Staff</h4>
-        <ul class="space-y-2">
-          {staff.map((item) => (
-            <li class="flex items-center text-gray-700 text-sm">
-              <svg class="w-4 h-4 text-gold-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
-              </svg>
-              {item}
-            </li>
-          ))}
-        </ul>
-      </div>
-
       <div class="mb-6 flex-1">
-        <h4 class="font-semibold text-gray-900 mb-3 text-base">Features</h4>
+        <h4 class="font-semibold text-gray-900 mb-3 text-base">What's included</h4>
         <ul class="space-y-2">
           {features.map((feature) => (
             <li class="flex items-start text-gray-700 text-sm">
@@ -88,48 +77,17 @@ const {
               {feature}
             </li>
           ))}
-          {missingFeatures.map((feature) => (
-            <li class="flex items-start text-gray-500 text-sm">
-              <svg class="w-4 h-4 text-red-400 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-              </svg>
-              <span class="line-through">{feature}</span>
-            </li>
-          ))}
         </ul>
       </div>
-
-      {weekendPrice ? (
-        <div class="mt-4 border-t border-gray-100 pt-4">
-          <h5 class="text-sm font-semibold text-gray-900 mb-3">Weekend Add-ons (Optional)</h5>
-          <div class="space-y-3">
-            <label class="flex items-center justify-between cursor-pointer group select-none">
-              <span class="flex items-center text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
-                <input type="checkbox" class="add-saturday-checkbox w-4 h-4 text-gold-500 rounded border-gray-300 focus:ring-gold-500 mr-2 transition-colors cursor-pointer" />
-                Add Saturday
-              </span>
-              <span class="text-sm font-medium text-gray-900">+€{(weekendPrice/100).toLocaleString()}</span>
-            </label>
-            <label class="flex items-center justify-between cursor-pointer group select-none">
-              <span class="flex items-center text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
-                <input type="checkbox" class="add-sunday-checkbox w-4 h-4 text-gold-500 rounded border-gray-300 focus:ring-gold-500 mr-2 transition-colors cursor-pointer" />
-                Add Sunday
-              </span>
-              <span class="text-sm font-medium text-gray-900">+€{(weekendPrice/100).toLocaleString()}</span>
-            </label>
-          </div>
-        </div>
-      ) : null}
 
       <div class="mt-8">
         <a
           href={buttonHref}
-          class={`block w-full py-3 px-4 text-center rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg book-now-btn ${
+          class={`block w-full py-3 px-4 text-center rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg ${
             highlighted
               ? 'bg-gold-500 text-white hover:bg-gold-600 shadow-gold/20'
               : 'bg-gray-900 text-white hover:bg-gray-800'
           }`}
-          data-base-href={buttonHref}
         >
           {buttonText}
         </a>
@@ -140,106 +98,3 @@ const {
     </div>
   </div>
 </div>
-
-<script>
-  function initPricingCards() {
-    const cards = document.querySelectorAll('.pricing-card');
-    const STORAGE_KEY = 'weekend_preferences';
-
-    // Helper to load state
-    const loadState = () => {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        return saved ? JSON.parse(saved) : { saturday: false, sunday: false };
-      } catch (e) {
-        return { saturday: false, sunday: false };
-      }
-    };
-
-    // Helper to save state
-    const saveState = (state: { saturday: boolean; sunday: boolean }) => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    };
-
-    // Helper to update UI visuals
-    const updateVisuals = (label: HTMLElement, isChecked: boolean) => {
-      if (isChecked) {
-        label.classList.add('bg-gold-50', 'rounded-lg', 'px-2', '-mx-2');
-      } else {
-        label.classList.remove('bg-gold-50', 'rounded-lg', 'px-2', '-mx-2');
-      }
-    };
-
-    // Initial state
-    let currentState = loadState();
-
-    // Function to sync all cards with current state
-    const syncAllCards = () => {
-      cards.forEach(card => {
-        const saturdayCheckbox = card.querySelector('.add-saturday-checkbox') as HTMLInputElement;
-        const sundayCheckbox = card.querySelector('.add-sunday-checkbox') as HTMLInputElement;
-        const bookBtn = card.querySelector('.book-now-btn') as HTMLAnchorElement;
-
-        if (saturdayCheckbox) {
-          saturdayCheckbox.checked = currentState.saturday;
-          const label = saturdayCheckbox.closest('label');
-          if (label) updateVisuals(label, currentState.saturday);
-        }
-
-        if (sundayCheckbox) {
-          sundayCheckbox.checked = currentState.sunday;
-          const label = sundayCheckbox.closest('label');
-          if (label) updateVisuals(label, currentState.sunday);
-        }
-
-        if (bookBtn) {
-          const baseHref = bookBtn.dataset.baseHref || bookBtn.href;
-          const url = new URL(baseHref, window.location.origin);
-          
-          url.searchParams.delete('add_saturday');
-          url.searchParams.delete('add_sunday');
-
-          if (currentState.saturday) {
-            url.searchParams.append('add_saturday', 'true');
-          }
-          if (currentState.sunday) {
-            url.searchParams.append('add_sunday', 'true');
-          }
-
-          bookBtn.href = url.pathname + url.search;
-        }
-      });
-    };
-
-    // Attach listeners
-    cards.forEach(card => {
-      const saturdayCheckbox = card.querySelector('.add-saturday-checkbox') as HTMLInputElement;
-      const sundayCheckbox = card.querySelector('.add-sunday-checkbox') as HTMLInputElement;
-
-      if (saturdayCheckbox) {
-        saturdayCheckbox.addEventListener('change', (e) => {
-          currentState.saturday = (e.target as HTMLInputElement).checked;
-          saveState(currentState);
-          syncAllCards();
-        });
-      }
-
-      if (sundayCheckbox) {
-        sundayCheckbox.addEventListener('change', (e) => {
-          currentState.sunday = (e.target as HTMLInputElement).checked;
-          saveState(currentState);
-          syncAllCards();
-        });
-      }
-    });
-
-    // Initial sync
-    syncAllCards();
-  }
-
-  // Run on standard load
-  document.addEventListener('DOMContentLoaded', initPricingCards);
-  
-  // Run on Astro view transitions
-  document.addEventListener('astro:page-load', initPricingCards);
-</script>

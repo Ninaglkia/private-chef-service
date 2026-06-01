@@ -24,11 +24,10 @@ export const POST: APIRoute = async ({ request }) => {
       !customer_email ||
       !city ||
       !start_date ||
-      !num_guests ||
-      num_guests < 10
+      !num_guests
     ) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields or invalid guest count' }),
+        JSON.stringify({ error: 'Missing required fields' }),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -73,8 +72,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // 2. Notify Customer (WhatsApp)
     if (customer_phone) {
-        // Template: "Hello {{1}}, thank you for your request regarding {{2}}. We will get back to you within 48 hours."
-        const customerMsg = `[CONFERMA CLIENTE] Hello ${customer_name}, thank you for your request regarding ${num_guests} guests. We will get back to you within 48 hours.`;
+        const customerMsg = `Hello ${customer_name}, thank you for your request. We'll get back to you within 48 hours with a tailored quote.`;
         
         // Use WhatsApp
         notifyCustomer(customer_phone, customerMsg, true).catch(err => console.error('Customer WhatsApp failed:', err));

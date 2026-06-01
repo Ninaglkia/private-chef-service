@@ -14,8 +14,6 @@ const supabaseAdmin = createClient(
 );
 
 const webhookSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
-const emailApiKey = import.meta.env.RESEND_API_KEY;
-const emailFrom = import.meta.env.EMAIL_FROM || 'onboarding@resend.dev';
 
 export const POST: APIRoute = async ({ request }) => {
   const body = await request.text();
@@ -26,7 +24,6 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   let event: Stripe.Event;
-
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
@@ -37,111 +34,80 @@ export const POST: APIRoute = async ({ request }) => {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
 
+    // Only act on actually-paid sessions.
+    if (session.payment_status && session.payment_status !== 'paid') {
+      return received();
+    }
+
     const bookingId = session.metadata?.booking_id;
+    if (!bookingId) {
+      return received();
+    }
 
-    if (bookingId) {
-      await supabaseAdmin
-        .from('bookings')
-        .update({
-          status: 'confirmed',
-          stripe_payment_intent: session.payment_intent as string,
-        })
-        .eq('id', bookingId);
+    // Idempotent transition: only the pending -> confirmed move does the work.
+    // A replayed/duplicate event matches 0 rows and becomes a no-op.
+    const { data: updatedRows, error: updateError } = await supabaseAdmin
+      .from('bookings')
+      .update({
+        status: 'confirmed',
+        stripe_payment_intent: session.payment_intent as string,
+      })
+      .eq('id', bookingId)
+      .eq('status', 'pending')
+      .select('*');
 
-      const { data: booking } = await supabaseAdmin
-        .from('bookings')
-        .select('*')
-        .eq('id', bookingId)
-        .single();
+    if (updateError) {
+      console.error('Booking confirm update failed:', updateError);
+      // 500 -> Stripe retries the webhook later.
+      return new Response('Failed to update booking', { status: 500 });
+    }
 
-      // Calculate end date manually if not in DB
-      let endDate = booking?.end_date;
-      if (!endDate && booking?.start_date) {
-        const startDateObj = new Date(booking.start_date);
-        const daysToAdd = 4 + (booking.add_saturday ? 1 : 0) + (booking.add_sunday ? 1 : 0);
-        const endDateObj = new Date(startDateObj);
-        endDateObj.setDate(startDateObj.getDate() + daysToAdd);
-        endDate = endDateObj.toISOString().split('T')[0];
-      }
+    if (!updatedRows || updatedRows.length === 0) {
+      // Already processed (or not found) — nothing more to do.
+      return received();
+    }
 
-      // Send confirmation emails (non-blocking)
-      sendBookingConfirmationEmails(booking).catch(err => console.error('Email sending failed:', err));
+    const booking = updatedRows[0];
 
-      // 1. Notify Organizer
-      const formattedPrice = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(booking.total_price / 100);
-      const organizerMsg = `[NOTIFICA CHEF] Booking Paid - ${booking.customer_name}. Total: ${formattedPrice}. Plan: ${booking.plan}.`;
-      notifyOrganizer(organizerMsg).catch(err => console.error('Organizer SMS failed:', err));
+    // Sanity check the amount actually paid vs the price we stored.
+    if (
+      session.amount_total != null &&
+      booking.total_price != null &&
+      session.amount_total !== booking.total_price
+    ) {
+      console.error(
+        `Amount mismatch for booking ${bookingId}: paid ${session.amount_total}, expected ${booking.total_price}`
+      );
+    }
 
-      // 2. Notify Customer (if phone exists)
-      if (booking.customer_phone) {
-          const customerMsg = `[CONFERMA CLIENTE] Dear ${booking.customer_name}, your booking for ${booking.city} is confirmed! We look forward to serving you. Our team will be in touch shortly.`;
-          notifyCustomer(booking.customer_phone, customerMsg, true).catch(err => console.error('Customer WhatsApp failed:', err));
-      }
+    // Notifications are best-effort: a failure here must not 500 the webhook.
+    sendBookingConfirmationEmails(booking).catch((err) =>
+      console.error('Email sending failed:', err)
+    );
+
+    const formattedPrice = new Intl.NumberFormat('en-IE', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format((booking.total_price || 0) / 100);
+    const organizerMsg = `[NEW BOOKING] Paid - ${booking.customer_name}. ${formattedPrice}. ${booking.plan} • ${booking.city} • from ${booking.start_date}.`;
+    notifyOrganizer(organizerMsg).catch((err) =>
+      console.error('Organizer SMS failed:', err)
+    );
+
+    if (booking.customer_phone) {
+      const customerMsg = `Dear ${booking.customer_name}, your private chef booking for ${booking.city} is confirmed. We'll be in touch shortly to plan your menu.`;
+      notifyCustomer(booking.customer_phone, customerMsg, true).catch((err) =>
+        console.error('Customer WhatsApp failed:', err)
+      );
     }
   }
 
+  return received();
+};
+
+function received(): Response {
   return new Response(JSON.stringify({ received: true }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
-};
-
-export const GET: APIRoute = async ({ url }) => {
-  const name = url.searchParams.get('name') || 'John Smith';
-  const city = url.searchParams.get('city') || 'Barcelona';
-  const start = url.searchParams.get('start') || '2026-01-12';
-  const end = url.searchParams.get('end') || '2026-01-16';
-  const guests = parseInt(url.searchParams.get('guests') || '4');
-  const total = parseInt(url.searchParams.get('total') || '250000');
-  const send = url.searchParams.get('send') === '1';
-  const to = url.searchParams.get('to') || '';
-
-  const html = `
-    <div style="font-family: Arial, sans-serif; color: #111; max-width: 640px; margin: 0 auto;">
-      <div style="text-align:center; padding: 24px 0;">
-        <div style="font-size: 20px; font-weight: 600;">Weekly Private Chef</div>
-      </div>
-      <div style="background:#000; color:#fff; padding: 16px 24px; border-radius: 8px 8px 0 0;">
-        <div style="font-size:18px; font-weight:600;">Booking Confirmed</div>
-      </div>
-      <div style="border:1px solid #eee; border-top:none; padding: 20px 24px; border-radius: 0 0 8px 8px;">
-        <p>Thank you for your booking. Your payment has been received and your weekly private chef service is confirmed.</p>
-        <div style="margin-top:12px;">
-          <p><strong>Name:</strong> ${name}</p>
-          <p><strong>City:</strong> ${city}</p>
-          <p><strong>Service Dates:</strong> ${start} to ${end}</p>
-          <p><strong>Guests:</strong> ${guests}</p>
-          <p><strong>Total:</strong> €${(total / 100).toFixed(0)}</p>
-        </div>
-        <p style="margin-top:12px;">Our team will contact you within 24–48 hours to finalize details and menu planning.</p>
-      </div>
-      <div style="text-align:center; color:#666; font-size:12px; margin-top:16px;">Secure payment powered by Stripe</div>
-    </div>
-  `;
-
-  if (send && emailApiKey && to && import.meta.env.DEV) {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${emailApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: emailFrom,
-        to,
-        subject: 'Your Weekly Private Chef – Booking Confirmed',
-        html,
-      }),
-    });
-    const json = await res.json();
-    return new Response(JSON.stringify(json), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  return new Response(html, {
-    status: 200,
-    headers: { 'Content-Type': 'text/html' },
-  });
-};
+}

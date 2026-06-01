@@ -4,7 +4,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Button from '../components/Button.astro';
 import { supabase } from '../lib/supabase';
-import { formatPrice, PLANS } from '../lib/pricing';
+import { formatPrice, PRODUCTS } from '../lib/pricing';
 
 const sessionId = Astro.url.searchParams.get('session_id');
 const quoteId = Astro.url.searchParams.get('quote_id');
@@ -43,10 +43,11 @@ if (sessionId) {
   error = 'No session or quote ID provided';
 }
 
-const planDetails = booking ? PLANS[booking.plan as keyof typeof PLANS] : null;
+const productName = booking ? ((PRODUCTS as any)[booking.plan]?.name ?? booking.plan) : null;
+const isPaid = booking?.status === 'confirmed';
 ---
 
-<Layout title="Booking Confirmed | Weekly Private Chef">
+<Layout title="Booking | Private Chef">
   <Header />
 
   <main class="pt-24 pb-16 bg-gray-50 min-h-screen">
@@ -117,12 +118,8 @@ const planDetails = booking ? PLANS[booking.plan as keyof typeof PLANS] : null;
                 </div>
 
                 <div class="flex justify-between py-3 border-b border-gray-200">
-                  <span class="text-gray-600">Service Days</span>
-                  <span class="font-semibold text-gray-900">
-                    Monday - Friday
-                    {quoteRequest.add_saturday && ', Saturday'}
-                    {quoteRequest.add_sunday && ', Sunday'}
-                  </span>
+                  <span class="text-gray-600">Service</span>
+                  <span class="font-semibold text-gray-900">To be defined in your quote</span>
                 </div>
 
                 {quoteRequest.notes && (
@@ -192,23 +189,23 @@ const planDetails = booking ? PLANS[booking.plan as keyof typeof PLANS] : null;
                 Return to Home
               </Button>
               <p class="mt-4 text-gray-600">
-                Questions? Contact us at <a href="mailto:hello@weeklyprivatechef.com" class="text-gray-900 underline">hello@weeklyprivatechef.com</a>
+                Questions? Contact us at <a href="mailto:info@ninos-privatechefs.com" class="text-gray-900 underline">info@ninos-privatechefs.com</a>
               </p>
             </div>
           </>
         ) : booking ? (
           <>
             <div class="text-center mb-12">
-              <div class="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-6">
+              <div class={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 ${isPaid ? 'bg-green-500' : 'bg-gold-500'}`}>
                 <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={isPaid ? 'M5 13l4 4L19 7' : 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'} />
                 </svg>
               </div>
               <h1 class="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-4">
-                Booking Confirmed!
+                {isPaid ? 'Booking Confirmed!' : 'Finalizing your booking…'}
               </h1>
               <p class="text-xl text-gray-600">
-                Your weekly private chef service has been successfully booked
+                {isPaid ? 'Your private chef service has been successfully booked' : "We've received your payment and are confirming your booking. This can take a few moments — please refresh shortly."}
               </p>
             </div>
 
@@ -254,16 +251,15 @@ const planDetails = booking ? PLANS[booking.plan as keyof typeof PLANS] : null;
                 </div>
 
                 <div class="flex justify-between py-3 border-b border-gray-200">
-                  <span class="text-gray-600">Plan</span>
-                  <span class="font-semibold text-gray-900">{planDetails?.name}</span>
+                  <span class="text-gray-600">Package</span>
+                  <span class="font-semibold text-gray-900">{productName}</span>
                 </div>
 
                 <div class="flex justify-between py-3 border-b border-gray-200">
-                  <span class="text-gray-600">Service Days</span>
+                  <span class="text-gray-600">Service Dates</span>
                   <span class="font-semibold text-gray-900">
-                    Monday - Friday
-                    {booking.add_saturday && ', Saturday'}
-                    {booking.add_sunday && ', Sunday'}
+                    {new Date(booking.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {booking.end_date && booking.end_date !== booking.start_date && ` – ${new Date(booking.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
                   </span>
                 </div>
 
@@ -276,13 +272,13 @@ const planDetails = booking ? PLANS[booking.plan as keyof typeof PLANS] : null;
 
                 <div class="flex justify-between py-3 border-b border-gray-200">
                   <span class="text-gray-600">Payment Status</span>
-                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                    Paid
+                  <span class={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${isPaid ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                    {isPaid ? 'Paid' : 'Processing'}
                   </span>
                 </div>
 
                 <div class="flex justify-between py-4 bg-gray-50 rounded-lg px-4 mt-4">
-                  <span class="text-lg font-semibold text-gray-900">Total Paid</span>
+                  <span class="text-lg font-semibold text-gray-900">{isPaid ? 'Total Paid' : 'Total'}</span>
                   <span class="text-2xl font-bold text-gray-900">{formatPrice(booking.total_price)}</span>
                 </div>
               </div>
@@ -308,9 +304,9 @@ const planDetails = booking ? PLANS[booking.plan as keyof typeof PLANS] : null;
                     <span class="text-sm font-bold">2</span>
                   </div>
                   <div>
-                    <h3 class="font-semibold mb-1">Chef Assignment</h3>
+                    <h3 class="font-semibold mb-1">Confirmation</h3>
                     <p class="text-gray-300">
-                      Our team will match you with the perfect chef for your needs within 24-48 hours.
+                      We'll confirm your booking within 24-48 hours. If we can't serve your dates, you're fully refunded.
                     </p>
                   </div>
                 </div>
@@ -346,7 +342,7 @@ const planDetails = booking ? PLANS[booking.plan as keyof typeof PLANS] : null;
                 Return to Home
               </Button>
               <p class="mt-4 text-gray-600">
-                Questions? Contact us at <a href="mailto:hello@weeklyprivatechef.com" class="text-gray-900 underline">hello@weeklyprivatechef.com</a>
+                Questions? Contact us at <a href="mailto:info@ninos-privatechefs.com" class="text-gray-900 underline">info@ninos-privatechefs.com</a>
               </p>
             </div>
           </>
