@@ -1,6 +1,14 @@
 import type { APIRoute } from 'astro';
-import { supabase } from '../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { sendQuoteRequestEmails } from '../../lib/email';
+
+// Server-only: service-role client (bypasses RLS) so the insert + RETURNING works
+// without exposing quote_requests to anon/authenticated via a SELECT policy.
+const supabase = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { persistSession: false } }
+);
 import { notifyOrganizer, notifyCustomer } from '../../lib/sms';
 import { rateLimit, getClientIp } from '../../lib/rate-limit';
 
