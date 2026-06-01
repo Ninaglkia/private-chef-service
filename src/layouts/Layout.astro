@@ -6,10 +6,18 @@ interface Props {
 }
 
 const {
-	title = 'Weekly Private Chef - Premium Home Chef Service',
-	description = 'Luxury private chef service bringing restaurant-quality dining to your home. Monday to Friday, breakfast, lunch, and dinner prepared fresh daily.',
+	title = 'Private Chef - Premium Personal Chef Service in Lombardy',
+	description = 'Chef Nino, your personal private chef. Flexible packages for up to 15 guests at one price - breakfast, lunch, and dinner crafted in your home. Available across Lombardy, and abroad on request.',
 	bodyClass = 'bg-white text-gray-900'
 } = Astro.props;
+
+// Build an absolute canonical URL when a site is configured in astro.config.mjs.
+const canonicalURL = Astro.site
+	? new URL(Astro.url.pathname, Astro.site).href
+	: Astro.url.href;
+// Default Open Graph / Twitter share image.
+// NOTE: /og-image.jpg is referenced but not yet present in /public — add a 1200x630 image there.
+const ogImage = new URL('/og-image.jpg', Astro.site ?? Astro.url).href;
 ---
 
 <!doctype html>
@@ -21,6 +29,21 @@ const {
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content={description} />
 		<title>{title}</title>
+
+		<link rel="canonical" href={canonicalURL} />
+
+		<!-- Open Graph -->
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content={canonicalURL} />
+		<meta property="og:image" content={ogImage} />
+
+		<!-- Twitter -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={ogImage} />
 
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

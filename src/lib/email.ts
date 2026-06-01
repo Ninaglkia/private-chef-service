@@ -14,6 +14,20 @@ interface EmailData {
 }
 
 /**
+ * Escape user-controlled values before interpolating them into HTML email
+ * templates. Prevents stored XSS and broken markup.
+ */
+function escapeHtml(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
  * Generic function to send email via Resend
  */
 export async function sendEmail(data: EmailData): Promise<boolean> {
@@ -106,13 +120,13 @@ export async function sendQuoteRequestEmails(data: any) {
   const customerHtml = getHtmlTemplate(
     'Quote Request Received',
     `
-      <h2>Thank you for your interest, ${customer_name}</h2>
+      <h2>Thank you for your interest, ${escapeHtml(customer_name)}</h2>
       <p>We have received your request for a custom quote. Our team will review your requirements and get back to you within 24 hours.</p>
-      
+
       <div class="details-box">
-        <div class="details-row"><span class="label">Location:</span> <span class="value">${city}</span></div>
-        <div class="details-row"><span class="label">Start Date:</span> <span class="value">${start_date}</span></div>
-        <div class="details-row"><span class="label">Guests:</span> <span class="value">${num_guests}</span></div>
+        <div class="details-row"><span class="label">Location:</span> <span class="value">${escapeHtml(city)}</span></div>
+        <div class="details-row"><span class="label">Start Date:</span> <span class="value">${escapeHtml(start_date)}</span></div>
+        <div class="details-row"><span class="label">Guests:</span> <span class="value">${escapeHtml(num_guests)}</span></div>
       </div>
       
       <p>If you have any urgent questions, please reply to this email.</p>
@@ -127,13 +141,13 @@ export async function sendQuoteRequestEmails(data: any) {
       <p>A new potential client has requested a custom quote.</p>
       
       <div class="details-box">
-        <div class="details-row"><span class="label">Name:</span> <span class="value">${customer_name}</span></div>
-        <div class="details-row"><span class="label">Email:</span> <span class="value"><a href="mailto:${customer_email}">${customer_email}</a></span></div>
-        <div class="details-row"><span class="label">Phone:</span> <span class="value">${data.customer_phone || 'N/A'}</span></div>
-        <div class="details-row"><span class="label">Location:</span> <span class="value">${city}</span></div>
-        <div class="details-row"><span class="label">Start Date:</span> <span class="value">${start_date}</span></div>
-        <div class="details-row"><span class="label">Guests:</span> <span class="value">${num_guests}</span></div>
-        <div class="details-row"><span class="label">Notes:</span> <span class="value">${notes || 'None'}</span></div>
+        <div class="details-row"><span class="label">Name:</span> <span class="value">${escapeHtml(customer_name)}</span></div>
+        <div class="details-row"><span class="label">Email:</span> <span class="value"><a href="mailto:${escapeHtml(customer_email)}">${escapeHtml(customer_email)}</a></span></div>
+        <div class="details-row"><span class="label">Phone:</span> <span class="value">${escapeHtml(data.customer_phone || 'N/A')}</span></div>
+        <div class="details-row"><span class="label">Location:</span> <span class="value">${escapeHtml(city)}</span></div>
+        <div class="details-row"><span class="label">Start Date:</span> <span class="value">${escapeHtml(start_date)}</span></div>
+        <div class="details-row"><span class="label">Guests:</span> <span class="value">${escapeHtml(num_guests)}</span></div>
+        <div class="details-row"><span class="label">Notes:</span> <span class="value">${escapeHtml(notes || 'None')}</span></div>
       </div>
     `
   );
@@ -155,16 +169,16 @@ export async function sendBookingConfirmationEmails(booking: any) {
     'Booking Confirmed',
     `
       <h2>Booking Confirmed</h2>
-      <p>Dear ${customer_name},</p>
+      <p>Dear ${escapeHtml(customer_name)},</p>
       <p>We are delighted to confirm your Weekly Private Chef booking. Your payment has been successfully processed.</p>
-      
+
       <div class="details-box">
-        <div class="details-row"><span class="label">Booking Ref:</span> <span class="value">#${booking.id.slice(0, 8)}</span></div>
-        <div class="details-row"><span class="label">Plan:</span> <span class="value" style="text-transform: capitalize;">${plan.replace('_', ' ')}</span></div>
-        <div class="details-row"><span class="label">Location:</span> <span class="value">${city}</span></div>
-        <div class="details-row"><span class="label">Start Date:</span> <span class="value">${start_date}</span></div>
-        <div class="details-row"><span class="label">Guests:</span> <span class="value">${num_guests}</span></div>
-        <div class="details-row"><span class="label">Total Paid:</span> <span class="value">${formattedPrice}</span></div>
+        <div class="details-row"><span class="label">Booking Ref:</span> <span class="value">#${escapeHtml(booking.id.slice(0, 8))}</span></div>
+        <div class="details-row"><span class="label">Plan:</span> <span class="value" style="text-transform: capitalize;">${escapeHtml(plan.replace('_', ' '))}</span></div>
+        <div class="details-row"><span class="label">Location:</span> <span class="value">${escapeHtml(city)}</span></div>
+        <div class="details-row"><span class="label">Start Date:</span> <span class="value">${escapeHtml(start_date)}</span></div>
+        <div class="details-row"><span class="label">Guests:</span> <span class="value">${escapeHtml(num_guests)}</span></div>
+        <div class="details-row"><span class="label">Total Paid:</span> <span class="value">${escapeHtml(formattedPrice)}</span></div>
       </div>
       
       <p><strong>Next Steps:</strong> Our concierge team will contact you shortly to discuss menu preferences and dietary requirements.</p>
@@ -179,13 +193,13 @@ export async function sendBookingConfirmationEmails(booking: any) {
       <p>A new payment has been received via Stripe.</p>
       
       <div class="details-box">
-        <div class="details-row"><span class="label">Customer:</span> <span class="value">${customer_name}</span></div>
-        <div class="details-row"><span class="label">Email:</span> <span class="value">${customer_email}</span></div>
-        <div class="details-row"><span class="label">Phone:</span> <span class="value">${customer_phone || 'N/A'}</span></div>
-        <div class="details-row"><span class="label">Plan:</span> <span class="value">${plan}</span></div>
-        <div class="details-row"><span class="label">Amount:</span> <span class="value">${formattedPrice}</span></div>
-        <div class="details-row"><span class="label">Location:</span> <span class="value">${city}</span></div>
-        <div class="details-row"><span class="label">Start Date:</span> <span class="value">${start_date}</span></div>
+        <div class="details-row"><span class="label">Customer:</span> <span class="value">${escapeHtml(customer_name)}</span></div>
+        <div class="details-row"><span class="label">Email:</span> <span class="value">${escapeHtml(customer_email)}</span></div>
+        <div class="details-row"><span class="label">Phone:</span> <span class="value">${escapeHtml(customer_phone || 'N/A')}</span></div>
+        <div class="details-row"><span class="label">Plan:</span> <span class="value">${escapeHtml(plan)}</span></div>
+        <div class="details-row"><span class="label">Amount:</span> <span class="value">${escapeHtml(formattedPrice)}</span></div>
+        <div class="details-row"><span class="label">Location:</span> <span class="value">${escapeHtml(city)}</span></div>
+        <div class="details-row"><span class="label">Start Date:</span> <span class="value">${escapeHtml(start_date)}</span></div>
       </div>
       
       <p>Check Supabase dashboard for full details.</p>
@@ -206,7 +220,7 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
   const customerHtml = getHtmlTemplate(
     'Welcome to Private Chef',
     `
-      <h2>Benvenuto, ${name}!</h2>
+      <h2>Benvenuto, ${escapeHtml(name)}!</h2>
       <p>Grazie per esserti registrato a <strong>Weekly Private Chef</strong>.</p>
       <p>Da oggi puoi prenotare il tuo chef privato a domicilio: colazione, pranzo e cena preparati freschi a casa tua, dal lunedì al venerdì.</p>
 
@@ -233,8 +247,8 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
     `
       <h2>Nuovo utente registrato</h2>
       <div class="details-box">
-        <div class="details-row"><span class="label">Nome:</span> <span class="value">${name}</span></div>
-        <div class="details-row"><span class="label">Email:</span> <span class="value">${user.email}</span></div>
+        <div class="details-row"><span class="label">Nome:</span> <span class="value">${escapeHtml(name)}</span></div>
+        <div class="details-row"><span class="label">Email:</span> <span class="value">${escapeHtml(user.email)}</span></div>
       </div>
     `
   );
