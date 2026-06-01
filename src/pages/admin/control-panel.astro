@@ -92,10 +92,10 @@ const fmtDate = (d?: string | null) =>
 
 <Layout title="Admin Control Panel">
   <div class="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-10">
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
         <h1 class="text-3xl font-semibold text-gray-900">Admin Control Panel</h1>
         <div class="text-sm text-gray-500">
-            Signed in as: <span class="font-medium text-gray-900">{user.email}</span>
+            Signed in as: <span class="font-medium text-gray-900 break-words">{user.email}</span>
             {isOwner && <span class="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs">Owner</span>}
         </div>
     </div>
@@ -111,7 +111,7 @@ const fmtDate = (d?: string | null) =>
                 <div class="border border-gray-200 rounded-lg p-5 flex flex-col gap-4">
                     <div class="flex flex-wrap justify-between items-start gap-3">
                         <div class="space-y-1">
-                            <div class="flex items-center gap-3">
+                            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                                 <p class="font-semibold text-gray-900 text-lg">{booking.customer_name || 'Guest'}</p>
                                 <span class={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${STATUS_BADGE[booking.status] ?? 'bg-gray-100 text-gray-700'}`}>
                                     {booking.status}
@@ -140,10 +140,10 @@ const fmtDate = (d?: string | null) =>
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
+                    <div class="flex flex-wrap gap-3 pt-3 border-t border-gray-100">
                         {(booking.status === 'confirmed') && (
                             <button
-                                class="booking-action-btn px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                                class="booking-action-btn px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                                 data-booking-id={booking.id}
                                 data-action="complete"
                             >
@@ -152,7 +152,7 @@ const fmtDate = (d?: string | null) =>
                         )}
                         {(booking.status === 'confirmed' || booking.status === 'completed') && (
                             <button
-                                class="booking-action-btn px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+                                class="booking-action-btn px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
                                 data-booking-id={booking.id}
                                 data-action="refund"
                             >
@@ -177,7 +177,7 @@ const fmtDate = (d?: string | null) =>
                 <div class="border border-gray-200 rounded-lg p-5 flex flex-col gap-4">
                     <div class="flex flex-wrap justify-between items-start gap-3">
                         <div class="space-y-1">
-                            <div class="flex items-center gap-3">
+                            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                                 <p class="font-semibold text-gray-900 text-lg">{q.customer_name || 'Lead'}</p>
                                 <span class={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${QUOTE_BADGE[q.status] ?? 'bg-gray-100 text-gray-700'}`}>
                                     {q.status}
@@ -198,7 +198,7 @@ const fmtDate = (d?: string | null) =>
                         <div class="flex flex-col items-end gap-2">
                             <label class="text-xs text-gray-400">Update status</label>
                             <select
-                                class="quote-status-select border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                                class="quote-status-select border border-gray-300 rounded-md px-3 py-2.5 min-h-[44px] text-sm"
                                 data-quote-id={q.id}
                                 data-current={q.status}
                             >

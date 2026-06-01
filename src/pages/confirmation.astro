@@ -77,40 +77,40 @@ const isPaid = booking?.status === 'confirmed';
               </p>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-lg p-8 md:p-10 mb-8">
+            <div class="bg-white rounded-2xl shadow-lg p-5 sm:p-8 md:p-10 mb-8">
               <h2 class="text-2xl font-serif font-bold text-gray-900 mb-6">Request Details</h2>
 
               <div class="space-y-4 mb-8">
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Request ID</span>
-                  <span class="font-semibold text-gray-900">{quoteRequest.id.slice(0, 8).toUpperCase()}</span>
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">{quoteRequest.id.slice(0, 8).toUpperCase()}</span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Customer Name</span>
-                  <span class="font-semibold text-gray-900">{quoteRequest.customer_name}</span>
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">{quoteRequest.customer_name}</span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Email</span>
-                  <span class="font-semibold text-gray-900">{quoteRequest.customer_email}</span>
+                  <span class="font-semibold text-gray-900 text-right break-all min-w-0">{quoteRequest.customer_email}</span>
                 </div>
 
                 {quoteRequest.customer_phone && (
-                  <div class="flex justify-between py-3 border-b border-gray-200">
+                  <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                     <span class="text-gray-600">Phone</span>
-                    <span class="font-semibold text-gray-900">{quoteRequest.customer_phone}</span>
+                    <span class="font-semibold text-gray-900 text-right break-words min-w-0">{quoteRequest.customer_phone}</span>
                   </div>
                 )}
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Location</span>
-                  <span class="font-semibold text-gray-900">{quoteRequest.city}</span>
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">{quoteRequest.city}</span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Service Starts</span>
-                  <span class="font-semibold text-gray-900">
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">
                     {new Date(quoteRequest.start_date).toLocaleDateString('en-US', {
                       weekday: 'long',
                       year: 'numeric',
@@ -120,14 +120,14 @@ const isPaid = booking?.status === 'confirmed';
                   </span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Number of Guests</span>
-                  <span class="font-semibold text-gray-900">{quoteRequest.num_guests} guests</span>
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">{quoteRequest.num_guests} guests</span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Service</span>
-                  <span class="font-semibold text-gray-900">To be defined in your quote</span>
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">To be defined in your quote</span>
                 </div>
 
                 {quoteRequest.notes && (
@@ -139,7 +139,7 @@ const isPaid = booking?.status === 'confirmed';
               </div>
             </div>
 
-            <div class="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-xl p-8 mb-8">
+            <div class="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-xl p-5 sm:p-8 mb-8">
               <h2 class="text-2xl font-serif font-bold mb-4">What Happens Next?</h2>
               <div class="space-y-4">
                 <div class="flex items-start">
@@ -265,33 +265,33 @@ const isPaid = booking?.status === 'confirmed';
               </p>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-lg p-8 md:p-10 mb-8">
+            <div class="bg-white rounded-2xl shadow-lg p-5 sm:p-8 md:p-10 mb-8">
               <h2 class="text-2xl font-serif font-bold text-gray-900 mb-6">Booking Details</h2>
 
               <div class="space-y-4 mb-8">
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Booking ID</span>
-                  <span class="font-semibold text-gray-900">{booking.id.slice(0, 8).toUpperCase()}</span>
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">{booking.id.slice(0, 8).toUpperCase()}</span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Customer Name</span>
-                  <span class="font-semibold text-gray-900">{booking.customer_name}</span>
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">{booking.customer_name}</span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Email</span>
-                  <span class="font-semibold text-gray-900">{booking.customer_email}</span>
+                  <span class="font-semibold text-gray-900 text-right break-all min-w-0">{booking.customer_email}</span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Location</span>
-                  <span class="font-semibold text-gray-900">{booking.city}</span>
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">{booking.city}</span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Service Starts</span>
-                  <span class="font-semibold text-gray-900">
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">
                     {new Date(booking.start_date).toLocaleDateString('en-US', {
                       weekday: 'long',
                       year: 'numeric',
@@ -301,19 +301,19 @@ const isPaid = booking?.status === 'confirmed';
                   </span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Number of Guests</span>
-                  <span class="font-semibold text-gray-900">{booking.num_guests} guests</span>
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">{booking.num_guests} guests</span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Package</span>
-                  <span class="font-semibold text-gray-900">{productName}</span>
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">{productName}</span>
                 </div>
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Service Dates</span>
-                  <span class="font-semibold text-gray-900">
+                  <span class="font-semibold text-gray-900 text-right break-words min-w-0">
                     {new Date(booking.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     {booking.end_date && booking.end_date !== booking.start_date && ` – ${new Date(booking.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
                   </span>
@@ -326,7 +326,7 @@ const isPaid = booking?.status === 'confirmed';
                   </div>
                 )}
 
-                <div class="flex justify-between py-3 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-3 border-b border-gray-200">
                   <span class="text-gray-600">Payment Status</span>
                   <span class={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${isPaid ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
                     {isPaid ? 'Paid' : 'Processing'}
@@ -340,7 +340,7 @@ const isPaid = booking?.status === 'confirmed';
               </div>
             </div>
 
-            <div class="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-xl p-8 mb-8">
+            <div class="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-xl p-5 sm:p-8 mb-8">
               <h2 class="text-2xl font-serif font-bold mb-4">What Happens Next?</h2>
               <div class="space-y-4">
                 <div class="flex items-start">

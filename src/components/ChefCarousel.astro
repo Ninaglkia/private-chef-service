@@ -54,7 +54,7 @@ const images = [
   <!-- Navigation Buttons -->
   <button 
     id="chef-prev"
-    class="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white p-3 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100 transform hover:scale-110"
+    class="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white p-3 rounded-full transition-all duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transform hover:scale-110"
     aria-label="Previous image"
   >
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
@@ -64,7 +64,7 @@ const images = [
   
   <button 
     id="chef-next"
-    class="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white p-3 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100 transform hover:scale-110"
+    class="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white p-3 rounded-full transition-all duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transform hover:scale-110"
     aria-label="Next image"
   >
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
@@ -76,7 +76,7 @@ const images = [
   <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex space-x-2">
     {images.map((_, index) => (
       <button
-        class={`h-1.5 rounded-full transition-all duration-300 ${index === 0 ? 'bg-gold-500 w-8' : 'bg-white/40 w-4 hover:bg-white/60'}`}
+        class={`h-1.5 box-content bg-clip-content py-2 px-1 rounded-full transition-all duration-300 ${index === 0 ? 'bg-gold-500 w-8' : 'bg-white/40 w-4 hover:bg-white/60'}`}
         aria-label={`Go to slide ${index + 1}`}
         data-chef-slide={index}
       ></button>

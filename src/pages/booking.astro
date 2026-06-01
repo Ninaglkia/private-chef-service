@@ -83,10 +83,10 @@ function cadenceLabel(days: number): string {
 <Layout title="Book Your Private Chef | Private Chef">
   <Header />
 
-  <main class="pt-32 pb-20 bg-white min-h-screen">
+  <main class="pt-24 sm:pt-32 pb-20 bg-white min-h-screen">
     <div class="container mx-auto px-6">
       <div class="max-w-5xl mx-auto">
-        <div class="text-center mb-16">
+        <div class="text-center mb-10 sm:mb-16">
           <h1 class="text-4xl md:text-5xl font-semibold text-gray-900 mb-6">
             Book Your Private Chef
           </h1>
@@ -156,7 +156,7 @@ function cadenceLabel(days: number): string {
                       </span>
                       <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" id="country-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </button>
-                    <div id="country-dropdown" class="hidden absolute top-full left-0 mt-2 w-80 max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50">
+                    <div id="country-dropdown" class="hidden absolute top-full left-0 mt-2 w-full sm:w-80 max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50">
                       <div class="p-3 sticky top-0 bg-white border-b border-gray-100 z-10">
                         <input type="text" id="country-search" placeholder="Search country..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold-400 transition-colors">
                       </div>
@@ -272,7 +272,7 @@ function cadenceLabel(days: number): string {
               </div>
 
               <!-- Price -->
-              <div id="price-section" class="col-span-1 md:col-span-2 bg-gray-50 rounded-xl p-8 border border-gray-200">
+              <div id="price-section" class="col-span-1 md:col-span-2 bg-gray-50 rounded-xl p-5 sm:p-8 border border-gray-200">
                 <div class="flex justify-between items-center mb-2">
                   <span class="text-lg font-bold text-gray-900">Total Price</span>
                   <span id="total-price" class="text-4xl font-bold text-gray-900">€0</span>
@@ -284,13 +284,13 @@ function cadenceLabel(days: number): string {
               </div>
 
               <!-- Custom quote notice -->
-              <div id="quote-notice" class="hidden col-span-1 md:col-span-2 bg-gradient-to-br from-gold-50 to-yellow-50 border-2 border-gold-300 rounded-xl p-6">
+              <div id="quote-notice" class="hidden col-span-1 md:col-span-2 bg-gradient-to-br from-gold-50 to-yellow-50 border-2 border-gold-300 rounded-xl p-5 sm:p-6">
                 <h3 class="font-bold text-gray-900 text-lg mb-2">Abroad &amp; Bespoke — by quote</h3>
                 <p class="text-gray-700 text-sm">Tell us your dates, location and group size. We'll reply within 24 hours with a tailored quote (travel &amp; accommodation arranged per destination, or provide a room for the chef — no extra cost).</p>
               </div>
 
               <!-- Policy -->
-              <div class="col-span-1 md:col-span-2 bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+              <div class="col-span-1 md:col-span-2 bg-white rounded-xl p-5 sm:p-6 border border-gray-200 shadow-sm">
                 <div class="flex items-start">
                   <svg class="w-6 h-6 text-gold-500 mr-4 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   <div>
@@ -424,7 +424,7 @@ function cadenceLabel(days: number): string {
     let days = '';
     for (let x = firstDayIndex; x > 0; x--) {
       const day = prevLastDay.getDate() - x + 1;
-      days += `<div class="text-center py-3 text-sm text-gray-300">${day}</div>`;
+      days += `<div class="flex items-center justify-center aspect-square text-sm text-gray-300">${day}</div>`;
     }
 
     for (let i = 1; i <= lastDay.getDate(); i++) {
@@ -434,7 +434,7 @@ function cadenceLabel(days: number): string {
       const isEnd = !!(endDate && formatDateForSubmit(date) === formatDateForSubmit(endDate));
       const inRange = !!(startDate && endDate && isDateInRange(date, startDate, endDate) && !isStart && !isEnd);
 
-      let classes = 'text-center py-3 text-sm rounded-lg transition-all duration-200 ';
+      let classes = 'flex items-center justify-center aspect-square text-sm rounded-lg transition-all duration-200 ';
       if (isStart) {
         classes += 'bg-gray-900 text-white font-bold shadow-lg ring-2 ring-gray-900 ring-offset-2';
       } else if (isEnd) {
@@ -451,7 +451,7 @@ function cadenceLabel(days: number): string {
     }
 
     for (let j = 1; j <= nextDays; j++) {
-      days += `<div class="text-center py-3 text-sm text-gray-300">${j}</div>`;
+      days += `<div class="flex items-center justify-center aspect-square text-sm text-gray-300">${j}</div>`;
     }
 
     calendarDays.innerHTML = days;

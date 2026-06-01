@@ -6,9 +6,9 @@ import Header from '../components/Header.astro';
 <Layout title="Login - Private Chef Service" bodyClass="bg-gray-50 text-gray-900">
   <Header transparent={false} />
 
-  <div class="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+  <div class="min-h-[100dvh] pt-24 pb-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
     <div class="w-full max-w-md">
-      <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-8 border border-gray-100 animate-fade-in">
+      <div class="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-6 sm:p-8 border border-gray-100 animate-fade-in">
         <div class="mb-6 text-center">
           <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Sign in to your account</h1>
           <p class="mt-2 text-sm text-gray-500">Manage your Private Chef bookings</p>
@@ -30,7 +30,7 @@ import Header from '../components/Header.astro';
                 type="email"
                 autocomplete="email"
                 required
-                class="block w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
+                class="block w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 py-3 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
                 placeholder="you@example.com"
               />
             </div>
@@ -55,7 +55,7 @@ import Header from '../components/Header.astro';
                 autocomplete="current-password"
                 required
                 minlength="6"
-                class="block w-full rounded-lg border border-gray-300 bg-white pl-10 pr-10 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
+                class="block w-full rounded-lg border border-gray-300 bg-white pl-10 pr-10 py-3 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
                 placeholder="Enter your password"
               />
             </div>
@@ -88,7 +88,7 @@ import Header from '../components/Header.astro';
           <div class="mt-5 space-y-3">
             <button
               id="google-login"
-              class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 active:scale-[0.99] transition-all duration-200 shadow-sm"
+              class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 active:scale-[0.99] transition-all duration-200 shadow-sm"
             >
               <svg class="h-5 w-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
