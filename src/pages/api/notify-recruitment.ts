@@ -21,12 +21,12 @@ export const POST: APIRoute = async ({ request }) => {
       <p>Abbiamo ricevuto la tua richiesta per la posizione di <strong>${role}</strong> su ${city}.</p>
       <p>Il nostro team valuterà il tuo profilo e ti contatterà presto se ci saranno opportunità in linea con le tue competenze.</p>
       <br>
-      <p>Cordiali saluti,<br>Il Team di Weekly Private Chef</p>
+      <p>Cordiali saluti,<br>Il Team di Private Chef</p>
     `;
 
     await sendEmail({
       to: email,
-      subject: 'Candidatura ricevuta - Weekly Private Chef',
+      subject: 'Candidatura ricevuta - Private Chef',
       html: candidateHtml
     });
 
@@ -46,7 +46,7 @@ export const POST: APIRoute = async ({ request }) => {
       <p><strong>Telefono:</strong> ${phone || 'N/A'}</p>
       <br>
       <p>Accedi al pannello di controllo per visualizzare CV e Foto.</p>
-      <a href="https://weeklyprivatechef.com/admin/control-panel" style="background:#000;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;">Vai al Pannello Admin</a>
+      <a href="https://ninos-privatechefs.com/admin/control-panel" style="background:#000;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;">Vai al Pannello Admin</a>
     `;
 
     // Send to Admin (Organizer Email)
