@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /complete-profile
 
 Sitemap: https://ninos-privatechefs.com/sitemap-index.xml

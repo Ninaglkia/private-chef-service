@@ -3,8 +3,16 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Button from '../components/Button.astro';
-import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { formatPrice, PRODUCTS } from '../lib/pricing';
+
+// SSR, server-only: use the service-role client so this page works regardless
+// of RLS and never depends on a too-broad anon read policy.
+const supabase = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { persistSession: false } }
+);
 
 const sessionId = Astro.url.searchParams.get('session_id');
 const quoteId = Astro.url.searchParams.get('quote_id');
@@ -195,6 +203,54 @@ const isPaid = booking?.status === 'confirmed';
           </>
         ) : booking ? (
           <>
+            {!isPaid && (
+              <div id="processing-banner" class="hidden max-w-3xl mx-auto mb-8 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-6 py-4 text-center">
+                <p class="font-medium">Still processing your booking.</p>
+                <p class="text-sm mt-1">
+                  If this doesn't update, contact us at
+                  <a href="mailto:info@ninos-privatechefs.com" class="underline font-semibold">info@ninos-privatechefs.com</a>.
+                </p>
+              </div>
+            )}
+
+            {!isPaid && (
+              <script is:inline>
+                {`
+                  (function () {
+                    // Poll the page until the booking shows as confirmed, then stop.
+                    // Re-fetch every 3s for up to ~30s, then reveal a fallback message.
+                    var MAX_ATTEMPTS = 10;
+                    var INTERVAL_MS = 3000;
+                    var attempts = 0;
+
+                    function tick() {
+                      attempts++;
+                      if (attempts > MAX_ATTEMPTS) {
+                        var banner = document.getElementById('processing-banner');
+                        if (banner) banner.classList.remove('hidden');
+                        return;
+                      }
+                      fetch(window.location.href, { cache: 'no-store' })
+                        .then(function (res) { return res.text(); })
+                        .then(function (html) {
+                          // Reload the page if it now renders the confirmed state.
+                          if (html.indexOf('Booking Confirmed!') !== -1) {
+                            window.location.reload();
+                          } else {
+                            setTimeout(tick, INTERVAL_MS);
+                          }
+                        })
+                        .catch(function () {
+                          setTimeout(tick, INTERVAL_MS);
+                        });
+                    }
+
+                    setTimeout(tick, INTERVAL_MS);
+                  })();
+                `}
+              </script>
+            )}
+
             <div class="text-center mb-12">
               <div class={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-6 ${isPaid ? 'bg-green-500' : 'bg-gold-500'}`}>
                 <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

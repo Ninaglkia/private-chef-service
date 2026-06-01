@@ -11,7 +11,7 @@ export type Booking = {
   start_date: string;
   end_date?: string | null;
   num_guests: number;
-  plan: 'standard' | 'plus' | 'premium';
+  plan: 'day' | 'weekend' | 'week' | 'custom';
   add_saturday: boolean;
   add_sunday: boolean;
   dietary_preferences: string;
@@ -20,7 +20,7 @@ export type Booking = {
   grocery_budget?: number | null;
   stripe_session_id: string | null;
   stripe_payment_intent: string | null;
-  status: 'pending' | 'searching' | 'assigned' | 'completed';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'refunded';
   customer_email: string;
   customer_name: string;
   customer_phone: string | null;

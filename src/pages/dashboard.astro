@@ -109,18 +109,58 @@ if ((profile?.role === 'admin' || isOwner)) {
 
 <script define:vars={{ userEmail: user.email }}>
   import { supabase } from '../lib/supabase';
+  import { PRODUCTS, formatPrice } from '../lib/pricing';
 
   const bookingSection = document.getElementById('booking-section');
   const logoutBtn = document.getElementById('logout-btn');
 
+  // Friendly, English-only status labels (matches DB: pending/confirmed/completed/cancelled/refunded).
+  const STATUS_LABELS = {
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    refunded: 'Refunded',
+  };
+
+  const STATUS_STYLES = {
+    pending: 'bg-amber-100 text-amber-800',
+    confirmed: 'bg-green-100 text-green-800',
+    completed: 'bg-blue-100 text-blue-800',
+    cancelled: 'bg-gray-100 text-gray-800',
+    refunded: 'bg-purple-100 text-purple-800',
+  };
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatDate(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function dateRange(start, end) {
+    const startStr = formatDate(start);
+    if (!startStr) return null;
+    const endStr = formatDate(end);
+    if (endStr && endStr !== startStr) return `${startStr} – ${endStr}`;
+    return startStr;
+  }
+
   async function init() {
-    // 1. Session is already checked server-side.
-    // We can directly load bookings using the email passed from frontmatter.
+    // Session is already verified server-side; load bookings by the signed-in email.
     if (userEmail) {
-        loadBookings(userEmail);
+      loadBookings(userEmail);
     } else {
-        // Fallback if something went wrong (shouldn't happen due to server check)
-        window.location.href = '/login';
+      window.location.href = '/login';
     }
   }
 
@@ -134,73 +174,64 @@ if ((profile?.role === 'admin' || isOwner)) {
       .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error loading bookings:', error);
-        bookingSection.innerHTML = '<p class="text-red-500">Error loading bookings.</p>';
-        return;
+      console.error('Error loading bookings:', error);
+      bookingSection.innerHTML = '<p class="text-red-500">Error loading bookings.</p>';
+      return;
     }
 
     if (!bookings || bookings.length === 0) {
-        bookingSection.innerHTML = `
-            <div class="text-center py-8">
-                <p class="text-gray-500 mb-4">You don't have any active bookings.</p>
-                <a href="/booking" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black hover:bg-gray-800 focus:outline-none">
-                    Book a Chef
-                </a>
-            </div>
-        `;
-        return;
+      bookingSection.innerHTML = `
+        <div class="text-center py-8">
+          <p class="text-gray-500 mb-4">You don't have any bookings yet.</p>
+          <a href="/booking" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black hover:bg-gray-800 focus:outline-none">
+            Book Chef Nino
+          </a>
+        </div>
+      `;
+      return;
     }
 
     bookingSection.innerHTML = '';
     const list = document.createElement('div');
     list.className = 'space-y-6';
 
-    for (const b of bookings) {
-        const booking = b as Booking;
-        
-        // Fetch Chef info if assigned
-        let chefHtml = '';
-        if (booking.chef_id) {
-            const { data: chef } = await supabase.from('profiles').select('*').eq('id', booking.chef_id).single();
-            const c = chef as Profile;
-            chefHtml = `
-                <div class="mt-4 flex items-center p-4 bg-gray-50 rounded-lg">
-                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
-                        ${c.avatar_url ? `<img src="${c.avatar_url}" class="h-full w-full object-cover" />` : ''}
-                    </div>
-                    <div class="ml-4">
-                        <div class="text-sm font-medium text-gray-900">Chef: ${c.full_name}</div>
-                        <div class="text-sm text-gray-500">${c.phone || ''}</div>
-                    </div>
-                </div>
-            `;
-        } else {
-             chefHtml = `
-                <div class="mt-4 p-4 bg-yellow-50 border border-yellow-100 rounded-lg">
-                    <p class="text-sm text-yellow-800 font-medium">Finding the perfect chef for you...</p>
-                </div>
-            `;
-        }
+    for (const booking of bookings) {
+      const plan = booking.plan || '';
+      const packageName = (PRODUCTS[plan] && PRODUCTS[plan].name) || (plan ? plan : 'Custom');
 
-        const item = document.createElement('div');
-        item.className = 'border border-gray-200 rounded-lg p-6';
-        item.innerHTML = `
-            <div class="flex justify-between items-start">
-                <div>
-                    <h4 class="text-lg font-bold text-gray-900">${booking.city}</h4>
-                    <p class="text-sm text-gray-500">${new Date(booking.start_date).toLocaleDateString()} • ${booking.num_guests} Guests • ${booking.plan.toUpperCase()} Plan</p>
-                </div>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    booking.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                    booking.status === 'searching' ? 'bg-yellow-100 text-yellow-800' : 
-                    'bg-gray-100 text-gray-800'
-                }">
-                    ${booking.status.toUpperCase()}
-                </span>
-            </div>
-            ${chefHtml}
-        `;
-        list.appendChild(item);
+      const statusKey = booking.status || 'pending';
+      const statusLabel = STATUS_LABELS[statusKey] || (statusKey.charAt(0).toUpperCase() + statusKey.slice(1));
+      const statusStyle = STATUS_STYLES[statusKey] || 'bg-gray-100 text-gray-800';
+
+      const range = dateRange(booking.start_date, booking.end_date);
+      const guests = (booking.num_guests != null) ? `${booking.num_guests} guests` : null;
+      const price = (booking.total_price != null) ? formatPrice(booking.total_price) : null;
+      const city = booking.city || 'Your booking';
+
+      const metaParts = [];
+      if (range) metaParts.push(escapeHtml(range));
+      if (guests) metaParts.push(escapeHtml(guests));
+      const meta = metaParts.join(' • ');
+
+      const item = document.createElement('div');
+      item.className = 'border border-gray-200 rounded-lg p-6';
+      item.innerHTML = `
+        <div class="flex justify-between items-start gap-4">
+          <div>
+            <h4 class="text-lg font-bold text-gray-900">${escapeHtml(packageName)}</h4>
+            <p class="text-sm text-gray-500 mt-1">${escapeHtml(city)}</p>
+            ${meta ? `<p class="text-sm text-gray-500 mt-1">${meta}</p>` : ''}
+          </div>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyle}">
+            ${escapeHtml(statusLabel)}
+          </span>
+        </div>
+        ${price ? `<div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+          <span class="text-sm text-gray-500">Total</span>
+          <span class="text-base font-semibold text-gray-900">${escapeHtml(price)}</span>
+        </div>` : ''}
+      `;
+      list.appendChild(item);
     }
     bookingSection.appendChild(list);
   }

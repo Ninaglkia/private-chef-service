@@ -69,9 +69,20 @@ export const POST: APIRoute = async ({ request, url }) => {
     if (Number.isNaN(startDateObj.getTime())) {
       return json({ error: 'Invalid start date' }, 400);
     }
-    const endDateObj = new Date(startDateObj);
-    endDateObj.setDate(startDateObj.getDate() + (days - 1));
-    const end_date = endDateObj.toISOString().split('T')[0];
+    // Compute end_date using pure UTC math so a non-UTC server can't shift the
+    // calendar day. Build the start in UTC, add (days - 1) days, then format
+    // YYYY-MM-DD from the UTC parts.
+    const endUtc = new Date(
+      Date.UTC(
+        startDateObj.getUTCFullYear(),
+        startDateObj.getUTCMonth(),
+        startDateObj.getUTCDate() + (days - 1)
+      )
+    );
+    const yyyy = endUtc.getUTCFullYear();
+    const mm = String(endUtc.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(endUtc.getUTCDate()).padStart(2, '0');
+    const end_date = `${yyyy}-${mm}-${dd}`;
 
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')

@@ -1,5 +1,6 @@
 
 import { type APIContext } from 'astro';
+import { PRODUCTS } from './pricing';
 
 const RESEND_API_KEY = import.meta.env.RESEND_API_KEY;
 const ORGANIZER_EMAIL = 'ninaglia089@gmail.com';
@@ -163,6 +164,7 @@ export async function sendQuoteRequestEmails(data: any) {
 export async function sendBookingConfirmationEmails(booking: any) {
   const { customer_name, customer_email, city, start_date, num_guests, total_price, plan, customer_phone } = booking;
   const formattedPrice = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(total_price / 100);
+  const planName = PRODUCTS[plan as keyof typeof PRODUCTS]?.name ?? plan;
 
   // A. Customer Email
   const customerHtml = getHtmlTemplate(
@@ -170,18 +172,19 @@ export async function sendBookingConfirmationEmails(booking: any) {
     `
       <h2>Booking Confirmed</h2>
       <p>Dear ${escapeHtml(customer_name)},</p>
-      <p>We are delighted to confirm your Weekly Private Chef booking. Your payment has been successfully processed.</p>
+      <p>We are delighted to confirm your Private Chef booking. Your payment has been successfully processed.</p>
 
       <div class="details-box">
         <div class="details-row"><span class="label">Booking Ref:</span> <span class="value">#${escapeHtml(booking.id.slice(0, 8))}</span></div>
-        <div class="details-row"><span class="label">Plan:</span> <span class="value" style="text-transform: capitalize;">${escapeHtml(plan.replace('_', ' '))}</span></div>
+        <div class="details-row"><span class="label">Package:</span> <span class="value">${escapeHtml(planName)}</span></div>
         <div class="details-row"><span class="label">Location:</span> <span class="value">${escapeHtml(city)}</span></div>
         <div class="details-row"><span class="label">Start Date:</span> <span class="value">${escapeHtml(start_date)}</span></div>
         <div class="details-row"><span class="label">Guests:</span> <span class="value">${escapeHtml(num_guests)}</span></div>
         <div class="details-row"><span class="label">Total Paid:</span> <span class="value">${escapeHtml(formattedPrice)}</span></div>
       </div>
-      
-      <p><strong>Next Steps:</strong> Our concierge team will contact you shortly to discuss menu preferences and dietary requirements.</p>
+
+      <p><strong>Please note:</strong> groceries are billed separately, at cost, and are not included in the amount above.</p>
+      <p><strong>Next Steps:</strong> Chef Nino will contact you shortly to discuss menu preferences and dietary requirements.</p>
     `
   );
 
@@ -196,7 +199,7 @@ export async function sendBookingConfirmationEmails(booking: any) {
         <div class="details-row"><span class="label">Customer:</span> <span class="value">${escapeHtml(customer_name)}</span></div>
         <div class="details-row"><span class="label">Email:</span> <span class="value">${escapeHtml(customer_email)}</span></div>
         <div class="details-row"><span class="label">Phone:</span> <span class="value">${escapeHtml(customer_phone || 'N/A')}</span></div>
-        <div class="details-row"><span class="label">Plan:</span> <span class="value">${escapeHtml(plan)}</span></div>
+        <div class="details-row"><span class="label">Package:</span> <span class="value">${escapeHtml(planName)}</span></div>
         <div class="details-row"><span class="label">Amount:</span> <span class="value">${escapeHtml(formattedPrice)}</span></div>
         <div class="details-row"><span class="label">Location:</span> <span class="value">${escapeHtml(city)}</span></div>
         <div class="details-row"><span class="label">Start Date:</span> <span class="value">${escapeHtml(start_date)}</span></div>
@@ -221,20 +224,20 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
     'Welcome to Private Chef',
     `
       <h2>Benvenuto, ${escapeHtml(name)}!</h2>
-      <p>Grazie per esserti registrato a <strong>Weekly Private Chef</strong>.</p>
-      <p>Da oggi puoi prenotare il tuo chef privato a domicilio: colazione, pranzo e cena preparati freschi a casa tua, dal lunedì al venerdì.</p>
+      <p>Grazie per esserti registrato a <strong>Private Chef</strong>.</p>
+      <p>Da oggi puoi prenotare Chef Nino a domicilio: colazione, pranzo e cena preparati freschi a casa tua, o come preferisci.</p>
 
       <div class="details-box">
         <p style="margin:0;"><strong>Cosa puoi fare ora:</strong></p>
         <ul style="margin:10px 0 0 18px;padding:0;">
-          <li>Scegli il piano adatto alla tua famiglia</li>
           <li>Prenota in pochi click con pagamento sicuro</li>
           <li>Personalizza il menù con il tuo chef</li>
+          <li>La spesa è fatturata a parte, al costo</li>
         </ul>
       </div>
 
       <p style="text-align:center;">
-        <a class="btn" href="https://ninos-privatechefs.com/#pricing">Scopri i piani</a>
+        <a class="btn" href="https://ninos-privatechefs.com/#booking">Prenota ora</a>
       </p>
 
       <p>Se hai domande, rispondi pure a questa email — il nostro team è a tua disposizione.</p>

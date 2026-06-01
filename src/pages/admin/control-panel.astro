@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { createClient } from '@supabase/supabase-js';
+import { PRODUCTS, formatPrice } from '../../lib/pricing';
 
 // Server-side Route Protection
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
@@ -52,21 +53,41 @@ if ((!profile || profile.role !== 'admin') && !isOwner) {
 }
 
 // FETCH DATA SERVER-SIDE (Using Admin Client to bypass RLS issues)
+// Show real bookings: paid (confirmed) + completed/cancelled/refunded. Newest first.
 const { data: bookings } = await supabaseAdmin
   .from('bookings')
   .select('*')
-  .in('status', ['searching', 'assigned', 'completed'])
+  .in('status', ['confirmed', 'completed', 'cancelled', 'refunded'])
   .order('created_at', { ascending: false });
 
-const { data: applications } = await supabaseAdmin
-  .from('chef_applications')
+// Abroad & Bespoke leads
+const { data: quotes } = await supabaseAdmin
+  .from('quote_requests')
   .select('*')
   .order('created_at', { ascending: false });
 
-const { data: recruitments } = await supabaseAdmin
-  .from('chef_recruitment_applications')
-  .select('*')
-  .order('created_at', { ascending: false });
+const STATUS_BADGE: Record<string, string> = {
+  confirmed: 'bg-green-100 text-green-800',
+  completed: 'bg-blue-100 text-blue-800',
+  cancelled: 'bg-gray-100 text-gray-700',
+  refunded: 'bg-amber-100 text-amber-800',
+  pending: 'bg-yellow-100 text-yellow-800',
+};
+
+const QUOTE_BADGE: Record<string, string> = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  contacted: 'bg-indigo-100 text-indigo-800',
+  quoted: 'bg-purple-100 text-purple-800',
+  converted: 'bg-green-100 text-green-800',
+  declined: 'bg-gray-100 text-gray-700',
+};
+
+const QUOTE_NEXT_STATUSES = ['pending', 'contacted', 'quoted', 'converted', 'declined'];
+
+const planName = (plan: string) => PRODUCTS[plan as keyof typeof PRODUCTS]?.name ?? plan;
+
+const fmtDate = (d?: string | null) =>
+  d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 ---
 
 <Layout title="Admin Control Panel">
@@ -74,31 +95,70 @@ const { data: recruitments } = await supabaseAdmin
     <div class="flex justify-between items-center">
         <h1 class="text-3xl font-semibold text-gray-900">Admin Control Panel</h1>
         <div class="text-sm text-gray-500">
-            Loggato come: <span class="font-medium text-gray-900">{user.email}</span>
-            {isOwner && <span class="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs">Owner Override</span>}
+            Signed in as: <span class="font-medium text-gray-900">{user.email}</span>
+            {isOwner && <span class="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs">Owner</span>}
         </div>
     </div>
 
+    <!-- ============================ BOOKINGS ============================ -->
     <section class="space-y-4">
-      <h2 class="text-xl font-semibold text-gray-800">Prenotazioni pagate</h2>
+      <h2 class="text-xl font-semibold text-gray-800">Bookings</h2>
       <div id="bookings-list" class="space-y-4">
         {(!bookings || bookings.length === 0) ? (
-            <p class="text-sm text-gray-500">Nessuna prenotazione.</p>
+            <p class="text-sm text-gray-500">No bookings yet.</p>
         ) : (
             bookings.map((booking: any) => (
-                <div class="border border-gray-200 rounded-lg p-4 flex flex-col gap-2">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="font-medium text-gray-900">{booking.city} • {new Date(booking.start_date).toLocaleDateString()}</p>
-                            <p class="text-sm text-gray-600">{booking.num_guests} ospiti • Piano {booking.plan}</p>
-                            <p class="text-xs text-gray-500">Stato: {booking.status}</p>
+                <div class="border border-gray-200 rounded-lg p-5 flex flex-col gap-4">
+                    <div class="flex flex-wrap justify-between items-start gap-3">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-3">
+                                <p class="font-semibold text-gray-900 text-lg">{booking.customer_name || 'Guest'}</p>
+                                <span class={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${STATUS_BADGE[booking.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                                    {booking.status}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600">
+                                {booking.customer_email}
+                                {booking.customer_phone && <span> • {booking.customer_phone}</span>}
+                            </p>
+                            <p class="text-sm text-gray-700">
+                                <span class="font-medium">{planName(booking.plan)}</span>
+                                {' • '}{booking.num_guests} {booking.num_guests === 1 ? 'guest' : 'guests'}
+                                {booking.city && <span> • {booking.city}</span>}
+                            </p>
+                            <p class="text-sm text-gray-500">
+                                {fmtDate(booking.start_date)}
+                                {booking.end_date && <span> → {fmtDate(booking.end_date)}</span>}
+                            </p>
+                            {booking.stripe_payment_intent && (
+                                <p class="text-xs text-gray-400 font-mono break-all">PI: {booking.stripe_payment_intent}</p>
+                            )}
                         </div>
-                        <div class="flex items-center gap-2">
-                            <input type="text" placeholder="Chef ID" data-booking-id={booking.id} class="chef-id-input border border-gray-300 rounded px-2 py-1 text-xs" />
-                            <button class="assign-btn px-3 py-1 text-xs font-medium text-white bg-gray-900 rounded-md" data-booking-id={booking.id}>
-                                Assegna Chef
+                        <div class="text-right">
+                            <p class="text-2xl font-semibold text-gray-900">{formatPrice(booking.total_price ?? 0)}</p>
+                            <p class="text-xs text-gray-400">groceries billed separately</p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
+                        {(booking.status === 'confirmed') && (
+                            <button
+                                class="booking-action-btn px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                                data-booking-id={booking.id}
+                                data-action="complete"
+                            >
+                                Mark as completed
                             </button>
-                        </div>
+                        )}
+                        {(booking.status === 'confirmed' || booking.status === 'completed') && (
+                            <button
+                                class="booking-action-btn px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+                                data-booking-id={booking.id}
+                                data-action="refund"
+                            >
+                                Cancel / Refund
+                            </button>
+                        )}
                     </div>
                 </div>
             ))
@@ -106,64 +166,47 @@ const { data: recruitments } = await supabaseAdmin
       </div>
     </section>
 
+    <!-- ===================== QUOTE REQUESTS (LEADS) ===================== -->
     <section class="space-y-4">
-      <h2 class="text-xl font-semibold text-gray-800">Candidature Prenotazioni (Booking)</h2>
-      <div id="applications-list" class="space-y-4">
-         {(!applications || applications.length === 0) ? (
-            <p class="text-sm text-gray-500">Nessuna candidatura per booking.</p>
-         ) : (
-            applications.map((app: any) => (
-                <div class="border border-gray-200 rounded-lg p-4 flex justify-between items-center">
-                    <div>
-                        <p class="font-medium text-gray-900">Booking: {app.booking_id}</p>
-                        <p class="text-sm text-gray-600">Chef: {app.chef_id}</p>
-                        <p class="text-xs text-gray-500">Stato: {app.status}</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button class="assign-from-app-btn px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md" data-booking-id={app.booking_id} data-chef-id={app.chef_id}>
-                            Assegna
-                        </button>
-                        <button class="strike-btn px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md" data-chef-id={app.chef_id}>
-                            Strike
-                        </button>
-                    </div>
-                </div>
-            ))
-         )}
-      </div>
-    </section>
-
-    <section class="space-y-4">
-      <h2 class="text-xl font-semibold text-gray-800">Nuove Candidature (Lavora con noi)</h2>
-      <div id="recruitment-list" class="space-y-4">
-        {(!recruitments || recruitments.length === 0) ? (
-            <p class="text-sm text-gray-500">Nessuna nuova candidatura "Lavora con noi".</p>
+      <h2 class="text-xl font-semibold text-gray-800">Quote requests — Abroad &amp; Bespoke</h2>
+      <div id="quotes-list" class="space-y-4">
+        {(!quotes || quotes.length === 0) ? (
+            <p class="text-sm text-gray-500">No quote requests yet.</p>
         ) : (
-            recruitments.map((app: any) => (
-                <div class="border border-gray-200 rounded-lg p-4 flex flex-col gap-3">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="font-bold text-gray-900">{app.first_name} {app.last_name}</p>
-                            <p class="text-sm text-gray-600">{app.email} • {app.city}</p>
-                            <p class="text-xs text-gray-500 mt-1">Stato: <span class={`uppercase font-semibold ${app.status === 'approved' ? 'text-green-600' : app.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'}`}>{app.status}</span></p>
+            quotes.map((q: any) => (
+                <div class="border border-gray-200 rounded-lg p-5 flex flex-col gap-4">
+                    <div class="flex flex-wrap justify-between items-start gap-3">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-3">
+                                <p class="font-semibold text-gray-900 text-lg">{q.customer_name || 'Lead'}</p>
+                                <span class={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${QUOTE_BADGE[q.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                                    {q.status}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600">
+                                {q.customer_email}
+                                {q.customer_phone && <span> • {q.customer_phone}</span>}
+                            </p>
+                            <p class="text-sm text-gray-700">
+                                {q.num_guests} {q.num_guests === 1 ? 'guest' : 'guests'}
+                                {q.city && <span> • {q.city}</span>}
+                                {' • '}{fmtDate(q.start_date)}
+                            </p>
+                            {q.notes && <p class="text-sm text-gray-500 mt-1 italic">“{q.notes}”</p>}
+                            <p class="text-xs text-gray-400">Received {fmtDate(q.created_at)}</p>
                         </div>
-                        <div class="flex gap-2">
-                             {app.cv_url && <a href={app.cv_url} target="_blank" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">Vedi CV</a>}
+                        <div class="flex flex-col items-end gap-2">
+                            <label class="text-xs text-gray-400">Update status</label>
+                            <select
+                                class="quote-status-select border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                                data-quote-id={q.id}
+                                data-current={q.status}
+                            >
+                                {QUOTE_NEXT_STATUSES.map((s) => (
+                                    <option value={s} selected={s === q.status}>{s}</option>
+                                ))}
+                            </select>
                         </div>
-                    </div>
-                    {app.photos_urls && app.photos_urls.length > 0 && (
-                        <div class="flex gap-2 mt-2 overflow-x-auto pb-2">
-                            {app.photos_urls.map((url: string) => {
-                                if (url.endsWith('.json')) {
-                                    return <a href={url} target="_blank" class="flex items-center justify-center w-16 h-16 bg-gray-100 rounded text-xs text-gray-600 border hover:bg-gray-200" title="Dettagli extra">JSON</a>;
-                                }
-                                return <a href={url} target="_blank"><img src={url} class="w-16 h-16 object-cover rounded hover:opacity-75 transition" /></a>;
-                            })}
-                        </div>
-                    )}
-                    <div class="flex gap-2 pt-2 border-t border-gray-100 mt-1">
-                         <button class="recruitment-action-btn px-3 py-1 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700" data-id={app.id} data-action="approved">Approva</button>
-                         <button class="recruitment-action-btn px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700" data-id={app.id} data-action="rejected">Rifiuta</button>
                     </div>
                 </div>
             ))
@@ -174,95 +217,72 @@ const { data: recruitments } = await supabaseAdmin
 </Layout>
 
 <script>
-  import { supabase } from '../../lib/supabase';
-  import type { Booking, Profile } from '../../lib/supabase';
+  // Admin writes go through the secure server endpoint (service-role).
+  // The client anon key cannot write these rows (RLS), so we never use it here.
+  const ENDPOINT = '/api/admin/update-booking';
 
-  // Client-side script ONLY handles interactions now. 
-  // Initial data loading is done Server-Side for security and reliability.
+  async function post(body: Record<string, unknown>): Promise<boolean> {
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.error || `Request failed (${res.status})`);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      alert('Network error. Please try again.');
+      return false;
+    }
+  }
 
   document.addEventListener('click', async (e) => {
-      const target = e.target as HTMLElement;
+    const target = e.target as HTMLElement;
 
-      if (target.matches('.recruitment-action-btn')) {
-          const id = target.getAttribute('data-id');
-          const action = target.getAttribute('data-action');
-          if (!id || !action) return;
-          
-          if (!confirm(`Sei sicuro di voler impostare lo stato a ${action}?`)) return;
+    if (target.matches('.booking-action-btn')) {
+      const btn = target as HTMLButtonElement;
+      const bookingId = btn.getAttribute('data-booking-id');
+      const action = btn.getAttribute('data-action');
+      if (!bookingId || !action) return;
 
-          const { error } = await supabase
-              .from('chef_recruitment_applications')
-              .update({ status: action })
-              .eq('id', id);
+      const confirmMsg =
+        action === 'refund'
+          ? 'Cancel this booking and issue a Stripe refund?'
+          : 'Mark this booking as completed?';
+      if (!confirm(confirmMsg)) return;
 
-          if (error) {
-              alert(error.message);
-          } else {
-              window.location.reload(); // Reload to fetch updated data server-side
-          }
+      btn.disabled = true;
+      const ok = await post({ type: 'booking', booking_id: bookingId, action });
+      if (ok) {
+        window.location.reload();
+      } else {
+        btn.disabled = false;
       }
+    }
+  });
 
-      if (target.matches('.assign-btn')) {
-        const bookingId = target.getAttribute('data-booking-id');
-        if (!bookingId) return;
-        const input = document.querySelector(`.chef-id-input[data-booking-id="${bookingId}"]`) as HTMLInputElement | null;
-        const chefId = input?.value.trim();
-        if (!chefId) {
-          alert('Inserisci un Chef ID');
-          return;
-        }
+  document.addEventListener('change', async (e) => {
+    const target = e.target as HTMLElement;
 
-        const { error } = await supabase
-          .from('bookings')
-          .update({ chef_id: chefId, status: 'assigned' })
-          .eq('id', bookingId);
+    if (target.matches('.quote-status-select')) {
+      const sel = target as HTMLSelectElement;
+      const quoteId = sel.getAttribute('data-quote-id');
+      const current = sel.getAttribute('data-current');
+      const status = sel.value;
+      if (!quoteId || status === current) return;
 
-        if (error) {
-          alert(error.message);
-        } else {
-          window.location.reload();
-        }
+      sel.disabled = true;
+      const ok = await post({ type: 'quote', quote_id: quoteId, status });
+      if (ok) {
+        window.location.reload();
+      } else {
+        sel.disabled = false;
+        if (current) sel.value = current;
       }
-
-      if (target.matches('.assign-from-app-btn')) {
-        const bookingId = target.getAttribute('data-booking-id');
-        const chefId = target.getAttribute('data-chef-id');
-        if (!bookingId || !chefId) return;
-
-        const { error } = await supabase
-          .from('bookings')
-          .update({ chef_id: chefId, status: 'assigned' })
-          .eq('id', bookingId);
-
-        if (error) {
-          alert(error.message);
-        } else {
-          window.location.reload();
-        }
-      }
-
-      if (target.matches('.strike-btn')) {
-        const chefId = target.getAttribute('data-chef-id');
-        if (!chefId) return;
-
-        const { data: chef } = await supabase
-          .from('profiles')
-          .select('strikes')
-          .eq('id', chefId)
-          .single();
-
-        const currentStrikes = (chef as Profile | null)?.strikes ?? 0;
-
-        const { error } = await supabase
-          .from('profiles')
-          .update({ strikes: currentStrikes + 1 })
-          .eq('id', chefId);
-
-        if (error) {
-          alert(error.message);
-        } else {
-          window.location.reload();
-        }
-      }
-    });
+    }
+  });
 </script>
