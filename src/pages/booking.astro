@@ -38,7 +38,12 @@ if (error || !user) {
 }
 
 // Onboarding gate: a complete profile (name, phone, city) is required to continue.
-const { data: profile, error: profileError } = await supabase
+// Read via the service-role key (server-only) so RLS / auth-context never blocks
+// this read and cause a redirect loop with /complete-profile.
+const supabaseAdmin = createClient(supabaseUrl, import.meta.env.SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+const { data: profile, error: profileError } = await supabaseAdmin
   .from('profiles')
   .select('full_name, phone, city')
   .eq('id', user.id)
