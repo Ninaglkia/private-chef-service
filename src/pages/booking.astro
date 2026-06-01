@@ -95,7 +95,7 @@ function cadenceLabel(days: number): string {
           </p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-soft-xl p-8 md:p-12 border border-gray-200">
+        <div class="bg-white rounded-2xl shadow-soft-xl p-5 sm:p-8 md:p-12 border border-gray-200">
           <form id="booking-form">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
 
@@ -221,7 +221,7 @@ function cadenceLabel(days: number): string {
                   <input type="text" id="start_date" name="start_date" required readonly placeholder="Select your start date" class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg cursor-pointer bg-gray-50 focus:bg-white h-[64px]" />
                   <svg class="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
 
-                  <div id="calendar-container" class="hidden absolute left-0 z-50 mt-2 bg-white rounded-2xl shadow-2xl border-2 border-gray-200 p-6 w-[400px] max-w-[95vw]">
+                  <div id="calendar-container" class="hidden absolute left-0 right-0 z-50 mt-2 bg-white rounded-2xl shadow-2xl border-2 border-gray-200 p-4 sm:p-6 w-full sm:w-[400px] max-w-[95vw]">
                     <div class="flex items-center justify-between mb-6">
                       <button type="button" id="prev-month" class="p-2 hover:bg-gray-100 rounded-lg transition-colors"><svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
                       <h3 id="calendar-month-year" class="text-lg font-semibold text-gray-900"></h3>
