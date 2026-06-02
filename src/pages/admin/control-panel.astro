@@ -53,8 +53,16 @@ const { data: quotesData } = await supabaseAdmin
   .select('*')
   .order('created_at', { ascending: false });
 
+// Pay-later REQUESTS: pending bookings awaiting a payment link. Newest first.
+const { data: requestsData } = await supabaseAdmin
+  .from('bookings')
+  .select('*')
+  .eq('status', 'pending')
+  .order('created_at', { ascending: false });
+
 const bookings = bookingsData ?? [];
 const quotes = quotesData ?? [];
+const requests = requestsData ?? [];
 
 // --- Summary stats (computed from the already-fetched rows) ---
 const revenueCents = bookings
@@ -88,6 +96,13 @@ const QUOTE_BADGE: Record<string, string> = {
 const QUOTE_NEXT_STATUSES = ['pending', 'contacted', 'quoted', 'converted', 'declined'];
 
 const planName = (plan: string) => PRODUCTS[plan as keyof typeof PRODUCTS]?.name ?? plan;
+
+// Prefill amount (in EUROS) for the payment-link input: package price for fixed
+// plans, empty for 'custom' (owner sets a bespoke amount).
+const packageEuros = (plan: string): string => {
+  const cents = PRODUCTS[plan as keyof typeof PRODUCTS]?.priceCents;
+  return typeof cents === 'number' ? String(cents / 100) : '';
+};
 
 const fmtDate = (d?: string | null) =>
   d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -140,6 +155,80 @@ const fmtDate = (d?: string | null) =>
           <p class="mt-1 text-xs text-gray-400">pending / total</p>
         </div>
       </div>
+
+      <!-- ============================ REQUESTS ============================ -->
+      <section class="space-y-4">
+        <div class="flex items-center gap-3">
+          <h2 class="font-serif text-2xl font-semibold text-gray-900">Requests</h2>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-100 text-gold-800">{requests.length}</span>
+          <span class="text-sm text-gray-400">Awaiting payment link</span>
+        </div>
+        <div id="requests-list" class="space-y-4">
+          {(requests.length === 0) ? (
+              <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+                <p class="text-sm text-gray-500">No new requests right now.</p>
+              </div>
+          ) : (
+              requests.map((req: any) => (
+                  <div class="bg-white border border-gray-100 rounded-2xl shadow-soft hover:shadow-soft-lg transition-shadow p-5 sm:p-6 flex flex-col gap-4">
+                      <div class="flex flex-wrap justify-between items-start gap-4">
+                          <div class="space-y-1.5">
+                              <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                                  <p class="font-semibold text-gray-900 text-lg">{req.customer_name || 'Guest'}</p>
+                                  {req.link_sent_at ? (
+                                      <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-blue-100 text-blue-800">Link sent — awaiting payment</span>
+                                  ) : (
+                                      <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-amber-100 text-amber-800">To contact</span>
+                                  )}
+                              </div>
+                              <p class="text-sm text-gray-600">
+                                  {req.customer_email}
+                                  {req.customer_phone && <span> • {req.customer_phone}</span>}
+                              </p>
+                              <p class="text-sm text-gray-700">
+                                  <span class="font-medium">{planName(req.plan)}</span>
+                                  {' • '}{req.num_guests} {req.num_guests === 1 ? 'guest' : 'guests'}
+                                  {req.city && <span> • {req.city}</span>}
+                                  {' • '}{fmtDate(req.start_date)}
+                              </p>
+                              {req.dietary_preferences && (
+                                  <p class="text-sm text-gray-500 mt-1 italic">“{req.dietary_preferences}”</p>
+                              )}
+                              <p class="text-xs text-gray-400">Received {fmtDate(req.created_at)}</p>
+                              {req.link_sent_at && req.payment_link_url && (
+                                  <p class="text-xs text-gray-500 break-all">
+                                      Link: <a href={req.payment_link_url} target="_blank" rel="noopener" class="text-gold-700 underline hover:text-gold-800">{req.payment_link_url}</a>
+                                  </p>
+                              )}
+                          </div>
+                          <div class="flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto">
+                              <label class="text-xs font-medium text-gray-400">Amount (€)</label>
+                              <div class="flex items-center gap-2">
+                                  <span class="text-gray-500">€</span>
+                                  <input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      placeholder="Amount"
+                                      value={packageEuros(req.plan)}
+                                      class="send-link-amount w-28 border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
+                                      data-id={req.id}
+                                  />
+                              </div>
+                              <button
+                                  class="send-link-btn px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold text-white bg-gradient-to-br from-gold-500 to-gold-700 rounded-lg hover:from-gold-600 hover:to-gold-800 disabled:opacity-50 transition-colors"
+                                  data-booking-id={req.id}
+                                  data-id={req.id}
+                              >
+                                  {req.link_sent_at ? 'Resend / new link' : 'Send payment link'}
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+              ))
+          )}
+        </div>
+      </section>
 
       <!-- ============================ BOOKINGS ============================ -->
       <section class="space-y-4">
@@ -293,6 +382,26 @@ const fmtDate = (d?: string | null) =>
     }
   }
 
+  // Pay-later: generate + email a Stripe payment link for a pending request.
+  async function postSendLink(body: Record<string, unknown>): Promise<boolean> {
+    try {
+      const res = await fetch('/api/admin/send-payment-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.error || `Request failed (${res.status})`);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      alert('Network error. Please try again.');
+      return false;
+    }
+  }
+
   document.addEventListener('click', async (e) => {
     const target = e.target as HTMLElement;
 
@@ -310,6 +419,32 @@ const fmtDate = (d?: string | null) =>
 
       btn.disabled = true;
       const ok = await post({ type: 'booking', booking_id: bookingId, action });
+      if (ok) {
+        window.location.reload();
+      } else {
+        btn.disabled = false;
+      }
+    }
+
+    if (target.matches('.send-link-btn')) {
+      const btn = target as HTMLButtonElement;
+      const bookingId = btn.getAttribute('data-booking-id');
+      const id = btn.getAttribute('data-id');
+      if (!bookingId) return;
+
+      const input = document.querySelector(
+        `.send-link-amount[data-id="${id}"]`
+      ) as HTMLInputElement | null;
+      const euros = input ? parseFloat(input.value) : NaN;
+      if (!Number.isFinite(euros) || euros <= 0) {
+        alert('Enter a valid amount in euros first.');
+        return;
+      }
+      const amount_cents = Math.round(euros * 100);
+      if (!confirm(`Send a payment link for €${euros} to this customer?`)) return;
+
+      btn.disabled = true;
+      const ok = await postSendLink({ booking_id: bookingId, amount_cents });
       if (ok) {
         window.location.reload();
       } else {

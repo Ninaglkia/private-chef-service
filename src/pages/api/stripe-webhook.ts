@@ -39,22 +39,36 @@ export const POST: APIRoute = async ({ request }) => {
       return received();
     }
 
+    // Resolve the booking: prefer the explicit metadata booking_id, otherwise
+    // fall back to matching the payment link (pay-later flow) on the session.
     const bookingId = session.metadata?.booking_id;
-    if (!bookingId) {
-      return received();
-    }
+    const paymentLinkId =
+      typeof session.payment_link === 'string'
+        ? session.payment_link
+        : session.payment_link?.id;
+
+    const updatePayload = {
+      status: 'confirmed',
+      stripe_payment_intent: session.payment_intent as string,
+      stripe_session_id: session.id,
+    };
 
     // Idempotent transition: only the pending -> confirmed move does the work.
     // A replayed/duplicate event matches 0 rows and becomes a no-op.
-    const { data: updatedRows, error: updateError } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('bookings')
-      .update({
-        status: 'confirmed',
-        stripe_payment_intent: session.payment_intent as string,
-      })
-      .eq('id', bookingId)
-      .eq('status', 'pending')
-      .select('*');
+      .update(updatePayload)
+      .eq('status', 'pending');
+
+    if (bookingId) {
+      query = query.eq('id', bookingId);
+    } else if (paymentLinkId) {
+      query = query.eq('payment_link_id', paymentLinkId);
+    } else {
+      return received();
+    }
+
+    const { data: updatedRows, error: updateError } = await query.select('*');
 
     if (updateError) {
       console.error('Booking confirm update failed:', updateError);
@@ -76,7 +90,7 @@ export const POST: APIRoute = async ({ request }) => {
       session.amount_total !== booking.total_price
     ) {
       console.error(
-        `Amount mismatch for booking ${bookingId}: paid ${session.amount_total}, expected ${booking.total_price}`
+        `Amount mismatch for booking ${booking.id}: paid ${session.amount_total}, expected ${booking.total_price}`
       );
     }
 

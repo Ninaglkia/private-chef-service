@@ -15,7 +15,7 @@ export type Booking = {
   add_saturday: boolean;
   add_sunday: boolean;
   dietary_preferences: string;
-  total_price: number;
+  total_price: number | null;
   chef_payout?: number | null;
   grocery_budget?: number | null;
   stripe_session_id: string | null;
@@ -26,6 +26,10 @@ export type Booking = {
   customer_phone: string | null;
   address?: string | null;
   chef_id?: string | null;
+  payment_link_url?: string | null;
+  payment_link_id?: string | null;
+  link_sent_at?: string | null;
+  marketing_consent?: boolean;
   created_at: string;
   updated_at: string;
 };

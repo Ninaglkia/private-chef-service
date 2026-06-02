@@ -205,9 +205,10 @@ const isPaid = booking?.status === 'confirmed';
           <>
             {!isPaid && (
               <div id="processing-banner" class="hidden max-w-3xl mx-auto mb-8 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-6 py-4 text-center">
-                <p class="font-medium">Still processing your booking.</p>
+                <p class="font-medium">We're still confirming your booking.</p>
                 <p class="text-sm mt-1">
-                  If this doesn't update, contact us at
+                  No need to wait here — we'll email you the moment it's confirmed. If you have any
+                  questions, contact us at
                   <a href="mailto:info@ninos-privatechefs.com" class="underline font-semibold">info@ninos-privatechefs.com</a>.
                 </p>
               </div>
@@ -217,23 +218,27 @@ const isPaid = booking?.status === 'confirmed';
               <script is:inline>
                 {`
                   (function () {
-                    // Poll the page until the booking shows as confirmed, then stop.
-                    // Re-fetch every 3s for up to ~30s, then reveal a fallback message.
+                    // Poll the page until the booking shows as confirmed, then swap the UI.
+                    // Re-fetch every 3s for up to ~30s, then reveal a "we'll email you" fallback.
                     var MAX_ATTEMPTS = 10;
                     var INTERVAL_MS = 3000;
                     var attempts = 0;
 
+                    function showFallback() {
+                      var banner = document.getElementById('processing-banner');
+                      if (banner) banner.classList.remove('hidden');
+                    }
+
                     function tick() {
                       attempts++;
                       if (attempts > MAX_ATTEMPTS) {
-                        var banner = document.getElementById('processing-banner');
-                        if (banner) banner.classList.remove('hidden');
+                        showFallback();
                         return;
                       }
                       fetch(window.location.href, { cache: 'no-store' })
                         .then(function (res) { return res.text(); })
                         .then(function (html) {
-                          // Reload the page if it now renders the confirmed state.
+                          // Reload to render the confirmed (paid) state once status flips.
                           if (html.indexOf('Booking Confirmed!') !== -1) {
                             window.location.reload();
                           } else {

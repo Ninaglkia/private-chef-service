@@ -205,6 +205,9 @@ if ((profile?.role === 'admin' || isOwner)) {
       const price = (booking.total_price != null) ? formatPrice(booking.total_price) : null;
       const city = booking.city || 'Your booking';
 
+      // Pay-later: a pending booking with a payment link is ready to be paid.
+      const canPayNow = statusKey === 'pending' && !!booking.payment_link_url;
+
       const metaParts = [];
       if (range) metaParts.push(escapeHtml(range));
       if (guests) metaParts.push(escapeHtml(guests));
@@ -226,6 +229,11 @@ if ((profile?.role === 'admin' || isOwner)) {
         ${price ? `<div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
           <span class="text-sm text-gray-500">Total</span>
           <span class="text-base font-semibold text-gray-900">${escapeHtml(price)}</span>
+        </div>` : ''}
+        ${canPayNow ? `<div class="mt-4">
+          <a href="${escapeHtml(booking.payment_link_url)}" class="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-semibold text-amber-300 bg-black hover:bg-gray-900 active:bg-gray-800 shadow-sm transition-colors">
+            Pay now
+          </a>
         </div>` : ''}
       `;
       list.appendChild(item);

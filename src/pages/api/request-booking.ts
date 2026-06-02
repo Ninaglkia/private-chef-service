@@ -1,0 +1,157 @@
+import type { APIRoute } from 'astro';
+import { createClient } from '@supabase/supabase-js';
+import { getProductPrice, getProductDays, isValidProduct, MAX_GUESTS, type Product } from '../../lib/pricing';
+import { rateLimit, getClientIp } from '../../lib/rate-limit';
+import { notifyOrganizer } from '../../lib/sms';
+
+const supabaseAdmin = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// Guests cap for the open-ended 'custom' / abroad plan (fixed plans use MAX_GUESTS).
+const CUSTOM_MAX_GUESTS = 200;
+
+// Pay-later request: a guest submits a booking REQUEST (no account, no payment).
+// We insert a 'pending' booking; the owner then sends a Stripe payment link.
+// Modelled on create-checkout-session.ts (same insert shape) but with NO Stripe call.
+export const POST: APIRoute = async ({ request }) => {
+  try {
+    // Basic per-IP rate limiting before any DB work.
+    const ip = getClientIp(request);
+    const limit = rateLimit(`request-booking:${ip}`, { limit: 8, windowMs: 60_000 });
+    if (!limit.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Too many requests, please try again shortly.' }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': String(limit.retryAfterSec),
+          },
+        }
+      );
+    }
+
+    let data: Record<string, any>;
+    const contentType = request.headers.get('content-type');
+
+    if (contentType?.includes('application/json')) {
+      data = await request.json();
+    } else if (
+      contentType?.includes('application/x-www-form-urlencoded') ||
+      contentType?.includes('multipart/form-data')
+    ) {
+      const formData = await request.formData();
+      data = Object.fromEntries(formData);
+    } else {
+      return json({ error: 'Unsupported content type' }, 400);
+    }
+
+    const {
+      customer_name,
+      company,
+      customer_email,
+      customer_phone,
+      city,
+      start_date,
+      num_guests,
+      product,
+      dietary_preferences,
+      marketing_consent,
+      company_website, // HONEYPOT
+    } = data;
+
+    // Honeypot: real users never fill this. If present, pretend success and bail.
+    if (company_website && String(company_website).trim() !== '') {
+      return json({ ok: true }, 200);
+    }
+
+    // --- Validation ---
+    if (!customer_name || !customer_email || !city || !start_date || !product) {
+      return json({ error: 'Missing required fields' }, 400);
+    }
+
+    const isCustom = product === 'custom';
+    if (!isCustom && !isValidProduct(product)) {
+      return json({ error: 'Invalid product' }, 400);
+    }
+
+    const guestCap = isCustom ? CUSTOM_MAX_GUESTS : MAX_GUESTS;
+    const guests = num_guests ? parseInt(String(num_guests), 10) : 1;
+    if (Number.isNaN(guests) || guests < 1 || guests > guestCap) {
+      return json({ error: `Guests must be between 1 and ${guestCap}` }, 400);
+    }
+
+    // Price: server-authoritative for fixed plans, NULL for 'custom' (owner sets it later).
+    const totalPrice = isCustom ? null : getProductPrice(product as Product);
+    const days = isCustom ? 1 : getProductDays(product as Product);
+
+    const startDateObj = new Date(start_date);
+    if (Number.isNaN(startDateObj.getTime())) {
+      return json({ error: 'Invalid start date' }, 400);
+    }
+    // Compute end_date using pure UTC math so a non-UTC server can't shift the
+    // calendar day. Build the start in UTC, add (days - 1) days, then format
+    // YYYY-MM-DD from the UTC parts.
+    const endUtc = new Date(
+      Date.UTC(
+        startDateObj.getUTCFullYear(),
+        startDateObj.getUTCMonth(),
+        startDateObj.getUTCDate() + (days - 1)
+      )
+    );
+    const yyyy = endUtc.getUTCFullYear();
+    const mm = String(endUtc.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(endUtc.getUTCDate()).padStart(2, '0');
+    const end_date = `${yyyy}-${mm}-${dd}`;
+
+    const { data: booking, error: bookingError } = await supabaseAdmin
+      .from('bookings')
+      .insert({
+        customer_name,
+        customer_email,
+        customer_phone: customer_phone || null,
+        city,
+        start_date,
+        end_date,
+        num_guests: guests,
+        total_price: totalPrice,
+        status: 'pending',
+        dietary_preferences: dietary_preferences || null,
+        plan: product,
+        marketing_consent: !!marketing_consent,
+        add_saturday: false,
+        add_sunday: false,
+      })
+      .select('id')
+      .single();
+
+    if (bookingError || !booking) {
+      console.error('Supabase booking error:', bookingError);
+      return json({ error: 'Failed to create booking' }, 500);
+    }
+
+    // Notify the owner best-effort — never let messaging failures break the request.
+    try {
+      const fullName = company ? `${customer_name} (${company})` : customer_name;
+      await notifyOrganizer(
+        `New booking request: ${fullName} — ${product} • ${guests} guest${guests > 1 ? 's' : ''} • ${city} • from ${start_date}. Email: ${customer_email}`
+      );
+    } catch (notifyError) {
+      console.error('Owner notification failed:', notifyError);
+    }
+
+    return json({ ok: true, booking_id: booking.id }, 200);
+  } catch (error: any) {
+    console.error('General error creating booking request:', error);
+    return json({ error: 'Failed to create booking request' }, 500);
+  }
+};
+
+function json(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}

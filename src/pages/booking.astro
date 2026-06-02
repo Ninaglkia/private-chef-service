@@ -24,42 +24,37 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Session resolved + refreshed in middleware → Astro.locals.user.
+// Pay-later: guests can request a booking WITHOUT an account. Do NOT redirect
+// when user is null. Prefill only when a logged-in profile exists.
 const user = Astro.locals.user;
 
-if (!user) {
-  return Astro.redirect(`/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
-}
-
-// Onboarding gate: a complete profile (name, phone, city) is required to continue.
-// Read via the service-role key (server-only) so RLS / auth-context never blocks
-// this read and cause a redirect loop with /complete-profile.
-const supabaseAdmin = createClient(supabaseUrl, import.meta.env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
-const { data: profile, error: profileError } = await supabaseAdmin
-  .from('profiles')
-  .select('full_name, phone, city')
-  .eq('id', user.id)
-  .maybeSingle();
-// Fail OPEN on query error to avoid redirect loops; only gate when we can read the profile.
-if (!profileError) {
-  const incomplete = !profile || !profile.full_name || !profile.phone || !profile.city;
-  if (incomplete) {
-    return Astro.redirect('/complete-profile?returnTo=' + encodeURIComponent(Astro.url.pathname));
-  }
-}
-
 // Prefill the form from the logged-in user's profile so they don't retype.
-const pf = profile || {};
-const prefillName = pf.full_name || '';
-const prefillCity = pf.city || '';
-const prefillEmail = user.email || '';
+let prefillName = '';
+let prefillCity = '';
+let prefillEmail = '';
 let prefillDial = '+39';
 let prefillLocal = '';
-if (pf.phone) {
-  const phoneMatch = String(pf.phone).trim().match(/^(\+\d{1,4})\s*(.*)$/);
-  if (phoneMatch) { prefillDial = phoneMatch[1]; prefillLocal = (phoneMatch[2] || '').replace(/\D/g, ''); }
-  else { prefillLocal = String(pf.phone).replace(/\D/g, ''); }
+
+if (user) {
+  // Read via the service-role key (server-only) so RLS / auth-context never blocks this read.
+  const supabaseAdmin = createClient(supabaseUrl, import.meta.env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('full_name, phone, city')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const pf = profile || {};
+  prefillName = pf.full_name || '';
+  prefillCity = pf.city || '';
+  prefillEmail = user.email || '';
+  if (pf.phone) {
+    const phoneMatch = String(pf.phone).trim().match(/^(\+\d{1,4})\s*(.*)$/);
+    if (phoneMatch) { prefillDial = phoneMatch[1]; prefillLocal = (phoneMatch[2] || '').replace(/\D/g, ''); }
+    else { prefillLocal = String(pf.phone).replace(/\D/g, ''); }
+  }
 }
 
 const preselectedGuests = Astro.url.searchParams.get('guests');
@@ -87,7 +82,18 @@ function cadenceLabel(days: number): string {
           </p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-soft-xl p-5 sm:p-8 md:p-12 border border-gray-200">
+        <!-- Thank-you state: shown after a successful request (no Stripe redirect). -->
+        <div id="booking-success" class="hidden bg-white rounded-2xl shadow-soft-xl p-8 sm:p-12 border border-gray-200 text-center">
+          <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gold-100">
+            <svg class="w-8 h-8 text-gold-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-semibold text-gray-900 mb-4">Thanks — request received</h2>
+          <p class="text-gray-600 max-w-md mx-auto">
+            I'll contact you to plan the menu, then send your payment link. No payment is needed right now.
+          </p>
+        </div>
+
+        <div id="booking-card" class="bg-white rounded-2xl shadow-soft-xl p-5 sm:p-8 md:p-12 border border-gray-200">
           <form id="booking-form">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
 
@@ -304,12 +310,26 @@ function cadenceLabel(days: number): string {
                 </label>
               </div>
 
+              <!-- Marketing consent -->
+              <div class="col-span-1 md:col-span-2 flex items-start">
+                <input type="checkbox" id="marketing_consent" name="marketing_consent" class="w-5 h-5 mt-1 text-gold-600 border-gray-300 rounded focus:ring-gold-400" />
+                <label for="marketing_consent" class="ml-3 text-sm text-gray-600 leading-relaxed">
+                  Send me occasional offers and seasonal menus.
+                </label>
+              </div>
+
+              <!-- Honeypot: hidden from real users; bots that fill it are silently dropped server-side. -->
+              <div class="absolute w-px h-px overflow-hidden -m-px p-0 border-0" aria-hidden="true">
+                <label for="company_website">Company website (leave blank)</label>
+                <input type="text" id="company_website" name="company_website" tabindex="-1" autocomplete="off" />
+              </div>
+
               <!-- Submit -->
               <div class="col-span-1 md:col-span-2 space-y-3">
-                <button type="submit" id="submit-button" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">Proceed to Payment</button>
+                <button type="submit" id="submit-button" class="w-full bg-gray-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">Send Request</button>
                 <p class="text-center text-sm text-gray-500 flex items-center justify-center gap-2">
                   <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5z"/></svg>
-                  Secure payment powered by Stripe
+                  No payment now — I'll send a secure payment link after we plan your menu
                 </p>
               </div>
 
@@ -512,20 +532,20 @@ function cadenceLabel(days: number): string {
       quoteNotice?.classList.add('hidden');
       totalPriceElement!.textContent = '€0';
       priceBreakdownElement!.innerHTML = '<p>Select a package to see the price</p>';
-      submitButton.textContent = 'Proceed to Payment';
+      submitButton.textContent = 'Send Request';
       return;
     }
 
     if (currentProduct === 'custom') {
       priceSection?.classList.add('hidden');
       quoteNotice?.classList.remove('hidden');
-      submitButton.textContent = 'Request a Quote';
+      submitButton.textContent = 'Send Request';
       notesLabel!.textContent = 'Tell us about your event';
       notesTextarea.placeholder = 'Group size, location, dates, dietary needs, special requests…';
     } else {
       priceSection?.classList.remove('hidden');
       quoteNotice?.classList.add('hidden');
-      submitButton.textContent = 'Proceed to Payment';
+      submitButton.textContent = 'Send Request';
       notesLabel!.textContent = 'Dietary Preferences & Allergies';
       notesTextarea.placeholder = 'Please specify any dietary restrictions, allergies, or food preferences...';
 
@@ -568,44 +588,34 @@ function cadenceLabel(days: number): string {
     submitButton.textContent = 'Processing...';
 
     try {
-      if (currentProduct === 'custom') {
-        const quoteData = {
-          customer_name: formData.get('customer_name'),
-          customer_email: formData.get('customer_email'),
-          customer_phone: fullPhone,
-          city: formData.get('city'),
-          start_date: startDateValue,
-          num_guests: numGuests,
-          notes: formData.get('dietary_preferences') || '',
-        };
-        const response = await fetch('/api/request-quote', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(quoteData),
-        });
-        const result = await response.json();
-        if (result.error) throw new Error(result.error);
-        window.location.href = '/confirmation?quote_id=' + result.id;
-      } else {
-        const bookingData = {
-          customer_name: formData.get('customer_name'),
-          customer_email: formData.get('customer_email'),
-          customer_phone: fullPhone,
-          city: formData.get('city'),
-          start_date: startDateValue,
-          num_guests: numGuests,
-          product: currentProduct,
-          dietary_preferences: formData.get('dietary_preferences') || '',
-        };
-        const response = await fetch('/api/create-checkout-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(bookingData),
-        });
-        const result = await response.json();
-        if (result.error) throw new Error(result.error);
-        if (result.url) window.location.href = result.url;
-      }
+      // Pay-later: ALL plans (day/weekend/week and custom/abroad) submit a request.
+      // No Stripe redirect — the owner sends a payment link afterwards.
+      const requestData = {
+        customer_name: formData.get('customer_name'),
+        customer_email: formData.get('customer_email'),
+        customer_phone: fullPhone,
+        city: formData.get('city'),
+        start_date: startDateValue,
+        num_guests: numGuests,
+        product: currentProduct,
+        dietary_preferences: formData.get('dietary_preferences') || '',
+        marketing_consent: (document.getElementById('marketing_consent') as HTMLInputElement)?.checked || false,
+        company_website: formData.get('company_website') || '',
+      };
+      const response = await fetch('/api/request-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData),
+      });
+      const result = await response.json();
+      if (!response.ok || result.error) throw new Error(result.error || 'Request failed');
+
+      // Show the friendly thank-you state in place of the form.
+      const card = document.getElementById('booking-card');
+      const success = document.getElementById('booking-success');
+      card?.classList.add('hidden');
+      success?.classList.remove('hidden');
+      success?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (error) {
       console.error('Error:', error);
       alert('An error occurred. Please try again.');

@@ -261,3 +261,41 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
     sendEmail({ to: ORGANIZER_EMAIL, subject: `[NEW USER] ${user.email}`, html: organizerHtml, from: FROM_EMAIL_SYSTEM }),
   ]);
 }
+
+// 4. PAYMENT LINK (pay-later flow: owner sends a Stripe payment link to the customer)
+export async function sendPaymentLinkEmail(booking: any, paymentUrl: string): Promise<void> {
+  const { customer_name, customer_email, total_price, plan } = booking;
+  const formattedPrice =
+    total_price === null || total_price === undefined
+      ? 'To be confirmed'
+      : new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(total_price / 100);
+  const planName = PRODUCTS[plan as keyof typeof PRODUCTS]?.name ?? plan;
+
+  const customerHtml = getHtmlTemplate(
+    'Your Private Chef payment link',
+    `
+      <h2>Your payment link is ready</h2>
+      <p>Dear ${escapeHtml(customer_name)},</p>
+      <p>Thank you for planning your menu with Chef Nino. Your Private Chef service is ready to be confirmed — please complete your payment using the secure link below.</p>
+
+      <div class="details-box">
+        <div class="details-row"><span class="label">Package:</span> <span class="value">${escapeHtml(planName)}</span></div>
+        <div class="details-row"><span class="label">Amount Due:</span> <span class="value">${escapeHtml(formattedPrice)}</span></div>
+      </div>
+
+      <p style="text-align:center;">
+        <a class="btn" href="${escapeHtml(paymentUrl)}">Pay now</a>
+      </p>
+
+      <p><strong>Please note:</strong> groceries are billed separately, at cost, and are not included in the amount above.</p>
+      <p>If the button does not work, copy and paste this link into your browser:<br><a href="${escapeHtml(paymentUrl)}">${escapeHtml(paymentUrl)}</a></p>
+    `
+  );
+
+  await sendEmail({
+    to: customer_email,
+    subject: 'Your Private Chef payment link',
+    html: customerHtml,
+    from: FROM_EMAIL_CUSTOMER,
+  });
+}
