@@ -1,13 +1,21 @@
 import { defineMiddleware } from 'astro:middleware';
 import { createClient } from '@supabase/supabase-js';
 
-// Server-side session resolution + refresh, exposed via Astro.locals.user.
+// Server-side session resolution, exposed via Astro.locals.user.
 //
-// The access token (sb-access-token) is a Supabase JWT that expires after ~1h.
-// Pages must NOT call getUser on the raw cookie themselves: a cookie refreshed
-// here is not visible to the page within the same request, AND refresh tokens
-// rotate (a second refresh would fail). So we resolve the user ONCE here and
-// hand it to every page/endpoint via context.locals.user.
+// READ-ONLY for auth: this middleware only VERIFIES the access-token cookie and
+// never refreshes/rotates tokens server-side. There must be exactly ONE refresher
+// of the (single-use, rotating) refresh token, and that is the client SDK
+// (autoRefreshToken + the onAuthStateChange cookie-sync in lib/supabase.ts, plus
+// Header.syncAuthCookies on every page load). If the middleware ALSO refreshed,
+// it would rotate the token server-side while the client's localStorage still
+// held the old one; the client's next refresh would then fail and wipe the valid
+// cookie the server just wrote → auth lockout. Keeping the server read-only
+// eliminates that dual-refresher race entirely.
+//
+// If the access token is expired here, locals.user stays null and the gated page
+// redirects to /login; the client (sole token holder) refreshes there, writes a
+// fresh cookie, and bounces back — a single hop, never a loop.
 //
 // DEFENSIVE: any failure falls through with locals.user = null; the site never 500s.
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -15,9 +23,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   try {
     const access = context.cookies.get('sb-access-token')?.value;
-    const refresh = context.cookies.get('sb-refresh-token')?.value;
-
-    if (!access && !refresh) {
+    if (!access) {
       return next();
     }
 
@@ -27,36 +33,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
 
-    // 1. Try the current access token.
-    if (access) {
-      const { data, error } = await supabase.auth.getUser(access);
-      if (!error && data.user) {
-        context.locals.user = data.user;
-        return next();
-      }
-    }
-
-    // 2. Expired/invalid → refresh once using the refresh token, rotate cookies.
-    if (refresh) {
-      const { data } = await supabase.auth.refreshSession({ refresh_token: refresh });
-      if (data?.session && data.user) {
-        // NOT httpOnly: the client SDK must be able to keep these cookies in
-        // sync with its rotating localStorage session via document.cookie. An
-        // httpOnly cookie set here would shadow and permanently block those
-        // client-side updates → stale cookie → the post-login redirect loop.
-        // (The tokens already live in JS-readable localStorage, so httpOnly
-        // would add no real protection while breaking the sync.)
-        const cookieOptions = {
-          path: '/',
-          httpOnly: false,
-          secure: context.url.protocol === 'https:',
-          sameSite: 'lax' as const,
-          maxAge: 60 * 60 * 24 * 7, // 7 days
-        };
-        context.cookies.set('sb-access-token', data.session.access_token, cookieOptions);
-        context.cookies.set('sb-refresh-token', data.session.refresh_token, cookieOptions);
-        context.locals.user = data.user;
-      }
+    // Verify the current access token only. No server-side refresh (see above).
+    const { data, error } = await supabase.auth.getUser(access);
+    if (!error && data.user) {
+      context.locals.user = data.user;
     }
 
     return next();
