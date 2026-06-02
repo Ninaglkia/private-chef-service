@@ -180,32 +180,25 @@ function cadenceLabel(days: number): string {
 
               <div class="space-y-2">
                 <label for="city" class="block text-sm font-bold text-gray-900">City *</label>
-                <div class="relative">
-                  <input type="text" id="city" name="city" required value={prefillCity} autocomplete="off" list="city-suggestions" class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white h-[64px]" placeholder="Your city — anywhere" />
-                  <datalist id="city-suggestions">
-                    {LOMBARDY_CITIES.map((c) => (<option value={c}></option>))}
-                  </datalist>
-                  <div id="city-select-icon" class="hidden"></div>
-
-                  <div id="city-enhanced" class="hidden">
-                    <div class="relative">
-                      <input id="city-search" type="text" inputmode="search" autocomplete="off" spellcheck="false" value={prefillCity} class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white h-[64px]" placeholder="Type to filter cities..." role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="city-listbox" />
-                      <button type="button" id="city-clear" class="hidden absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors text-gray-500 flex items-center justify-center" aria-label="Clear city">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 6L6 18M6 6l12 12" /></svg>
-                      </button>
-                    </div>
-
-                    <div id="city-dropdown" class="hidden absolute top-full left-0 mt-2 w-full max-h-[50vh] overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50">
-                      <div id="city-loading" class="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
-                        <span class="inline-block h-4 w-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></span>
-                        <span>Loading cities…</span>
-                      </div>
-                      <div id="city-error" class="hidden px-4 py-3 text-sm text-red-600"></div>
-                      <div id="city-empty" class="hidden px-4 py-3 text-sm text-gray-500">No cities found.</div>
-                      <ul id="city-listbox" role="listbox" class="py-1"></ul>
-                    </div>
-
-                    <div id="city-feedback" class="hidden mt-2 text-xs text-gray-500"></div>
+                <div class="relative" id="city-combobox" data-cities={JSON.stringify(LOMBARDY_CITIES)}>
+                  <input
+                    type="text"
+                    id="city"
+                    name="city"
+                    required
+                    value={prefillCity}
+                    autocomplete="off"
+                    spellcheck="false"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded="false"
+                    aria-controls="city-listbox"
+                    class="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-400 focus:border-gold-400 transition-all duration-200 text-lg bg-gray-50 focus:bg-white h-[64px]"
+                    placeholder="Your city — anywhere"
+                  />
+                  <div id="city-dropdown" class="hidden absolute top-full left-0 mt-2 w-full max-h-[280px] overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl z-50">
+                    <ul id="city-listbox" role="listbox" class="py-1"></ul>
+                    <div id="city-empty" class="hidden px-4 py-3 text-sm text-gray-500">Keep typing — any city is welcome.</div>
                   </div>
                 </div>
                 <p class="mt-2 text-xs text-gray-500">Outside Lombardy? Choose “Abroad &amp; Bespoke” above for a tailored quote.</p>
@@ -722,216 +715,119 @@ function cadenceLabel(days: number): string {
   }
   phoneInput?.addEventListener('blur', validatePhone);
 
-  // --- City picker (searchable combobox with native <select> fallback) ---
+  // --- City picker (free-text combobox with on-brand suggestions) ---
+  // Free text is always allowed (customer can type any city, incl. abroad).
+  // The same <input name="city"> is submitted, so the form handler is untouched.
   (function initCityPicker() {
-    const picker = document.getElementById('city-picker') as HTMLElement | null;
-    const select = document.getElementById('city') as HTMLSelectElement | null;
-    const selectIcon = document.getElementById('city-select-icon') as HTMLElement | null;
-    const enhanced = document.getElementById('city-enhanced') as HTMLElement | null;
-    const input = document.getElementById('city-search') as HTMLInputElement | null;
+    const combobox = document.getElementById('city-combobox') as HTMLElement | null;
+    const input = document.getElementById('city') as HTMLInputElement | null;
     const dropdown = document.getElementById('city-dropdown') as HTMLElement | null;
     const listbox = document.getElementById('city-listbox') as HTMLUListElement | null;
-    const loading = document.getElementById('city-loading') as HTMLElement | null;
     const empty = document.getElementById('city-empty') as HTMLElement | null;
-    const error = document.getElementById('city-error') as HTMLElement | null;
-    const feedback = document.getElementById('city-feedback') as HTMLElement | null;
-    const clearBtn = document.getElementById('city-clear') as HTMLButtonElement | null;
 
-    if (!picker || !select || !enhanced || !input || !dropdown || !listbox || !loading || !empty || !error || !feedback || !clearBtn) {
-      return;
-    }
+    if (!combobox || !input || !dropdown || !listbox || !empty) return;
 
-    let cities: Array<{ name: string; lower: string }> = [];
+    let cities: string[] = [];
     try {
-      const raw = picker.getAttribute('data-cities');
-      const parsed = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(parsed)) throw new Error('Invalid city dataset');
-      cities = parsed
-        .filter((c) => typeof c === 'string' && c.trim().length > 0)
-        .map((name) => ({ name, lower: name.toLowerCase() }));
-    } catch (e) {
-      enhanced.classList.remove('hidden');
-      dropdown.classList.remove('hidden');
-      loading.classList.add('hidden');
-      empty.classList.add('hidden');
-      error.textContent = 'Error loading city list.';
-      error.classList.remove('hidden');
-      return;
-    }
-
-    enhanced.classList.remove('hidden');
-    select.classList.add('sr-only');
-    if (selectIcon) selectIcon.classList.add('hidden');
-    const label = picker.parentElement?.querySelector('label[for="city"]') as HTMLLabelElement | null;
-    if (label) {
-      label.htmlFor = 'city-search';
-      if (!label.id) label.id = 'city-label';
-      select.setAttribute('aria-labelledby', label.id);
-      input.setAttribute('aria-labelledby', label.id);
+      const parsed = JSON.parse(combobox.getAttribute('data-cities') || '[]');
+      if (Array.isArray(parsed)) {
+        cities = parsed.filter((c) => typeof c === 'string' && c.trim().length > 0);
+      }
+    } catch {
+      cities = [];
     }
 
     let isOpen = false;
     let activeIndex = -1;
-    let filtered: Array<{ name: string; lower: string }> = cities;
-    let renderToken = 0;
+    let filtered: string[] = cities;
 
     const setOpen = (next: boolean) => {
       isOpen = next;
-      if (isOpen) {
-        dropdown.classList.remove('hidden');
-        input.setAttribute('aria-expanded', 'true');
-      } else {
-        dropdown.classList.add('hidden');
-        input.setAttribute('aria-expanded', 'false');
-        activeIndex = -1;
-      }
-    };
-
-    const setFeedback = (text: string) => {
-      feedback.textContent = text;
-      feedback.classList.remove('hidden');
+      dropdown.classList.toggle('hidden', !next);
+      input.setAttribute('aria-expanded', next ? 'true' : 'false');
+      if (!next) activeIndex = -1;
     };
 
     const setActive = (idx: number) => {
       const options = Array.from(listbox.querySelectorAll('[role="option"]')) as HTMLElement[];
-      options.forEach((el) => el.classList.remove('bg-gold-50'));
+      options.forEach((el) => { el.classList.remove('bg-gold-50'); el.setAttribute('aria-selected', 'false'); });
       if (idx < 0 || idx >= options.length) { activeIndex = -1; return; }
       activeIndex = idx;
       const el = options[idx];
       el.classList.add('bg-gold-50');
+      el.setAttribute('aria-selected', 'true');
       el.scrollIntoView({ block: 'nearest' });
     };
 
     const selectCity = (name: string) => {
-      select.value = name;
       input.value = name;
-      input.setCustomValidity('');
-      clearBtn.classList.toggle('hidden', input.value.trim().length === 0);
       setOpen(false);
+      input.focus();
     };
 
-    const renderList = (lowerQuery: string) => {
+    const renderList = (query: string) => {
+      const q = query.trim().toLowerCase();
+      filtered = q ? cities.filter((c) => c.toLowerCase().includes(q)) : cities;
       listbox.innerHTML = '';
+      activeIndex = -1;
+
       if (filtered.length === 0) {
         empty.classList.remove('hidden');
-        setFeedback('0 results');
-        input.classList.add('border-red-300');
         return;
       }
-      input.classList.remove('border-red-300');
       empty.classList.add('hidden');
 
       const frag = document.createDocumentFragment();
-      const max = Math.min(filtered.length, 80);
-      for (let i = 0; i < max; i++) {
-        const name = filtered[i].name;
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'w-full px-4 py-3 text-left text-sm text-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors';
-        btn.setAttribute('role', 'option');
-        btn.setAttribute('aria-selected', 'false');
-        if (lowerQuery) {
-          const prefixLen = Math.min(lowerQuery.length, name.length);
-          btn.innerHTML = `<span class="font-semibold">${name.slice(0, prefixLen)}</span>${name.slice(prefixLen)}`;
-        } else {
-          btn.textContent = name;
-        }
-        btn.addEventListener('click', () => selectCity(name));
+      filtered.forEach((name) => {
         const li = document.createElement('li');
-        li.appendChild(btn);
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', 'false');
+        li.className = 'min-h-[44px] flex items-center px-5 py-3 text-base text-gray-900 cursor-pointer hover:bg-gold-50 active:bg-gold-100 transition-colors';
+        if (q) {
+          const matchStart = name.toLowerCase().indexOf(q);
+          li.innerHTML =
+            name.slice(0, matchStart) +
+            `<span class="font-semibold">${name.slice(matchStart, matchStart + q.length)}</span>` +
+            name.slice(matchStart + q.length);
+        } else {
+          li.textContent = name;
+        }
+        li.addEventListener('mousedown', (e) => { e.preventDefault(); selectCity(name); });
         frag.appendChild(li);
-      }
-      listbox.appendChild(frag);
-      setFeedback(`${filtered.length} results`);
-    };
-
-    const update = (query: string) => {
-      const token = ++renderToken;
-      const q = query.trim().toLowerCase();
-      loading.classList.remove('hidden');
-      error.classList.add('hidden');
-      empty.classList.add('hidden');
-      setOpen(true);
-
-      requestAnimationFrame(() => {
-        if (token !== renderToken) return;
-        filtered = q ? cities.filter((c) => c.lower.startsWith(q)) : cities;
-        loading.classList.add('hidden');
-        renderList(q);
       });
+      listbox.appendChild(frag);
     };
 
-    const trySelectExactMatch = () => {
-      const q = input.value.trim().toLowerCase();
-      if (!q) return;
-      const exact = cities.find((c) => c.lower === q);
-      if (exact) selectCity(exact.name);
+    const openWith = (query: string) => {
+      renderList(query);
+      setOpen(true);
     };
 
-    input.addEventListener('focus', () => {
-      clearBtn.classList.toggle('hidden', input.value.trim().length === 0);
-      update(input.value);
-    });
-    input.addEventListener('input', () => {
-      clearBtn.classList.toggle('hidden', input.value.trim().length === 0);
-      update(input.value);
-    });
+    input.addEventListener('focus', () => openWith(input.value));
+    input.addEventListener('input', () => openWith(input.value));
     input.addEventListener('keydown', (e) => {
-      const optionsCount = listbox.querySelectorAll('[role="option"]').length;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (!isOpen) update(input.value);
-        setActive(Math.min(activeIndex + 1, optionsCount - 1));
+        if (!isOpen) openWith(input.value);
+        setActive(Math.min(activeIndex + 1, filtered.length - 1));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
+        if (!isOpen) return;
         setActive(Math.max(activeIndex - 1, 0));
       } else if (e.key === 'Enter') {
-        if (!isOpen) return;
-        e.preventDefault();
-        const opts = Array.from(listbox.querySelectorAll('[role="option"]')) as HTMLElement[];
-        const el = opts[activeIndex];
-        const name = el?.textContent?.trim();
-        if (name) selectCity(name);
-        else { trySelectExactMatch(); setOpen(false); }
+        if (isOpen && activeIndex >= 0 && activeIndex < filtered.length) {
+          e.preventDefault();
+          selectCity(filtered[activeIndex]);
+        } else {
+          setOpen(false);
+        }
       } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setOpen(false);
+        if (isOpen) { e.preventDefault(); setOpen(false); }
       }
-    });
-
-    clearBtn.addEventListener('click', () => {
-      input.value = '';
-      select.value = '';
-      input.setCustomValidity('');
-      clearBtn.classList.add('hidden');
-      update('');
-      input.focus();
     });
 
     document.addEventListener('click', (e) => {
-      if (!picker.contains(e.target as Node)) {
-        setOpen(false);
-        trySelectExactMatch();
-      }
+      if (!combobox.contains(e.target as Node)) setOpen(false);
     });
-
-    bookingForm?.addEventListener('submit', (e) => {
-      if (!select.value) {
-        input.setCustomValidity('Select a city');
-        input.reportValidity();
-        setOpen(true);
-        e.preventDefault();
-      } else {
-        input.setCustomValidity('');
-      }
-    });
-
-    if (select.value) {
-      input.value = select.value;
-      clearBtn.classList.toggle('hidden', input.value.trim().length === 0);
-      setFeedback('Selected');
-    } else {
-      feedback.classList.add('hidden');
-    }
   })();
 </script>
