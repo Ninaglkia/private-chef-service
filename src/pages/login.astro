@@ -138,15 +138,23 @@ import Header from '../components/Header.astro';
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('onboarding_completed')
+      .select('full_name, phone, city')
       .eq('id', user.id)
       .maybeSingle();
 
-    const onboardingCompleted = profile?.onboarding_completed === true;
+    // "Onboarded" = has the basic contact details. Do NOT depend on an
+    // onboarding_completed column (it may be absent on the live DB, which made
+    // this always-false and caused the infinite /complete-profile loop).
+    const onboardingComplete = !!(profile && profile.full_name && profile.phone && profile.city);
 
-    const target = returnToParam || '/dashboard';
+    // Sanitize returnTo so it can never point back at /login or /complete-profile
+    // (that recursion was the other half of the loop). Same-site paths only.
+    let target = returnToParam || '/dashboard';
+    if (!target.startsWith('/') || target.startsWith('//') || target.startsWith('/login') || target.startsWith('/complete-profile')) {
+      target = '/dashboard';
+    }
 
-    if (!profile || !onboardingCompleted) {
+    if (!onboardingComplete) {
       window.location.href = `/complete-profile?returnTo=${encodeURIComponent(target)}`;
       return;
     }

@@ -12,18 +12,11 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-const accessToken = Astro.cookies.get('sb-access-token')?.value;
+// Session is resolved (and refreshed) once in middleware → Astro.locals.user.
+const user = Astro.locals.user;
 
-if (!accessToken) {
-  const returnTo = Astro.url.pathname + Astro.url.search;
-  return Astro.redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
-}
-
-const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-
-if (error || !user) {
-  const returnTo = Astro.url.pathname + Astro.url.search;
-  return Astro.redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+if (!user) {
+  return Astro.redirect(`/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
 }
 
 // Onboarding gate: a complete profile (name, phone, city) is required to continue.
@@ -41,8 +34,7 @@ const { data: onboardingProfile, error: profileError } = await supabaseAdmin
 if (!profileError) {
   const incomplete = !onboardingProfile || !onboardingProfile.full_name || !onboardingProfile.phone || !onboardingProfile.city;
   if (incomplete) {
-    const returnTo = Astro.url.pathname + Astro.url.search;
-    return Astro.redirect('/complete-profile?returnTo=' + encodeURIComponent(returnTo));
+    return Astro.redirect('/complete-profile?returnTo=' + encodeURIComponent(Astro.url.pathname));
   }
 }
 

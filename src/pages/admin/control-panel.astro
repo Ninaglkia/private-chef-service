@@ -9,11 +9,11 @@ const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY; // Access service role key
 
-const accessToken = Astro.cookies.get('sb-access-token')?.value;
+// Session resolved + refreshed in middleware → Astro.locals.user.
+const user = Astro.locals.user;
 
-if (!accessToken) {
-  const returnTo = Astro.url.pathname;
-  return Astro.redirect(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+if (!user) {
+  return Astro.redirect(`/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
 }
 
 // Use Service Role for Admin Operations (Bypass RLS)
@@ -23,20 +23,6 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey || supabaseAn
     autoRefreshToken: false,
   }
 });
-
-const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  }
-});
-
-// Verify user
-const { data: { user }, error } = await supabaseServer.auth.getUser(accessToken);
-
-if (error || !user) {
-   return Astro.redirect('/login');
-}
 
 // Check Role
 const { data: profile } = await supabaseAdmin

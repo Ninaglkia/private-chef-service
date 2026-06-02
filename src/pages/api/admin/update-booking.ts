@@ -33,21 +33,13 @@ const QUOTE_STATUSES = ['pending', 'contacted', 'quoted', 'converted', 'declined
 type BookingAction = (typeof BOOKING_ACTIONS)[number];
 type QuoteStatus = (typeof QUOTE_STATUSES)[number];
 
-export const POST: APIRoute = async ({ request, cookies }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     // --- Authorize: owner email OR profiles.role === 'admin' ---
-    const accessToken = cookies.get('sb-access-token')?.value;
-    if (!accessToken) {
+    // Session resolved + refreshed in middleware → locals.user.
+    const user = locals.user;
+    if (!user) {
       return json({ error: 'Not authenticated' }, 401);
-    }
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseAuth.auth.getUser(accessToken);
-
-    if (authError || !user) {
-      return json({ error: 'Invalid session' }, 401);
     }
 
     const email = user.email?.toLowerCase() || '';
