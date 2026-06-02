@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
 import { createClient } from '@supabase/supabase-js';
 import { PRODUCTS, formatPrice } from '../../lib/pricing';
 
@@ -54,17 +55,33 @@ if ((!profile || profile.role !== 'admin') && !isOwner) {
 
 // FETCH DATA SERVER-SIDE (Using Admin Client to bypass RLS issues)
 // Show real bookings: paid (confirmed) + completed/cancelled/refunded. Newest first.
-const { data: bookings } = await supabaseAdmin
+const { data: bookingsData } = await supabaseAdmin
   .from('bookings')
   .select('*')
   .in('status', ['confirmed', 'completed', 'cancelled', 'refunded'])
   .order('created_at', { ascending: false });
 
 // Abroad & Bespoke leads
-const { data: quotes } = await supabaseAdmin
+const { data: quotesData } = await supabaseAdmin
   .from('quote_requests')
   .select('*')
   .order('created_at', { ascending: false });
+
+const bookings = bookingsData ?? [];
+const quotes = quotesData ?? [];
+
+// --- Summary stats (computed from the already-fetched rows) ---
+const revenueCents = bookings
+  .filter((b: any) => b.status === 'confirmed' || b.status === 'completed')
+  .reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
+
+const stats = {
+  confirmed: bookings.filter((b: any) => b.status === 'confirmed').length,
+  completed: bookings.filter((b: any) => b.status === 'completed').length,
+  revenue: revenueCents,
+  quotesPending: quotes.filter((q: any) => q.status === 'pending').length,
+  quotesTotal: quotes.length,
+};
 
 const STATUS_BADGE: Record<string, string> = {
   confirmed: 'bg-green-100 text-green-800',
@@ -90,130 +107,180 @@ const fmtDate = (d?: string | null) =>
   d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 ---
 
-<Layout title="Admin Control Panel">
-  <div class="max-w-6xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-10">
-    <div class="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
-        <h1 class="text-3xl font-semibold text-gray-900">Admin Control Panel</h1>
-        <div class="text-sm text-gray-500">
-            Signed in as: <span class="font-medium text-gray-900 break-words">{user.email}</span>
-            {isOwner && <span class="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs">Owner</span>}
+<Layout title="Admin Control Panel - Private Chef" bodyClass="bg-gray-50 text-gray-900">
+  <Header transparent={false} />
+
+  <main class="pt-28 pb-20">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+
+      <!-- ============================ PAGE HEADER ============================ -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-gold-600">Private Chef</p>
+          <h1 class="mt-1 font-serif text-4xl sm:text-5xl font-semibold text-gray-900 leading-tight">Control Panel</h1>
         </div>
+        <div class="flex items-center gap-2 text-sm text-gray-500">
+          <span class="hidden sm:inline">Signed in as</span>
+          <span class="font-medium text-gray-900 break-all">{user.email}</span>
+          {isOwner && (
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-100 text-gold-800">
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 1l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.8 4.7 17.2l1-5.8L1.5 7.2l5.9-.9z"/></svg>
+              Owner
+            </span>
+          )}
+        </div>
+      </div>
+
+      <!-- ============================ STATS ============================ -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+          <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Confirmed</p>
+          <p class="mt-2 text-3xl font-semibold text-gray-900">{stats.confirmed}</p>
+          <p class="mt-1 text-xs text-gray-400">paid bookings</p>
+        </div>
+        <div class="bg-gradient-to-br from-gold-500 to-gold-700 rounded-2xl shadow-soft-lg p-5 text-white">
+          <p class="text-xs font-semibold uppercase tracking-wider text-white/80">Revenue</p>
+          <p class="mt-2 text-3xl font-semibold">{formatPrice(stats.revenue)}</p>
+          <p class="mt-1 text-xs text-white/70">confirmed + completed</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+          <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Completed</p>
+          <p class="mt-2 text-3xl font-semibold text-gray-900">{stats.completed}</p>
+          <p class="mt-1 text-xs text-gray-400">services done</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+          <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Quote leads</p>
+          <p class="mt-2 text-3xl font-semibold text-gray-900">{stats.quotesPending}<span class="text-base font-normal text-gray-400"> / {stats.quotesTotal}</span></p>
+          <p class="mt-1 text-xs text-gray-400">pending / total</p>
+        </div>
+      </div>
+
+      <!-- ============================ BOOKINGS ============================ -->
+      <section class="space-y-4">
+        <div class="flex items-center gap-3">
+          <h2 class="font-serif text-2xl font-semibold text-gray-900">Bookings</h2>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{bookings.length}</span>
+        </div>
+        <div id="bookings-list" class="space-y-4">
+          {(bookings.length === 0) ? (
+              <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+                <p class="text-sm text-gray-500">No paid bookings yet.</p>
+              </div>
+          ) : (
+              bookings.map((booking: any) => (
+                  <div class="bg-white border border-gray-100 rounded-2xl shadow-soft hover:shadow-soft-lg transition-shadow p-5 sm:p-6 flex flex-col gap-4">
+                      <div class="flex flex-wrap justify-between items-start gap-3">
+                          <div class="space-y-1.5">
+                              <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                                  <p class="font-semibold text-gray-900 text-lg">{booking.customer_name || 'Guest'}</p>
+                                  <span class={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${STATUS_BADGE[booking.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                                      {booking.status}
+                                  </span>
+                              </div>
+                              <p class="text-sm text-gray-600">
+                                  {booking.customer_email}
+                                  {booking.customer_phone && <span> • {booking.customer_phone}</span>}
+                              </p>
+                              <p class="text-sm text-gray-700">
+                                  <span class="font-medium">{planName(booking.plan)}</span>
+                                  {' • '}{booking.num_guests} {booking.num_guests === 1 ? 'guest' : 'guests'}
+                                  {booking.city && <span> • {booking.city}</span>}
+                              </p>
+                              <p class="text-sm text-gray-500">
+                                  {fmtDate(booking.start_date)}
+                                  {booking.end_date && <span> → {fmtDate(booking.end_date)}</span>}
+                              </p>
+                              {booking.stripe_payment_intent && (
+                                  <p class="text-xs text-gray-400 font-mono break-all">PI: {booking.stripe_payment_intent}</p>
+                              )}
+                          </div>
+                          <div class="text-right">
+                              <p class="text-2xl font-semibold text-gray-900">{formatPrice(booking.total_price ?? 0)}</p>
+                              <p class="text-xs text-gray-400">groceries billed separately</p>
+                          </div>
+                      </div>
+
+                      {(booking.status === 'confirmed' || booking.status === 'completed') && (
+                          <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
+                              {(booking.status === 'confirmed') && (
+                                  <button
+                                      class="booking-action-btn px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                      data-booking-id={booking.id}
+                                      data-action="complete"
+                                  >
+                                      Mark as completed
+                                  </button>
+                              )}
+                              <button
+                                  class="booking-action-btn px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
+                                  data-booking-id={booking.id}
+                                  data-action="refund"
+                              >
+                                  Cancel / Refund
+                              </button>
+                          </div>
+                      )}
+                  </div>
+              ))
+          )}
+        </div>
+      </section>
+
+      <!-- ===================== QUOTE REQUESTS (LEADS) ===================== -->
+      <section class="space-y-4">
+        <div class="flex items-center gap-3">
+          <h2 class="font-serif text-2xl font-semibold text-gray-900">Quote requests</h2>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{quotes.length}</span>
+          <span class="text-sm text-gray-400">Abroad &amp; Bespoke</span>
+        </div>
+        <div id="quotes-list" class="space-y-4">
+          {(quotes.length === 0) ? (
+              <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+                <p class="text-sm text-gray-500">No quote requests yet.</p>
+              </div>
+          ) : (
+              quotes.map((q: any) => (
+                  <div class="bg-white border border-gray-100 rounded-2xl shadow-soft hover:shadow-soft-lg transition-shadow p-5 sm:p-6 flex flex-col gap-4">
+                      <div class="flex flex-wrap justify-between items-start gap-4">
+                          <div class="space-y-1.5">
+                              <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                                  <p class="font-semibold text-gray-900 text-lg">{q.customer_name || 'Lead'}</p>
+                                  <span class={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${QUOTE_BADGE[q.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                                      {q.status}
+                                  </span>
+                              </div>
+                              <p class="text-sm text-gray-600">
+                                  {q.customer_email}
+                                  {q.customer_phone && <span> • {q.customer_phone}</span>}
+                              </p>
+                              <p class="text-sm text-gray-700">
+                                  {q.num_guests} {q.num_guests === 1 ? 'guest' : 'guests'}
+                                  {q.city && <span> • {q.city}</span>}
+                                  {' • '}{fmtDate(q.start_date)}
+                              </p>
+                              {q.notes && <p class="text-sm text-gray-500 mt-1 italic">“{q.notes}”</p>}
+                              <p class="text-xs text-gray-400">Received {fmtDate(q.created_at)}</p>
+                          </div>
+                          <div class="flex flex-col items-end gap-2">
+                              <label class="text-xs font-medium text-gray-400">Update status</label>
+                              <select
+                                  class="quote-status-select border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
+                                  data-quote-id={q.id}
+                                  data-current={q.status}
+                              >
+                                  {QUOTE_NEXT_STATUSES.map((s) => (
+                                      <option value={s} selected={s === q.status}>{s}</option>
+                                  ))}
+                              </select>
+                          </div>
+                      </div>
+                  </div>
+              ))
+          )}
+        </div>
+      </section>
     </div>
-
-    <!-- ============================ BOOKINGS ============================ -->
-    <section class="space-y-4">
-      <h2 class="text-xl font-semibold text-gray-800">Bookings</h2>
-      <div id="bookings-list" class="space-y-4">
-        {(!bookings || bookings.length === 0) ? (
-            <p class="text-sm text-gray-500">No bookings yet.</p>
-        ) : (
-            bookings.map((booking: any) => (
-                <div class="border border-gray-200 rounded-lg p-5 flex flex-col gap-4">
-                    <div class="flex flex-wrap justify-between items-start gap-3">
-                        <div class="space-y-1">
-                            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                                <p class="font-semibold text-gray-900 text-lg">{booking.customer_name || 'Guest'}</p>
-                                <span class={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${STATUS_BADGE[booking.status] ?? 'bg-gray-100 text-gray-700'}`}>
-                                    {booking.status}
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-600">
-                                {booking.customer_email}
-                                {booking.customer_phone && <span> • {booking.customer_phone}</span>}
-                            </p>
-                            <p class="text-sm text-gray-700">
-                                <span class="font-medium">{planName(booking.plan)}</span>
-                                {' • '}{booking.num_guests} {booking.num_guests === 1 ? 'guest' : 'guests'}
-                                {booking.city && <span> • {booking.city}</span>}
-                            </p>
-                            <p class="text-sm text-gray-500">
-                                {fmtDate(booking.start_date)}
-                                {booking.end_date && <span> → {fmtDate(booking.end_date)}</span>}
-                            </p>
-                            {booking.stripe_payment_intent && (
-                                <p class="text-xs text-gray-400 font-mono break-all">PI: {booking.stripe_payment_intent}</p>
-                            )}
-                        </div>
-                        <div class="text-right">
-                            <p class="text-2xl font-semibold text-gray-900">{formatPrice(booking.total_price ?? 0)}</p>
-                            <p class="text-xs text-gray-400">groceries billed separately</p>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-wrap gap-3 pt-3 border-t border-gray-100">
-                        {(booking.status === 'confirmed') && (
-                            <button
-                                class="booking-action-btn px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-                                data-booking-id={booking.id}
-                                data-action="complete"
-                            >
-                                Mark as completed
-                            </button>
-                        )}
-                        {(booking.status === 'confirmed' || booking.status === 'completed') && (
-                            <button
-                                class="booking-action-btn px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
-                                data-booking-id={booking.id}
-                                data-action="refund"
-                            >
-                                Cancel / Refund
-                            </button>
-                        )}
-                    </div>
-                </div>
-            ))
-        )}
-      </div>
-    </section>
-
-    <!-- ===================== QUOTE REQUESTS (LEADS) ===================== -->
-    <section class="space-y-4">
-      <h2 class="text-xl font-semibold text-gray-800">Quote requests — Abroad &amp; Bespoke</h2>
-      <div id="quotes-list" class="space-y-4">
-        {(!quotes || quotes.length === 0) ? (
-            <p class="text-sm text-gray-500">No quote requests yet.</p>
-        ) : (
-            quotes.map((q: any) => (
-                <div class="border border-gray-200 rounded-lg p-5 flex flex-col gap-4">
-                    <div class="flex flex-wrap justify-between items-start gap-3">
-                        <div class="space-y-1">
-                            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                                <p class="font-semibold text-gray-900 text-lg">{q.customer_name || 'Lead'}</p>
-                                <span class={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${QUOTE_BADGE[q.status] ?? 'bg-gray-100 text-gray-700'}`}>
-                                    {q.status}
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-600">
-                                {q.customer_email}
-                                {q.customer_phone && <span> • {q.customer_phone}</span>}
-                            </p>
-                            <p class="text-sm text-gray-700">
-                                {q.num_guests} {q.num_guests === 1 ? 'guest' : 'guests'}
-                                {q.city && <span> • {q.city}</span>}
-                                {' • '}{fmtDate(q.start_date)}
-                            </p>
-                            {q.notes && <p class="text-sm text-gray-500 mt-1 italic">“{q.notes}”</p>}
-                            <p class="text-xs text-gray-400">Received {fmtDate(q.created_at)}</p>
-                        </div>
-                        <div class="flex flex-col items-end gap-2">
-                            <label class="text-xs text-gray-400">Update status</label>
-                            <select
-                                class="quote-status-select border border-gray-300 rounded-md px-3 py-2.5 min-h-[44px] text-sm"
-                                data-quote-id={q.id}
-                                data-current={q.status}
-                            >
-                                {QUOTE_NEXT_STATUSES.map((s) => (
-                                    <option value={s} selected={s === q.status}>{s}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            ))
-        )}
-      </div>
-    </section>
-  </div>
+  </main>
 </Layout>
 
 <script>
