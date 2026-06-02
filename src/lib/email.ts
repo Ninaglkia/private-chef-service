@@ -102,41 +102,68 @@ export async function sendEmail(data: EmailData): Promise<boolean> {
 function getHtmlTemplate(title: string, content: string): string {
   return `
     <!DOCTYPE html>
-    <html>
+    <html lang="it">
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="color-scheme" content="light only">
       <title>${title}</title>
       <style>
-        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f9f9f9; }
-        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .header { background-color: #111827; color: #ffffff; padding: 30px; text-align: center; }
-        .header h1 { margin: 0; font-size: 24px; font-weight: 300; letter-spacing: 1px; text-transform: uppercase; }
-        .content { padding: 40px 30px; }
-        .footer { background-color: #f3f4f6; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; }
-        .details-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 20px; margin-top: 20px; }
-        .details-row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .details-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .label { font-weight: 600; color: #4b5563; }
-        .value { color: #111827; text-align: right; }
-        .btn { display: inline-block; background-color: #d97706; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 20px; }
-        .promo-box { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px dashed #d97706; border-radius: 8px; padding: 20px; margin: 24px 0; text-align: center; }
-        .promo-label { font-size: 13px; color: #92400e; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px; }
-        .promo-code { display: inline-block; font-size: 22px; font-weight: 800; letter-spacing: 2px; color: #111827; background: #ffffff; border: 1px solid #f59e0b; border-radius: 6px; padding: 8px 16px; margin: 4px 0; }
-        .promo-note { font-size: 12px; color: #92400e; margin: 8px 0 0; }
+        body { margin: 0; padding: 0; background-color: #efe9df; -webkit-font-smoothing: antialiased; }
+        .wrap { width: 100%; background-color: #efe9df; padding: 32px 12px; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e7dfd0; box-shadow: 0 10px 30px rgba(31,26,18,0.08); }
+
+        .header { background: #17130d; padding: 40px 30px 34px; text-align: center; }
+        .avatar { width: 78px; height: 78px; border-radius: 50%; object-fit: cover; object-position: center 12%; border: 2px solid #c6a15b; display: block; margin: 0 auto 16px; }
+        .eyebrow { color: #c6a15b; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 0; }
+        .brand { color: #ffffff; font-family: Georgia, 'Times New Roman', serif; font-size: 27px; letter-spacing: 0.5px; margin: 8px 0 0; }
+        .rule { width: 44px; height: 1px; background: #c6a15b; margin: 16px auto 0; opacity: 0.8; }
+
+        .content { padding: 40px 36px 8px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #4a443b; }
+        .content h2 { font-family: Georgia, 'Times New Roman', serif; font-weight: 600; color: #17130d; font-size: 23px; line-height: 1.3; margin: 0 0 16px; }
+        .content p { font-size: 15px; line-height: 1.75; color: #575147; margin: 0 0 16px; }
+        .content ul { margin: 10px 0 0 0; padding: 0 0 0 18px; }
+        .content li { font-size: 15px; line-height: 1.7; color: #575147; margin-bottom: 6px; }
+
+        .promo-box { background: #fbf7ef; border: 1px solid #e6d4ac; border-radius: 14px; padding: 26px 20px; margin: 26px 0; text-align: center; }
+        .promo-label { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #a07b35; text-transform: uppercase; letter-spacing: 2.5px; margin: 0 0 12px; }
+        .promo-code { display: inline-block; font-family: 'Courier New', monospace; font-size: 24px; font-weight: 700; letter-spacing: 4px; color: #17130d; background: #ffffff; border: 1px dashed #c6a15b; border-radius: 10px; padding: 12px 22px; margin: 0; }
+        .promo-note { font-size: 13px; color: #a07b35; margin: 12px 0 0; }
+
+        .btn-wrap { text-align: center; margin: 28px 0 8px; }
+        .btn { display: inline-block; background-color: #17130d; color: #ffffff !important; padding: 14px 34px; text-decoration: none; border-radius: 999px; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.6px; }
+
+        .details-box { background-color: #faf7f1; border: 1px solid #ece3d3; border-radius: 12px; padding: 22px; margin: 22px 0; }
+        .details-row { border-bottom: 1px solid #ece3d3; padding: 8px 0; }
+        .details-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .label { font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 600; color: #8a8174; font-size: 13px; }
+        .value { color: #17130d; font-size: 14px; }
+        .fine { font-size: 13px; color: #8a8174; }
+
+        .footer { background: #17130d; padding: 30px; text-align: center; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        .footer .fbrand { font-family: Georgia, serif; color: #ffffff; font-size: 16px; margin: 0 0 4px; }
+        .footer p { color: #9b938a; font-size: 12px; line-height: 1.6; margin: 4px 0; }
+        .footer a { color: #c6a15b; text-decoration: none; }
       </style>
     </head>
     <body>
-      <div class="container">
-        <div class="header">
-          <h1>Private Chef</h1>
-        </div>
-        <div class="content">
-          ${content}
-        </div>
-        <div class="footer">
-          <p>&copy; ${new Date().getFullYear()} Private Chef Service. All rights reserved.</p>
-          <p>This is an automated message.</p>
+      <div class="wrap">
+        <div class="container">
+          <div class="header">
+            <img class="avatar" src="https://ninos-privatechefs.com/images/chef.jpg" width="78" height="78" alt="Chef Nino" />
+            <p class="eyebrow">Private Chef at Home</p>
+            <p class="brand">Nino's Private Chef</p>
+            <div class="rule"></div>
+          </div>
+          <div class="content">
+            ${content}
+          </div>
+          <div class="footer">
+            <p class="fbrand">Nino's Private Chef</p>
+            <p>Cucina d'autore a domicilio · Lombardia &amp; oltre</p>
+            <p><a href="https://ninos-privatechefs.com">ninos-privatechefs.com</a> &nbsp;·&nbsp; <a href="mailto:info@ninos-privatechefs.com">info@ninos-privatechefs.com</a></p>
+            <p>&copy; ${new Date().getFullYear()} Nino's Private Chef · Questa è un'email automatica</p>
+          </div>
         </div>
       </div>
     </body>
@@ -258,6 +285,7 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
   const customerHtml = getHtmlTemplate(
     "Welcome to Nino's Private Chef",
     `
+      <img src="https://ninos-privatechefs.com/images/dish1.jpg" alt="Un piatto di Chef Nino" style="width:100%;border-radius:12px;display:block;margin:0 0 26px;" />
       <h2>Benvenuto su Nino's Private Chef, ${escapeHtml(name)}!</h2>
       <p>Grazie per esserti registrato a <strong>Nino's Private Chef</strong>.</p>
       <p>Da oggi puoi prenotare Chef Nino a domicilio: colazione, pranzo e cena preparati freschi a casa tua, o come preferisci.</p>
@@ -313,6 +341,7 @@ export async function sendBirthdayEmail(user: { email: string; full_name?: strin
   const customerHtml = getHtmlTemplate(
     'Buon compleanno!',
     `
+      <img src="https://ninos-privatechefs.com/images/dish2.jpg" alt="Un piatto di Chef Nino" style="width:100%;border-radius:12px;display:block;margin:0 0 26px;" />
       <h2>Buon compleanno, ${escapeHtml(name)}! 🎉</h2>
       <p>Tutto il team di <strong>Nino's Private Chef</strong> ti augura una giornata speciale.</p>
       <p>Per festeggiare, Chef Nino ha pensato a un regalo per te:</p>
