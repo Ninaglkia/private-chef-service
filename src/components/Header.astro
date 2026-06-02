@@ -294,9 +294,14 @@ const signupUrl = `/signup?returnTo=${encodeURIComponent(pathname)}`;
         if (r.data.session) {
           session = r.data.session;
         } else {
-          // Dead/rotated refresh token: purge the cookie so a gated page sends
-          // the user to a clean /login instead of looping on a stale cookie.
+          // Dead/rotated refresh token: the stored session can't be revived.
+          // Sign out locally so the header flips to logged-out (instead of
+          // showing a misleading "logged in" state while every gated page
+          // bounces to /login), clear the cookie, and re-render the UI. The
+          // user just logs in again and gets fresh, valid tokens.
+          await supabase.auth.signOut({ scope: 'local' });
           clearSessionCookies();
+          applyAuthState();
           return;
         }
       }
