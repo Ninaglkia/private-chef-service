@@ -110,6 +110,17 @@ const {
       />
     </div>
 
+    <div>
+      <label for="birthday" class="block text-xs font-semibold text-gray-700 mb-1">Data di nascita <span class="font-normal text-gray-400">(opzionale)</span></label>
+      <input
+        id="birthday"
+        name="birthday"
+        type="date"
+        class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+      />
+      <p class="mt-1 text-xs text-gray-400">Ti faremo gli auguri con un piccolo regalo per il tuo compleanno. 🎉</p>
+    </div>
+
     <p id="profile-error" class="text-sm text-red-500 hidden"></p>
     <p id="profile-success" class="text-sm text-green-600 hidden">Profile saved.</p>
 
@@ -135,6 +146,7 @@ const {
   const fullNameInput = document.getElementById('full_name') as HTMLInputElement;
   const phoneInput = document.getElementById('phone_number_local') as HTMLInputElement;
   const cityInput = document.getElementById('city') as HTMLInputElement;
+  const birthdayInput = document.getElementById('birthday') as HTMLInputElement;
   const errorBox = document.getElementById('profile-error') as HTMLParagraphElement | null;
   const successBox = document.getElementById('profile-success') as HTMLParagraphElement | null;
   const submitBtn = document.getElementById('profile-submit') as HTMLButtonElement | null;
@@ -242,13 +254,14 @@ const {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name, phone, city')
+      .select('full_name, phone, city, birthday')
       .eq('id', user.id)
       .maybeSingle();
 
     if (profile) {
       if (profile.full_name) fullNameInput.value = profile.full_name;
       if (profile.city) cityInput.value = profile.city;
+      if ((profile as any).birthday) birthdayInput.value = String((profile as any).birthday).slice(0, 10);
       if (profile.phone) prefillPhone(profile.phone);
     }
   }
@@ -304,6 +317,7 @@ const {
       const dialCode = phoneCountryCode.value || '+39';
       const phone = `${dialCode} ${localPhone}`;
       const city = cityInput.value.trim();
+      const birthday = birthdayInput.value || null; // 'YYYY-MM-DD' or null (optional)
       const completed = !!(fullName && localPhone && city);
 
       // NOTE: `role` is intentionally NOT written here. It is assigned
@@ -317,6 +331,7 @@ const {
           full_name: fullName,
           phone,
           city,
+          birthday,
           onboarding_completed: completed,
         });
 

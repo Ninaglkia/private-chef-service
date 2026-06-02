@@ -120,6 +120,10 @@ function getHtmlTemplate(title: string, content: string): string {
         .label { font-weight: 600; color: #4b5563; }
         .value { color: #111827; text-align: right; }
         .btn { display: inline-block; background-color: #d97706; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 20px; }
+        .promo-box { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px dashed #d97706; border-radius: 8px; padding: 20px; margin: 24px 0; text-align: center; }
+        .promo-label { font-size: 13px; color: #92400e; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px; }
+        .promo-code { display: inline-block; font-size: 22px; font-weight: 800; letter-spacing: 2px; color: #111827; background: #ffffff; border: 1px solid #f59e0b; border-radius: 6px; padding: 8px 16px; margin: 4px 0; }
+        .promo-note { font-size: 12px; color: #92400e; margin: 8px 0 0; }
       </style>
     </head>
     <body>
@@ -252,11 +256,17 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
   const name = user.full_name?.trim() || user.email.split('@')[0];
 
   const customerHtml = getHtmlTemplate(
-    'Welcome to Private Chef',
+    "Welcome to Nino's Private Chef",
     `
-      <h2>Benvenuto, ${escapeHtml(name)}!</h2>
-      <p>Grazie per esserti registrato a <strong>Private Chef</strong>.</p>
+      <h2>Benvenuto su Nino's Private Chef, ${escapeHtml(name)}!</h2>
+      <p>Grazie per esserti registrato a <strong>Nino's Private Chef</strong>.</p>
       <p>Da oggi puoi prenotare Chef Nino a domicilio: colazione, pranzo e cena preparati freschi a casa tua, o come preferisci.</p>
+
+      <div class="promo-box">
+        <p class="promo-label">Il tuo regalo di benvenuto</p>
+        <span class="promo-code">BENVENUTO10</span>
+        <p class="promo-note">10% di sconto sulla tua prima prenotazione</p>
+      </div>
 
       <div class="details-box">
         <p style="margin:0;"><strong>Cosa puoi fare ora:</strong></p>
@@ -270,6 +280,7 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
       <p style="text-align:center;">
         <a class="btn" href="https://ninos-privatechefs.com/#booking">Prenota ora</a>
       </p>
+      <p style="font-size:13px;color:#6b7280;">Per usare il codice, indicalo quando richiedi la prenotazione: applicheremo il 10% sul tuo Payment Link.</p>
 
       <p>Se hai domande, rispondi pure a questa email — il nostro team è a tua disposizione.</p>
       <p>Buon appetito,<br>Chef Nino &amp; il Team</p>
@@ -288,9 +299,44 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
   );
 
   await Promise.all([
-    sendEmail({ to: user.email, subject: 'Benvenuto su Private Chef', html: customerHtml, from: FROM_EMAIL_CUSTOMER }),
+    sendEmail({ to: user.email, subject: "Benvenuto su Nino's Private Chef — 10% sulla prima prenotazione", html: customerHtml, from: FROM_EMAIL_CUSTOMER }),
     sendEmail({ to: ORGANIZER_EMAIL, subject: `[NEW USER] ${user.email}`, html: organizerHtml, from: FROM_EMAIL_SYSTEM }),
   ]);
+}
+
+// 3b. BIRTHDAY EMAIL (sent by the daily /api/cron/birthday job to users whose
+// date of birth is today). Carries a 10% discount code, honored manually on the
+// Payment Link — same mechanism as the welcome code.
+export async function sendBirthdayEmail(user: { email: string; full_name?: string | null }) {
+  const name = user.full_name?.trim() || user.email.split('@')[0];
+
+  const customerHtml = getHtmlTemplate(
+    'Buon compleanno!',
+    `
+      <h2>Buon compleanno, ${escapeHtml(name)}! 🎉</h2>
+      <p>Tutto il team di <strong>Nino's Private Chef</strong> ti augura una giornata speciale.</p>
+      <p>Per festeggiare, Chef Nino ha pensato a un regalo per te:</p>
+
+      <div class="promo-box">
+        <p class="promo-label">Il tuo regalo di compleanno</p>
+        <span class="promo-code">COMPLEANNO10</span>
+        <p class="promo-note">10% di sconto sulla tua prossima prenotazione</p>
+      </div>
+
+      <p style="text-align:center;">
+        <a class="btn" href="https://ninos-privatechefs.com/#booking">Festeggia con Chef Nino</a>
+      </p>
+      <p style="font-size:13px;color:#6b7280;">Indica il codice quando richiedi la prenotazione: applicheremo il 10% sul tuo Payment Link.</p>
+      <p>Buon appetito e tanti auguri,<br>Chef Nino &amp; il Team</p>
+    `
+  );
+
+  await sendEmail({
+    to: user.email,
+    subject: `Buon compleanno ${name}! 🎉 Un regalo da Nino's Private Chef`,
+    html: customerHtml,
+    from: FROM_EMAIL_CUSTOMER,
+  });
 }
 
 // 4. PAYMENT LINK (pay-later flow: owner sends a Stripe payment link to the customer)
