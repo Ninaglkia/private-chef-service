@@ -40,9 +40,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (refresh) {
       const { data } = await supabase.auth.refreshSession({ refresh_token: refresh });
       if (data?.session && data.user) {
+        // NOT httpOnly: the client SDK must be able to keep these cookies in
+        // sync with its rotating localStorage session via document.cookie. An
+        // httpOnly cookie set here would shadow and permanently block those
+        // client-side updates → stale cookie → the post-login redirect loop.
+        // (The tokens already live in JS-readable localStorage, so httpOnly
+        // would add no real protection while breaking the sync.)
         const cookieOptions = {
           path: '/',
-          httpOnly: true,
+          httpOnly: false,
           secure: context.url.protocol === 'https:',
           sameSite: 'lax' as const,
           maxAge: 60 * 60 * 24 * 7, // 7 days

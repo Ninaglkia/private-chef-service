@@ -109,7 +109,7 @@ import Header from '../components/Header.astro';
 </Layout>
 
 <script>
-  import { supabase } from '../lib/supabase';
+  import { supabase, writeSessionCookies, clearSessionCookies } from '../lib/supabase';
   const googleBtn = document.getElementById('google-login');
   const loginForm = document.getElementById('login-form') as HTMLFormElement;
   const emailInput = document.getElementById('email') as HTMLInputElement;
@@ -125,14 +125,30 @@ import Header from '../components/Header.astro';
   }
 
   async function handlePostAuthRedirect() {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user || !session) return;
+    let { data: { session } } = await supabase.auth.getSession();
+    if (!session) return; // not logged in → stay on the login form
 
-    // Set cookies for server-side auth (valid for 7 days)
-    const maxAge = 60 * 60 * 24 * 7; 
-    document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`;
-    document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`;
+    // Ensure the token handed to the server is currently valid. If it is
+    // missing/expiring, refresh it. If the refresh FAILS (the refresh token was
+    // rotated/revoked), the localStorage session is dead: purge it and stay here
+    // instead of writing a dead cookie and redirecting — that dead-cookie rewrite
+    // was the engine of the /dashboard <-> /login infinite loop.
+    const expiresSoon = !session.expires_at || session.expires_at * 1000 < Date.now() + 120000;
+    if (expiresSoon) {
+      const r = await supabase.auth.refreshSession();
+      if (r.data.session) {
+        session = r.data.session;
+      } else {
+        await supabase.auth.signOut({ scope: 'local' });
+        clearSessionCookies();
+        return;
+      }
+    }
+    const user = session.user;
+    if (!user) return;
+
+    // Mirror the (validated) session into the server-readable cookies.
+    writeSessionCookies(session);
 
     const { data: profile } = await supabase
       .from('profiles')

@@ -47,7 +47,7 @@ import Header from '../../components/Header.astro';
 </Layout>
 
 <script>
-  import { supabase } from '../../lib/supabase';
+  import { supabase, writeSessionCookies } from '../../lib/supabase';
 
   const loadingBox = document.getElementById('callback-loading');
   const errorBox = document.getElementById('callback-error');
@@ -118,11 +118,8 @@ import Header from '../../components/Header.astro';
       return;
     }
 
-    // 4. Set cookies for server-side auth (valid for 7 days) —
-    // EXACTLY as login.astro's handlePostAuthRedirect does.
-    const maxAge = 60 * 60 * 24 * 7;
-    document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`;
-    document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`;
+    // 4. Mirror the session into the server-readable cookies (https-aware Secure flag).
+    writeSessionCookies(session);
 
     // 5. Onboarding gate — same logic as login.astro.
     const { data: profile } = await supabase

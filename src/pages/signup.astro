@@ -100,7 +100,7 @@ import Header from '../components/Header.astro';
 </Layout>
 
 <script>
-  import { supabase } from '../lib/supabase';
+  import { supabase, writeSessionCookies } from '../lib/supabase';
   const googleBtn = document.getElementById('google-signup');
   const signupForm = document.getElementById('signup-form') as HTMLFormElement;
   const emailInput = document.getElementById('email') as HTMLInputElement;
@@ -120,13 +120,9 @@ import Header from '../components/Header.astro';
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Set cookies for server-side auth (valid for 7 days) — same format as login.astro
+    // Mirror the session into the server-readable cookies (https-aware Secure flag).
     const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const maxAge = 60 * 60 * 24 * 7;
-      document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`;
-      document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; max-age=${maxAge}; SameSite=Lax; Secure`;
-    }
+    writeSessionCookies(session);
 
     const { data: profile } = await supabase
       .from('profiles')
