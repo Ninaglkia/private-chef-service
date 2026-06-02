@@ -4,8 +4,38 @@ import { PRODUCTS } from './pricing';
 
 const RESEND_API_KEY = import.meta.env.RESEND_API_KEY;
 const ORGANIZER_EMAIL = 'ninaglia089@gmail.com';
-const FROM_EMAIL_CUSTOMER = import.meta.env.EMAIL_FROM || 'info@ninos-privatechefs.com';
-const FROM_EMAIL_SYSTEM = import.meta.env.EMAIL_SYSTEM || 'sistema@ninos-privatechefs.com';
+
+// This app may ONLY send from its own verified domain. The EMAIL_FROM /
+// EMAIL_SYSTEM env vars have been copied from other projects before (e.g. a
+// "Chef Nino <chef@cleanhomeapp.com>" value leaked in from the CleanHome app and
+// every email went out from the wrong brand). enforceSenderDomain() guarantees
+// the sender is always @ninos-privatechefs.com regardless of a misconfigured env,
+// preserving any display name. Update SENDER_DOMAIN if the sending domain changes.
+const SENDER_DOMAIN = 'ninos-privatechefs.com';
+
+function enforceSenderDomain(rawFrom: string | undefined, fallbackLocalPart: string): string {
+  const fallback = `${fallbackLocalPart}@${SENDER_DOMAIN}`;
+  if (!rawFrom) return fallback;
+
+  // Split an optional "Display Name <addr>" wrapper from the bare address.
+  let displayName = '';
+  let addr = rawFrom.trim();
+  const angle = addr.match(/^(.*)<([^>]+)>\s*$/);
+  if (angle) {
+    displayName = angle[1].trim().replace(/^"|"$/g, '').trim();
+    addr = angle[2].trim();
+  }
+
+  const at = addr.match(/^([^@\s<>]+)@([^@\s<>]+)$/);
+  if (!at) return fallback;
+  const localPart = at[1];
+  const domain = at[2].toLowerCase();
+  const email = domain === SENDER_DOMAIN ? `${localPart}@${domain}` : fallback;
+  return displayName ? `${displayName} <${email}>` : email;
+}
+
+const FROM_EMAIL_CUSTOMER = enforceSenderDomain(import.meta.env.EMAIL_FROM, 'info');
+const FROM_EMAIL_SYSTEM = enforceSenderDomain(import.meta.env.EMAIL_SYSTEM, 'sistema');
 
 interface EmailData {
   to: string;
@@ -45,7 +75,8 @@ export async function sendEmail(data: EmailData): Promise<boolean> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: data.from || FROM_EMAIL_CUSTOMER,
+        // Always force the sender onto the verified domain, even for a per-call from.
+        from: enforceSenderDomain(data.from || FROM_EMAIL_CUSTOMER, 'info'),
         to: data.to,
         subject: data.subject,
         html: data.html,
