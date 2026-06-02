@@ -202,19 +202,32 @@ const fmtDate = (d?: string | null) =>
                               )}
                           </div>
                           <div class="flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto">
-                              <label class="text-xs font-medium text-gray-400">Amount (€)</label>
-                              <div class="flex items-center gap-2">
-                                  <span class="text-gray-500">€</span>
-                                  <input
-                                      type="number"
-                                      min="0"
-                                      step="1"
-                                      placeholder="Amount"
-                                      value={packageEuros(req.plan)}
-                                      class="send-link-amount w-28 border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                                      data-id={req.id}
-                                  />
+                              <div class="flex gap-2">
+                                  <div>
+                                      <label class="text-xs font-medium text-gray-400 block mb-1">Compenso (€)</label>
+                                      <input
+                                          type="number"
+                                          min="0"
+                                          step="1"
+                                          placeholder="Compenso"
+                                          value={packageEuros(req.plan)}
+                                          class="send-link-fee w-24 border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
+                                          data-id={req.id}
+                                      />
+                                  </div>
+                                  <div>
+                                      <label class="text-xs font-medium text-gray-400 block mb-1">Spesa stimata (€)</label>
+                                      <input
+                                          type="number"
+                                          min="0"
+                                          step="1"
+                                          placeholder="0"
+                                          class="send-link-grocery w-24 border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
+                                          data-id={req.id}
+                                      />
+                                  </div>
                               </div>
+                              <p class="text-xs text-gray-500 self-end">Totale: <span class="send-link-total font-semibold text-gray-900" data-id={req.id}>€{packageEuros(req.plan) || '0'}</span></p>
                               <button
                                   class="send-link-btn px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold text-white bg-gradient-to-br from-gold-500 to-gold-700 rounded-lg hover:from-gold-600 hover:to-gold-800 disabled:opacity-50 transition-colors"
                                   data-booking-id={req.id}
@@ -432,24 +445,60 @@ const fmtDate = (d?: string | null) =>
       const id = btn.getAttribute('data-id');
       if (!bookingId) return;
 
-      const input = document.querySelector(
-        `.send-link-amount[data-id="${id}"]`
-      ) as HTMLInputElement | null;
-      const euros = input ? parseFloat(input.value) : NaN;
-      if (!Number.isFinite(euros) || euros <= 0) {
-        alert('Enter a valid amount in euros first.');
+      const feeInput = document.querySelector(`.send-link-fee[data-id="${id}"]`) as HTMLInputElement | null;
+      const groceryInput = document.querySelector(`.send-link-grocery[data-id="${id}"]`) as HTMLInputElement | null;
+
+      const feeEuros = feeInput ? parseFloat(feeInput.value) : NaN;
+      const groceryEuros = groceryInput && groceryInput.value !== '' ? parseFloat(groceryInput.value) : 0;
+
+      if (!Number.isFinite(feeEuros) || feeEuros < 0) {
+        alert('Inserisci un compenso valido in euro.');
         return;
       }
-      const amount_cents = Math.round(euros * 100);
-      if (!confirm(`Send a payment link for €${euros} to this customer?`)) return;
+      if (!Number.isFinite(groceryEuros) || groceryEuros < 0) {
+        alert('Spesa stimata non valida.');
+        return;
+      }
+      const totalEuros = feeEuros + groceryEuros;
+      if (totalEuros <= 0) {
+        alert('Il totale deve essere maggiore di zero.');
+        return;
+      }
+      const chef_fee_cents = Math.round(feeEuros * 100);
+      const grocery_estimate_cents = Math.round(groceryEuros * 100);
+
+      const msg = groceryEuros > 0
+        ? `Inviare un link di pagamento di €${totalEuros} (compenso €${feeEuros} + spesa stimata €${groceryEuros}) a questo cliente?`
+        : `Inviare un link di pagamento di €${totalEuros} a questo cliente?`;
+      if (!confirm(msg)) return;
 
       btn.disabled = true;
-      const ok = await postSendLink({ booking_id: bookingId, amount_cents });
+      const ok = await postSendLink({ booking_id: bookingId, chef_fee_cents, grocery_estimate_cents });
       if (ok) {
         window.location.reload();
       } else {
         btn.disabled = false;
       }
+    }
+  });
+
+  // Live total = compenso + spesa stimata, per request row.
+  function updateLinkTotal(id: string | null) {
+    if (!id) return;
+    const feeInput = document.querySelector(`.send-link-fee[data-id="${id}"]`) as HTMLInputElement | null;
+    const groceryInput = document.querySelector(`.send-link-grocery[data-id="${id}"]`) as HTMLInputElement | null;
+    const totalEl = document.querySelector(`.send-link-total[data-id="${id}"]`) as HTMLElement | null;
+    if (!totalEl) return;
+    const fee = feeInput && feeInput.value !== '' ? parseFloat(feeInput.value) : 0;
+    const grocery = groceryInput && groceryInput.value !== '' ? parseFloat(groceryInput.value) : 0;
+    const total = (Number.isFinite(fee) ? fee : 0) + (Number.isFinite(grocery) ? grocery : 0);
+    totalEl.textContent = `€${total}`;
+  }
+
+  document.addEventListener('input', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.matches('.send-link-fee') || target.matches('.send-link-grocery')) {
+      updateLinkTotal(target.getAttribute('data-id'));
     }
   });
 

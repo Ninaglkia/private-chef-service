@@ -370,37 +370,44 @@ export async function sendBirthdayEmail(user: { email: string; full_name?: strin
 
 // 4. PAYMENT LINK (pay-later flow: owner sends a Stripe payment link to the customer)
 export async function sendPaymentLinkEmail(booking: any, paymentUrl: string): Promise<void> {
-  const { customer_name, customer_email, total_price, plan } = booking;
-  const formattedPrice =
-    total_price === null || total_price === undefined
-      ? 'To be confirmed'
-      : new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(total_price / 100);
+  const { customer_name, customer_email, total_price, chef_payout, grocery_budget, plan } = booking;
+  const fmt = (c: number | null | undefined) =>
+    c === null || c === undefined
+      ? 'Da confermare'
+      : new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(c / 100);
   const planName = PRODUCTS[plan as keyof typeof PRODUCTS]?.name ?? plan;
+  const hasBreakdown = typeof chef_payout === 'number' && typeof grocery_budget === 'number' && grocery_budget > 0;
+
+  const breakdownRows = hasBreakdown
+    ? `
+        <div class="details-row"><span class="label">Compenso chef:</span> <span class="value">${escapeHtml(fmt(chef_payout))}</span></div>
+        <div class="details-row"><span class="label">Spesa (stima):</span> <span class="value">${escapeHtml(fmt(grocery_budget))}</span></div>`
+    : '';
 
   const customerHtml = getHtmlTemplate(
-    'Your Private Chef payment link',
+    'Il tuo link di pagamento',
     `
-      <h2>Your payment link is ready</h2>
-      <p>Dear ${escapeHtml(customer_name)},</p>
-      <p>Thank you for planning your menu with Chef Nino. Your Private Chef service is ready to be confirmed — please complete your payment using the secure link below.</p>
+      <h2>Il tuo link di pagamento è pronto</h2>
+      <p>Gentile ${escapeHtml(customer_name)},</p>
+      <p>Grazie per aver pianificato il menù con Chef Nino. Il tuo servizio è pronto per essere confermato: completa il pagamento dal link sicuro qui sotto.</p>
 
       <div class="details-box">
-        <div class="details-row"><span class="label">Package:</span> <span class="value">${escapeHtml(planName)}</span></div>
-        <div class="details-row"><span class="label">Amount Due:</span> <span class="value">${escapeHtml(formattedPrice)}</span></div>
+        <div class="details-row"><span class="label">Pacchetto:</span> <span class="value">${escapeHtml(planName)}</span></div>${breakdownRows}
+        <div class="details-row"><span class="label">Totale da pagare:</span> <span class="value">${escapeHtml(fmt(total_price))}</span></div>
       </div>
 
-      <p style="text-align:center;">
-        <a class="btn" href="${escapeHtml(paymentUrl)}">Pay now</a>
-      </p>
+      <div class="btn-wrap"><a class="btn" href="${escapeHtml(paymentUrl)}">Paga ora</a></div>
 
-      <p><strong>Please note:</strong> groceries are billed separately, at cost, and are not included in the amount above.</p>
-      <p>If the button does not work, copy and paste this link into your browser:<br><a href="${escapeHtml(paymentUrl)}">${escapeHtml(paymentUrl)}</a></p>
+      ${hasBreakdown
+        ? `<p class="fine"><strong>Nota sulla spesa:</strong> l'importo include una <strong>stima della spesa</strong>. Dopo il servizio conguagliamo sugli scontrini reali: se la spesa effettiva è inferiore, ti rimborsiamo la differenza.</p>`
+        : `<p class="fine"><strong>Nota:</strong> la spesa è fatturata a parte, al costo, e non è inclusa nell'importo qui sopra.</p>`}
+      <p class="fine">Se il pulsante non funziona, copia questo link nel browser:<br><a href="${escapeHtml(paymentUrl)}">${escapeHtml(paymentUrl)}</a></p>
     `
   );
 
   await sendEmail({
     to: customer_email,
-    subject: 'Your Private Chef payment link',
+    subject: "Il tuo link di pagamento — Nino's Private Chef",
     html: customerHtml,
     from: FROM_EMAIL_CUSTOMER,
   });

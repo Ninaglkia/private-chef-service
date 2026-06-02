@@ -56,13 +56,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const { booking_id } = data as { booking_id?: string };
-    const amountCents = Number.parseInt(String(data.amount_cents), 10);
+
+    // Payment model: chef fee + estimated groceries, charged together upfront so
+    // Nino never fronts cash. Groceries are reconciled later against receipts.
+    // Backward-compatible: a legacy single `amount_cents` is treated as the chef
+    // fee with no grocery estimate.
+    const chefFeeCents = Number.parseInt(String(data.chef_fee_cents ?? data.amount_cents ?? 'NaN'), 10);
+    const groceryEstimateCents = Number.parseInt(String(data.grocery_estimate_cents ?? '0'), 10);
 
     if (!booking_id) {
       return json({ error: 'Missing booking_id' }, 400);
     }
-    if (!Number.isInteger(amountCents) || amountCents <= 0) {
-      return json({ error: 'Invalid amount_cents' }, 400);
+    if (!Number.isInteger(chefFeeCents) || chefFeeCents < 0) {
+      return json({ error: 'Invalid chef_fee_cents' }, 400);
+    }
+    if (!Number.isInteger(groceryEstimateCents) || groceryEstimateCents < 0) {
+      return json({ error: 'Invalid grocery_estimate_cents' }, 400);
+    }
+    const amountCents = chefFeeCents + groceryEstimateCents;
+    if (amountCents <= 0) {
+      return json({ error: 'Total amount must be greater than zero' }, 400);
     }
 
     // --- Look up the booking (service-role read) ---
@@ -119,6 +132,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .from('bookings')
       .update({
         total_price: amountCents,
+        chef_payout: chefFeeCents,
+        grocery_budget: groceryEstimateCents,
         payment_link_url: link.url,
         payment_link_id: link.id,
         link_sent_at: linkSentAt,
@@ -134,7 +149,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     let emailed = false;
     try {
       await sendPaymentLinkEmail(
-        { ...booking, total_price: amountCents, link_sent_at: linkSentAt },
+        {
+          ...booking,
+          total_price: amountCents,
+          chef_payout: chefFeeCents,
+          grocery_budget: groceryEstimateCents,
+          link_sent_at: linkSentAt,
+        },
         link.url
       );
       emailed = true;
