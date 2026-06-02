@@ -3,7 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // PKCE is the default in supabase-js v2, but pin it explicitly so the
+    // ?code=... returned to /auth/callback can be exchanged for a session.
+    flowType: 'pkce',
+    detectSessionInUrl: true,
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});
 
 export type Booking = {
   id: string;

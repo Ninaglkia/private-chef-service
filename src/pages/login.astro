@@ -79,6 +79,25 @@ import Header from '../components/Header.astro';
           <p id="login-error" class="mt-2 text-sm text-red-500 hidden"></p>
         </form>
 
+        <div class="mt-6 flex items-center gap-3">
+          <span class="h-px flex-1 bg-gray-200"></span>
+          <span class="text-xs font-medium text-gray-400">Or continue with</span>
+          <span class="h-px flex-1 bg-gray-200"></span>
+        </div>
+
+        <button
+          id="google-login"
+          type="button"
+          class="mt-4 w-full inline-flex items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 active:scale-[0.99] transition-all duration-200"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
+            <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z" />
+            <path fill="#EA4335" d="M12 4.74c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.19 14.97 0 12 0A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 4.74 12 4.74z" />
+          </svg>
+          <span>Continue with Google</span>
+        </button>
 
         <p class="mt-6 text-center text-xs text-gray-500">
           Don't have an account?
@@ -142,30 +161,38 @@ import Header from '../components/Header.astro';
   }
 
   googleBtn?.addEventListener('click', async () => {
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+    if (googleBtn) {
+      (googleBtn as HTMLButtonElement).disabled = true;
+      googleBtn.classList.add('opacity-70', 'cursor-not-allowed');
+    }
+    if (errorBox) {
+      errorBox.classList.add('hidden');
+      errorBox.textContent = '';
     }
     const params = new URLSearchParams(window.location.search);
     const rt = params.get('returnTo');
+    // Always return to /auth/callback so the PKCE ?code= is exchanged for a
+    // session there. Returning to /login (old behavior) never finalized the
+    // code and hung. Pass returnTo through so the gate can honor it.
     const redirectUrl = rt
-      ? `${window.location.origin}/login?returnTo=${encodeURIComponent(rt)}`
-      : `${window.location.origin}/login`;
+      ? `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(rt)}`
+      : `${window.location.origin}/auth/callback`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
       },
     });
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
-    }
-    if (error && errorBox) {
-      errorBox.textContent = error.message;
-      errorBox.classList.remove('hidden');
-    } else {
-      handlePostAuthRedirect();
+    // On success the browser navigates to Google, so code below only runs on error.
+    if (error) {
+      if (googleBtn) {
+        (googleBtn as HTMLButtonElement).disabled = false;
+        googleBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+      }
+      if (errorBox) {
+        errorBox.textContent = error.message;
+        errorBox.classList.remove('hidden');
+      }
     }
   });
 
