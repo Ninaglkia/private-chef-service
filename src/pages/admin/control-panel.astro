@@ -2,79 +2,39 @@
 import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import { createClient } from '@supabase/supabase-js';
-import { PRODUCTS, formatPrice } from '../../lib/pricing';
 import { isOwnerEmail } from '../../lib/admin';
 
-// Server-side Route Protection
+// Minimal admin. Bookings & payments are NOT managed in the site (handled by Nino
+// directly in Stripe + WhatsApp). This panel only reviews "Work with us" job
+// applications, whose files live in the PRIVATE chef-applications bucket.
+export const prerender = false;
+
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY; // Access service role key
+const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Session resolved + refreshed in middleware → Astro.locals.user.
 const user = Astro.locals.user;
-
 if (!user) {
   return Astro.redirect(`/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
 }
 
-// Use Service Role for Admin Operations (Bypass RLS)
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  }
+  auth: { persistSession: false, autoRefreshToken: false },
 });
 
-// Check Role
+// Authorize: owner email OR profiles.role === 'admin'.
 const { data: profile } = await supabaseAdmin
   .from('profiles')
   .select('role')
   .eq('id', user.id)
   .single();
-
-// Owner override — email allowlist centralised in lib/admin.ts.
 const isOwner = isOwnerEmail(user.email);
-
 if ((!profile || profile.role !== 'admin') && !isOwner) {
   return Astro.redirect('/');
 }
 
-// FETCH DATA SERVER-SIDE (Using Admin Client to bypass RLS issues)
-// Show real bookings: paid (confirmed) + completed/cancelled/refunded. Newest first.
-const { data: bookingsData } = await supabaseAdmin
-  .from('bookings')
-  .select('*')
-  .in('status', ['confirmed', 'completed', 'cancelled', 'refunded'])
-  .order('created_at', { ascending: false });
-
-// Abroad & Bespoke leads
-const { data: quotesData } = await supabaseAdmin
-  .from('quote_requests')
-  .select('*')
-  .order('created_at', { ascending: false });
-
-// Pay-later REQUESTS: pending bookings awaiting a payment link. Newest first.
-const { data: requestsData } = await supabaseAdmin
-  .from('bookings')
-  .select('*')
-  .eq('status', 'pending')
-  .order('created_at', { ascending: false });
-
-// Chat conversations (one thread per client) — summary via security-definer RPC.
-const { data: conversationsData } = await supabaseAdmin.rpc('chat_conversations');
-
-// Blocked (unavailable) dates — managed from the Availability section below.
-const { data: blockedData } = await supabaseAdmin.from('blocked_dates').select('*').order('date');
-
-const bookings = bookingsData ?? [];
-const quotes = quotesData ?? [];
-const requests = requestsData ?? [];
-const conversations = conversationsData ?? [];
-const blocked = blockedData ?? [];
-
-// Recruitment applications ("Work with us"). Files live in the PRIVATE
-// 'chef-applications' bucket; mint short-lived signed URLs server-side so the
-// owner can open CVs/photos without the bucket ever being public.
+// Recruitment applications. Mint short-lived signed URLs for CV/photos so the
+// owner can open them without the storage bucket ever being public.
 const { data: recruitmentData } = await supabaseAdmin
   .from('chef_recruitment_applications')
   .select('*')
@@ -118,46 +78,6 @@ const RECRUIT_BADGE: Record<string, string> = {
   rejected: 'bg-gray-100 text-gray-700',
 };
 
-// --- Summary stats (computed from the already-fetched rows) ---
-const revenueCents = bookings
-  .filter((b: any) => b.status === 'confirmed' || b.status === 'completed')
-  .reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
-
-const stats = {
-  confirmed: bookings.filter((b: any) => b.status === 'confirmed').length,
-  completed: bookings.filter((b: any) => b.status === 'completed').length,
-  revenue: revenueCents,
-  quotesPending: quotes.filter((q: any) => q.status === 'pending').length,
-  quotesTotal: quotes.length,
-};
-
-const STATUS_BADGE: Record<string, string> = {
-  confirmed: 'bg-green-100 text-green-800',
-  completed: 'bg-blue-100 text-blue-800',
-  cancelled: 'bg-gray-100 text-gray-700',
-  refunded: 'bg-amber-100 text-amber-800',
-  pending: 'bg-yellow-100 text-yellow-800',
-};
-
-const QUOTE_BADGE: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  contacted: 'bg-indigo-100 text-indigo-800',
-  quoted: 'bg-purple-100 text-purple-800',
-  converted: 'bg-green-100 text-green-800',
-  declined: 'bg-gray-100 text-gray-700',
-};
-
-const QUOTE_NEXT_STATUSES = ['pending', 'contacted', 'quoted', 'converted', 'declined'];
-
-const planName = (plan: string) => PRODUCTS[plan as keyof typeof PRODUCTS]?.name ?? plan;
-
-// Prefill amount (in EUROS) for the payment-link input: package price for fixed
-// plans, empty for 'custom' (owner sets a bespoke amount).
-const packageEuros = (plan: string): string => {
-  const cents = PRODUCTS[plan as keyof typeof PRODUCTS]?.priceCents;
-  return typeof cents === 'number' ? String(cents / 100) : '';
-};
-
 const fmtDate = (d?: string | null) =>
   d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
@@ -171,833 +91,84 @@ const waDigits = (phone?: string | null): string | null => {
   else if (!p.startsWith('39')) p = '39' + p;
   return p;
 };
-
-// Pre-filled WhatsApp link so Nino sends the Stripe payment URL straight to the customer.
-const waPayLink = (req: any): string | null => {
-  const digits = waDigits(req.customer_phone);
-  if (!digits || !req.payment_link_url) return null;
-  const name = (req.customer_name || '').split(' ')[0];
-  const text = `Hi${name ? ' ' + name : ''}! This is Chef Nino. Here is the link to complete the payment for your service: ${req.payment_link_url}`;
-  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
-};
 ---
 
-<Layout title="Admin Control Panel - Private Chef" bodyClass="bg-gray-50 text-gray-900">
+<Layout title="Admin — Nino's Private Chef" bodyClass="bg-[#faf7f1] text-gray-900">
   <Header transparent={false} />
 
-  <main class="pt-28 pb-20">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+  <main class="max-w-4xl mx-auto px-5 pt-28 pb-20">
+    <div class="mb-8">
+      <p class="text-[11px] uppercase tracking-[0.25em] text-[#c6a15b]">Admin</p>
+      <h1 class="mt-1 font-serif text-4xl sm:text-5xl font-semibold text-gray-900">Control Panel</h1>
+    </div>
 
-      <!-- ============================ PAGE HEADER ============================ -->
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-gold-600">Private Chef</p>
-          <h1 class="mt-1 font-serif text-4xl sm:text-5xl font-semibold text-gray-900 leading-tight">Control Panel</h1>
-        </div>
-        <div class="flex items-center gap-2 text-sm text-gray-500">
-          <span class="hidden sm:inline">Signed in as</span>
-          <span class="font-medium text-gray-900 break-all">{user.email}</span>
-          {isOwner && (
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-100 text-gold-800">
-              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 1l2.6 5.3 5.9.9-4.2 4.1 1 5.8L10 14.8 4.7 17.2l1-5.8L1.5 7.2l5.9-.9z"/></svg>
-              Owner
-            </span>
-          )}
-        </div>
+    <!-- Bookings & payments are handled outside the site -->
+    <div class="mb-10 rounded-2xl border border-[#e6d4ac] bg-white p-5 sm:p-6">
+      <p class="text-sm text-gray-600 leading-relaxed">
+        <strong>Bookings &amp; payments are handled outside the site.</strong>
+        New requests reach you by <strong>email</strong> and <strong>WhatsApp</strong> — you create the
+        payment link in Stripe and send it on WhatsApp. This panel only reviews job applications.
+      </p>
+    </div>
+
+    <!-- ===================== RECRUITMENT (WORK WITH US) ===================== -->
+    <section class="space-y-4">
+      <div class="flex items-center gap-3">
+        <h2 class="font-serif text-2xl font-semibold text-gray-900">Recruitment</h2>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{applications.length}</span>
+        <span class="text-sm text-gray-400">Work-with-us applications</span>
       </div>
-
-      <!-- Install-as-app hint (hidden once installed / running standalone) -->
-      <button id="install-app-btn" type="button"
-        class="hidden self-start inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-800 bg-white border border-gray-200 shadow-soft hover:bg-gray-50 active:bg-gray-100 transition-colors">
-        <span aria-hidden="true">📲</span> Install the app on your phone
-      </button>
-      <script is:inline>
-        (function () {
-          var btn = document.getElementById('install-app-btn');
-          if (!btn) return;
-          var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-          if (standalone) return;
-          var deferred = null;
-          window.addEventListener('beforeinstallprompt', function (e) {
-            e.preventDefault();
-            deferred = e;
-            btn.classList.remove('hidden');
-          });
-          var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-          if (isIOS || /android/i.test(navigator.userAgent)) btn.classList.remove('hidden');
-          btn.addEventListener('click', function () {
-            if (deferred) {
-              deferred.prompt();
-              deferred.userChoice.finally(function () { deferred = null; btn.classList.add('hidden'); });
-            } else if (isIOS) {
-              alert('To install the app:\n1) Tap the Share button (the square with the ↑ arrow) at the bottom\n2) Choose “Add to Home Screen”.\nThen open “Chef Nino” from your Home Screen: you will stay signed in.');
-            } else {
-              alert('Open the browser menu (⋮) and choose “Install app” / “Add to Home Screen”.');
-            }
-          });
-        })();
-      </script>
-
-      <!-- ============================ STATS ============================ -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-          <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Confirmed</p>
-          <p class="mt-2 text-3xl font-semibold text-gray-900">{stats.confirmed}</p>
-          <p class="mt-1 text-xs text-gray-400">paid bookings</p>
-        </div>
-        <div class="bg-gradient-to-br from-gold-500 to-gold-700 rounded-2xl shadow-soft-lg p-5 text-white">
-          <p class="text-xs font-semibold uppercase tracking-wider text-white/80">Revenue</p>
-          <p class="mt-2 text-3xl font-semibold">{formatPrice(stats.revenue)}</p>
-          <p class="mt-1 text-xs text-white/70">confirmed + completed</p>
-        </div>
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-          <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Completed</p>
-          <p class="mt-2 text-3xl font-semibold text-gray-900">{stats.completed}</p>
-          <p class="mt-1 text-xs text-gray-400">services done</p>
-        </div>
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-          <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Quote leads</p>
-          <p class="mt-2 text-3xl font-semibold text-gray-900">{stats.quotesPending}<span class="text-base font-normal text-gray-400"> / {stats.quotesTotal}</span></p>
-          <p class="mt-1 text-xs text-gray-400">pending / total</p>
-        </div>
-      </div>
-
-      <!-- ============================ REQUESTS ============================ -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-3">
-          <h2 class="font-serif text-2xl font-semibold text-gray-900">Requests</h2>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gold-100 text-gold-800">{requests.length}</span>
-          <span class="text-sm text-gray-400">Awaiting payment link</span>
-        </div>
-        <div id="requests-list" class="space-y-4">
-          {(requests.length === 0) ? (
-              <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
-                <p class="text-sm text-gray-500">No new requests right now.</p>
-              </div>
-          ) : (
-              requests.map((req: any) => (
-                  <div class="bg-white border border-gray-100 rounded-2xl shadow-soft hover:shadow-soft-lg transition-shadow p-5 sm:p-6 flex flex-col gap-4">
-                      <div class="flex flex-wrap justify-between items-start gap-4">
-                          <div class="space-y-1.5">
-                              <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                                  <p class="font-semibold text-gray-900 text-lg">{req.customer_name || 'Guest'}</p>
-                                  {req.link_sent_at ? (
-                                      <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-blue-100 text-blue-800">Link sent — awaiting payment</span>
-                                  ) : (
-                                      <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-amber-100 text-amber-800">To contact</span>
-                                  )}
-                              </div>
-                              <p class="text-sm text-gray-600">
-                                  {req.customer_email}
-                                  {req.customer_phone && <span> • {req.customer_phone}</span>}
-                              </p>
-                              <p class="text-sm text-gray-700">
-                                  <span class="font-medium">{planName(req.plan)}</span>
-                                  {' • '}{req.num_guests} {req.num_guests === 1 ? 'guest' : 'guests'}
-                                  {req.city && <span> • {req.city}</span>}
-                                  {' • '}{fmtDate(req.start_date)}
-                              </p>
-                              {req.event_address && (
-                                  <p class="text-sm text-gray-700">📍 {req.event_address}</p>
-                              )}
-                              {req.dietary_preferences && (
-                                  <p class="text-sm text-gray-500 mt-1 italic">“{req.dietary_preferences}”</p>
-                              )}
-                              <p class="text-xs text-gray-400">Received {fmtDate(req.created_at)}</p>
-                              {req.link_sent_at && req.payment_link_url && (
-                                  <div class="space-y-2">
-                                      <p class="text-xs text-gray-500 break-all">
-                                          Link: <a href={req.payment_link_url} target="_blank" rel="noopener" class="text-gold-700 underline hover:text-gold-800">{req.payment_link_url}</a>
-                                      </p>
-                                      <div class="flex flex-wrap items-center gap-2">
-                                          {waPayLink(req) ? (
-                                              <a href={waPayLink(req)} target="_blank" rel="noopener"
-                                                 class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white bg-[#25D366] hover:bg-[#1ebe5a] active:bg-[#1aa550] transition-colors">
-                                                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.748-.748zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-                                                  Send via WhatsApp
-                                              </a>
-                                          ) : (
-                                              <span class="text-xs text-amber-600">Customer number missing — use “Copy link”.</span>
-                                          )}
-                                          <button type="button" data-link={req.payment_link_url}
-                                              class="copy-link-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-gray-700 border border-gray-300 hover:bg-gray-50 active:bg-gray-100 transition-colors">
-                                              Copy link
-                                          </button>
-                                      </div>
-                                  </div>
-                              )}
-                          </div>
-                          <div class="flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto">
-                              <div class="flex gap-2">
-                                  <div>
-                                      <label class="text-xs font-medium text-gray-400 block mb-1">Fee (€)</label>
-                                      <input
-                                          type="number"
-                                          min="0"
-                                          step="1"
-                                          placeholder="Fee"
-                                          value={packageEuros(req.plan)}
-                                          class="send-link-fee w-24 border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                                          data-id={req.id}
-                                      />
-                                  </div>
-                                  <div>
-                                      <label class="text-xs font-medium text-gray-400 block mb-1">Estimated groceries (€)</label>
-                                      <input
-                                          type="number"
-                                          min="0"
-                                          step="1"
-                                          placeholder="0"
-                                          class="send-link-grocery w-24 border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                                          data-id={req.id}
-                                      />
-                                  </div>
-                              </div>
-                              <p class="text-xs text-gray-500 self-end">Total: <span class="send-link-total font-semibold text-gray-900" data-id={req.id}>€{packageEuros(req.plan) || '0'}</span></p>
-                              <button
-                                  class="send-link-btn px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold text-white bg-gradient-to-br from-gold-500 to-gold-700 rounded-lg hover:from-gold-600 hover:to-gold-800 disabled:opacity-50 transition-colors"
-                                  data-booking-id={req.id}
-                                  data-id={req.id}
-                              >
-                                  {req.link_sent_at ? 'Resend / new link' : 'Send payment link'}
-                              </button>
-                          </div>
-                      </div>
-                  </div>
-              ))
-          )}
-        </div>
-      </section>
-
-      <!-- ===================== AVAILABILITY / BLOCKED DATES ===================== -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-3">
-          <h2 class="font-serif text-2xl font-semibold text-gray-900">Availability / Blocked dates</h2>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{blocked.length}</span>
-          <span class="text-sm text-gray-400">Dates you are unavailable</span>
-        </div>
-
-        <div class="bg-white border border-gray-100 rounded-2xl shadow-soft p-5 sm:p-6 space-y-5">
-          <!-- Block a new date -->
-          <div class="flex flex-col sm:flex-row sm:items-end gap-3">
-            <div class="flex flex-col">
-              <label for="block-date" class="text-xs font-medium text-gray-400 mb-1">Date</label>
-              <input
-                type="date"
-                id="block-date"
-                class="border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-              />
-            </div>
-            <div class="flex flex-col flex-1">
-              <label for="block-reason" class="text-xs font-medium text-gray-400 mb-1">Reason (optional)</label>
-              <input
-                type="text"
-                id="block-reason"
-                placeholder="Reason (optional)"
-                class="border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-              />
-            </div>
-            <button
-              id="block-date-btn"
-              type="button"
-              class="px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold text-white bg-gradient-to-br from-gold-500 to-gold-700 rounded-lg hover:from-gold-600 hover:to-gold-800 disabled:opacity-50 transition-colors"
-            >
-              Block date
-            </button>
+      <div class="space-y-4">
+        {(applications.length === 0) ? (
+          <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+            <p class="text-sm text-gray-500">No applications yet.</p>
           </div>
-
-          <!-- Currently blocked dates -->
-          <div class="space-y-2 pt-4 border-t border-gray-100">
-            {(blocked.length === 0) ? (
-                <p class="text-sm text-gray-500">No blocked dates. All dates are available.</p>
-            ) : (
-                blocked.map((b: any) => (
-                    <div class="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
-                        <div class="min-w-0">
-                            <p class="text-sm font-medium text-gray-900">{fmtDate(b.date)}</p>
-                            {b.reason && <p class="text-xs text-gray-500 truncate">{b.reason}</p>}
-                        </div>
-                        <button
-                            type="button"
-                            class="unblock-date-btn shrink-0 px-3 py-2 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 active:bg-red-200 transition-colors"
-                            data-date={b.date}
-                        >
-                            Unblock
-                        </button>
-                    </div>
-                ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================ MESSAGES ============================ -->
-      <section class="space-y-4">
-        <div class="flex items-center justify-between">
-          <h2 class="font-serif text-2xl font-semibold text-gray-900">Messages</h2>
-          <span class="text-xs text-gray-400">Chat with clients</span>
-        </div>
-        <div class="bg-white rounded-2xl shadow-soft border border-gray-100 divide-y divide-gray-100" id="chat-conversations">
-          {conversations.length === 0 ? (
-            <p class="px-5 py-6 text-sm text-gray-400">No conversations yet.</p>
-          ) : (
-            conversations.map((c: any) => (
-              <button
-                class="chat-open w-full text-left px-5 py-4 hover:bg-gray-50 transition-colors flex items-center gap-3"
-                data-client-id={c.client_id}
-                data-name={c.full_name || c.email || 'Client'}
-              >
-                <span class="flex items-center justify-center w-10 h-10 rounded-full bg-gold-100 text-gold-700 font-semibold shrink-0">
-                  {((c.full_name || c.email || 'C')[0] || 'C').toUpperCase()}
-                </span>
-                <span class="flex-1 min-w-0">
-                  <span class="flex items-center justify-between gap-2">
-                    <span class="font-medium text-gray-900 truncate">{c.full_name || c.email || 'Client'}</span>
-                    {c.unread > 0 && (
-                      <span class="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">{c.unread}</span>
-                    )}
-                  </span>
-                  <span class="block text-sm text-gray-500 truncate">{c.last_body}</span>
-                </span>
-              </button>
-            ))
-          )}
-        </div>
-      </section>
-
-      <!-- ============================ BOOKINGS ============================ -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-3">
-          <h2 class="font-serif text-2xl font-semibold text-gray-900">Bookings</h2>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{bookings.length}</span>
-        </div>
-        <div id="bookings-list" class="space-y-4">
-          {(bookings.length === 0) ? (
-              <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
-                <p class="text-sm text-gray-500">No paid bookings yet.</p>
-              </div>
-          ) : (
-              bookings.map((booking: any) => (
-                  <div class="bg-white border border-gray-100 rounded-2xl shadow-soft hover:shadow-soft-lg transition-shadow p-5 sm:p-6 flex flex-col gap-4">
-                      <div class="flex flex-wrap justify-between items-start gap-3">
-                          <div class="space-y-1.5">
-                              <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                                  <p class="font-semibold text-gray-900 text-lg">{booking.customer_name || 'Guest'}</p>
-                                  <span class={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${STATUS_BADGE[booking.status] ?? 'bg-gray-100 text-gray-700'}`}>
-                                      {booking.status}
-                                  </span>
-                              </div>
-                              <p class="text-sm text-gray-600">
-                                  {booking.customer_email}
-                                  {booking.customer_phone && <span> • {booking.customer_phone}</span>}
-                              </p>
-                              <p class="text-sm text-gray-700">
-                                  <span class="font-medium">{planName(booking.plan)}</span>
-                                  {' • '}{booking.num_guests} {booking.num_guests === 1 ? 'guest' : 'guests'}
-                                  {booking.city && <span> • {booking.city}</span>}
-                              </p>
-                              <p class="text-sm text-gray-500">
-                                  {fmtDate(booking.start_date)}
-                                  {booking.end_date && <span> → {fmtDate(booking.end_date)}</span>}
-                              </p>
-                              {booking.event_address && (
-                                  <p class="text-sm text-gray-700">📍 {booking.event_address}</p>
-                              )}
-                              {booking.stripe_payment_intent && (
-                                  <p class="text-xs text-gray-400 font-mono break-all">PI: {booking.stripe_payment_intent}</p>
-                              )}
-                          </div>
-                          <div class="text-right">
-                              <p class="text-2xl font-semibold text-gray-900">{formatPrice(booking.total_price ?? 0)}</p>
-                              <p class="text-xs text-gray-400">groceries billed separately</p>
-                          </div>
-                      </div>
-
-                      {(booking.status === 'confirmed' || booking.status === 'completed') && (
-                          <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-100">
-                              {(booking.status === 'confirmed') && (
-                                  <button
-                                      class="booking-action-btn px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                                      data-booking-id={booking.id}
-                                      data-action="complete"
-                                  >
-                                      Mark as completed
-                                  </button>
-                              )}
-                              <button
-                                  class="booking-action-btn px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50 transition-colors"
-                                  data-booking-id={booking.id}
-                                  data-action="refund"
-                              >
-                                  Cancel / Refund
-                              </button>
-                          </div>
-                      )}
+        ) : (
+          applications.map((a: any) => (
+            <div class="bg-white border border-gray-100 rounded-2xl shadow-soft p-5 sm:p-6 flex flex-col gap-3">
+              <div class="flex flex-wrap justify-between items-start gap-3">
+                <div class="space-y-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <p class="font-semibold text-gray-900 text-lg">{a.first_name} {a.last_name}</p>
+                    <span class={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${RECRUIT_BADGE[a.status] ?? 'bg-gray-100 text-gray-700'}`}>{a.status}</span>
+                    {a.role && <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-black text-white uppercase tracking-wide">{a.role}</span>}
                   </div>
-              ))
-          )}
-        </div>
-      </section>
-
-      <!-- ===================== QUOTE REQUESTS (LEADS) ===================== -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-3">
-          <h2 class="font-serif text-2xl font-semibold text-gray-900">Quote requests</h2>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{quotes.length}</span>
-          <span class="text-sm text-gray-400">Abroad &amp; Bespoke</span>
-        </div>
-        <div id="quotes-list" class="space-y-4">
-          {(quotes.length === 0) ? (
-              <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
-                <p class="text-sm text-gray-500">No quote requests yet.</p>
-              </div>
-          ) : (
-              quotes.map((q: any) => (
-                  <div class="bg-white border border-gray-100 rounded-2xl shadow-soft hover:shadow-soft-lg transition-shadow p-5 sm:p-6 flex flex-col gap-4">
-                      <div class="flex flex-wrap justify-between items-start gap-4">
-                          <div class="space-y-1.5">
-                              <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                                  <p class="font-semibold text-gray-900 text-lg">{q.customer_name || 'Lead'}</p>
-                                  <span class={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${QUOTE_BADGE[q.status] ?? 'bg-gray-100 text-gray-700'}`}>
-                                      {q.status}
-                                  </span>
-                              </div>
-                              <p class="text-sm text-gray-600">
-                                  {q.customer_email}
-                                  {q.customer_phone && <span> • {q.customer_phone}</span>}
-                              </p>
-                              <p class="text-sm text-gray-700">
-                                  {q.num_guests} {q.num_guests === 1 ? 'guest' : 'guests'}
-                                  {q.city && <span> • {q.city}</span>}
-                                  {' • '}{fmtDate(q.start_date)}
-                              </p>
-                              {q.notes && <p class="text-sm text-gray-500 mt-1 italic">“{q.notes}”</p>}
-                              <p class="text-xs text-gray-400">Received {fmtDate(q.created_at)}</p>
-                          </div>
-                          <div class="flex flex-col items-end gap-2">
-                              <label class="text-xs font-medium text-gray-400">Update status</label>
-                              <select
-                                  class="quote-status-select border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                                  data-quote-id={q.id}
-                                  data-current={q.status}
-                              >
-                                  {QUOTE_NEXT_STATUSES.map((s) => (
-                                      <option value={s} selected={s === q.status}>{s}</option>
-                                  ))}
-                              </select>
-                          </div>
-                      </div>
-                  </div>
-              ))
-          )}
-        </div>
-      </section>
-
-      <!-- ===================== RECRUITMENT (WORK WITH US) ===================== -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-3">
-          <h2 class="font-serif text-2xl font-semibold text-gray-900">Recruitment</h2>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{applications.length}</span>
-          <span class="text-sm text-gray-400">Work-with-us applications</span>
-        </div>
-        <div class="space-y-4">
-          {(applications.length === 0) ? (
-            <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
-              <p class="text-sm text-gray-500">No applications yet.</p>
-            </div>
-          ) : (
-            applications.map((a: any) => (
-              <div class="bg-white border border-gray-100 rounded-2xl shadow-soft p-5 sm:p-6 flex flex-col gap-3">
-                <div class="flex flex-wrap justify-between items-start gap-3">
-                  <div class="space-y-1">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <p class="font-semibold text-gray-900 text-lg">{a.first_name} {a.last_name}</p>
-                      <span class={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${RECRUIT_BADGE[a.status] ?? 'bg-gray-100 text-gray-700'}`}>{a.status}</span>
-                      {a.role && <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-black text-white uppercase tracking-wide">{a.role}</span>}
-                    </div>
-                    <p class="text-sm text-gray-600">
-                      <a href={`mailto:${a.email}`} class="underline">{a.email}</a>
-                      {a.phone && <span> • {a.phone}</span>}
-                    </p>
-                    <p class="text-sm text-gray-700">
-                      {a.city}
-                      {a.availability && <span> • {a.availability}</span>}
-                      {' • '}Received {fmtDate(a.created_at)}
-                    </p>
-                    {a.tax_id && <p class="text-xs text-gray-400">Tax code: {a.tax_id}</p>}
-                  </div>
-                  <div class="flex flex-wrap gap-2">
-                    {a.cvSigned && (
-                      <a href={a.cvSigned} target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800">
-                        View CV
-                      </a>
-                    )}
-                    {a.phone && (
-                      <a href={`https://wa.me/${waDigits(a.phone)}`} target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50">
-                        WhatsApp
-                      </a>
-                    )}
-                  </div>
+                  <p class="text-sm text-gray-600">
+                    <a href={`mailto:${a.email}`} class="underline">{a.email}</a>
+                    {a.phone && <span> • {a.phone}</span>}
+                  </p>
+                  <p class="text-sm text-gray-700">
+                    {a.city}
+                    {a.availability && <span> • {a.availability}</span>}
+                    {' • '}Received {fmtDate(a.created_at)}
+                  </p>
+                  {a.tax_id && <p class="text-xs text-gray-400">Tax code: {a.tax_id}</p>}
                 </div>
-                {a.bio && <p class="text-sm text-gray-600 italic border-l-2 border-gray-200 pl-3">“{a.bio}”</p>}
-                {a.photosSigned && a.photosSigned.length > 0 && (
-                  <div class="flex flex-wrap gap-2 pt-1">
-                    {a.photosSigned.map((url: string, i: number) => (
-                      <a href={url} target="_blank" rel="noopener" class="text-xs underline text-gray-500 hover:text-gray-800">Attachment {i + 1}</a>
-                    ))}
-                  </div>
-                )}
+                <div class="flex flex-wrap gap-2">
+                  {a.cvSigned && (
+                    <a href={a.cvSigned} target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800">
+                      View CV
+                    </a>
+                  )}
+                  {a.phone && (
+                    <a href={`https://wa.me/${waDigits(a.phone)}`} target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50">
+                      WhatsApp
+                    </a>
+                  )}
+                </div>
               </div>
-            ))
-          )}
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <!-- Chat thread overlay -->
-  <div id="thread-overlay" class="hidden fixed inset-0 z-[70] bg-black/40 flex items-end sm:items-center justify-center sm:p-4">
-    <div class="bg-white w-full sm:max-w-md h-[85vh] sm:h-[600px] rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-      <div class="bg-[#17130d] text-white px-4 py-3 flex items-center gap-3">
-        <span id="thread-avatar" class="flex items-center justify-center w-9 h-9 rounded-full bg-gold-600 font-semibold">C</span>
-        <p id="thread-name" class="flex-1 text-sm font-semibold truncate">Client</p>
-        <button id="thread-close" aria-label="Close" class="text-gray-300 hover:text-white text-2xl leading-none">×</button>
+              {a.bio && <p class="text-sm text-gray-600 italic border-l-2 border-gray-200 pl-3">“{a.bio}”</p>}
+              {a.photosSigned && a.photosSigned.length > 0 && (
+                <div class="flex flex-wrap gap-2 pt-1">
+                  {a.photosSigned.map((url: string, i: number) => (
+                    <a href={url} target="_blank" rel="noopener" class="text-xs underline text-gray-500 hover:text-gray-800">Attachment {i + 1}</a>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
-      <div id="thread-messages" class="flex-1 overflow-y-auto px-3 py-4 space-y-2 bg-[#faf7f1]"></div>
-      <form id="thread-form" class="border-t border-gray-100 p-2.5 flex items-end gap-2">
-        <textarea id="thread-input" rows="1" placeholder="Reply to the client…" class="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 max-h-28"></textarea>
-        <button type="submit" class="shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-gold-500 to-gold-700 text-white flex items-center justify-center">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
-        </button>
-      </form>
-    </div>
-  </div>
+    </section>
+  </main>
 </Layout>
-
-<script>
-  // Admin writes go through the secure server endpoint (service-role).
-  // The client anon key cannot write these rows (RLS), so we never use it here.
-  const ENDPOINT = '/api/admin/update-booking';
-
-  async function post(body: Record<string, unknown>): Promise<boolean> {
-    try {
-      const res = await fetch(ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data?.error || `Request failed (${res.status})`);
-        return false;
-      }
-      return true;
-    } catch (err) {
-      alert('Network error. Please try again.');
-      return false;
-    }
-  }
-
-  // Pay-later: generate + email a Stripe payment link for a pending request.
-  async function postSendLink(body: Record<string, unknown>): Promise<boolean> {
-    try {
-      const res = await fetch('/api/admin/send-payment-link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data?.error || `Request failed (${res.status})`);
-        return false;
-      }
-      return true;
-    } catch (err) {
-      alert('Network error. Please try again.');
-      return false;
-    }
-  }
-
-  // Availability: block / unblock a date via the admin blocked-dates endpoint.
-  async function postBlocked(method: 'POST' | 'DELETE', body: Record<string, unknown>): Promise<boolean> {
-    try {
-      const res = await fetch('/api/admin/blocked-dates', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data?.error || `Request failed (${res.status})`);
-        return false;
-      }
-      return true;
-    } catch (err) {
-      alert('Network error. Please try again.');
-      return false;
-    }
-  }
-
-  document.addEventListener('click', async (e) => {
-    const target = e.target as HTMLElement;
-
-    if (target.matches('.booking-action-btn')) {
-      const btn = target as HTMLButtonElement;
-      const bookingId = btn.getAttribute('data-booking-id');
-      const action = btn.getAttribute('data-action');
-      if (!bookingId || !action) return;
-
-      const confirmMsg =
-        action === 'refund'
-          ? 'Cancel this booking and issue a Stripe refund?'
-          : 'Mark this booking as completed?';
-      if (!confirm(confirmMsg)) return;
-
-      btn.disabled = true;
-      const ok = await post({ type: 'booking', booking_id: bookingId, action });
-      if (ok) {
-        window.location.reload();
-      } else {
-        btn.disabled = false;
-      }
-    }
-
-    if (target.matches('.send-link-btn')) {
-      const btn = target as HTMLButtonElement;
-      const bookingId = btn.getAttribute('data-booking-id');
-      const id = btn.getAttribute('data-id');
-      if (!bookingId) return;
-
-      const feeInput = document.querySelector(`.send-link-fee[data-id="${id}"]`) as HTMLInputElement | null;
-      const groceryInput = document.querySelector(`.send-link-grocery[data-id="${id}"]`) as HTMLInputElement | null;
-
-      const feeEuros = feeInput ? parseFloat(feeInput.value) : NaN;
-      const groceryEuros = groceryInput && groceryInput.value !== '' ? parseFloat(groceryInput.value) : 0;
-
-      if (!Number.isFinite(feeEuros) || feeEuros < 0) {
-        alert('Please enter a valid fee in euros.');
-        return;
-      }
-      if (!Number.isFinite(groceryEuros) || groceryEuros < 0) {
-        alert('Invalid estimated groceries.');
-        return;
-      }
-      const totalEuros = feeEuros + groceryEuros;
-      if (totalEuros <= 0) {
-        alert('The total must be greater than zero.');
-        return;
-      }
-      const chef_fee_cents = Math.round(feeEuros * 100);
-      const grocery_estimate_cents = Math.round(groceryEuros * 100);
-
-      const msg = groceryEuros > 0
-        ? `Send a payment link of €${totalEuros} (fee €${feeEuros} + estimated groceries €${groceryEuros}) to this customer?`
-        : `Send a payment link of €${totalEuros} to this customer?`;
-      if (!confirm(msg)) return;
-
-      btn.disabled = true;
-      const ok = await postSendLink({ booking_id: bookingId, chef_fee_cents, grocery_estimate_cents });
-      if (ok) {
-        window.location.reload();
-      } else {
-        btn.disabled = false;
-      }
-    }
-
-    const copyBtn = target.closest('.copy-link-btn') as HTMLButtonElement | null;
-    if (copyBtn) {
-      const link = copyBtn.getAttribute('data-link');
-      if (link && navigator.clipboard) {
-        const original = copyBtn.textContent;
-        navigator.clipboard.writeText(link).then(() => {
-          copyBtn.textContent = 'Copied ✓';
-          setTimeout(() => { copyBtn.textContent = original; }, 1500);
-        }).catch(() => alert('Copy failed. Link: ' + link));
-      }
-    }
-
-    // Availability: block a new date.
-    if (target.closest('#block-date-btn')) {
-      const btn = target.closest('#block-date-btn') as HTMLButtonElement;
-      const dateInput = document.getElementById('block-date') as HTMLInputElement | null;
-      const reasonInput = document.getElementById('block-reason') as HTMLInputElement | null;
-      const date = dateInput?.value || '';
-      if (!date) {
-        alert('Please pick a date to block.');
-        return;
-      }
-      const reason = reasonInput?.value.trim() || '';
-
-      btn.disabled = true;
-      const ok = await postBlocked('POST', { date, reason });
-      if (ok) {
-        window.location.reload();
-      } else {
-        btn.disabled = false;
-      }
-    }
-
-    // Availability: unblock an existing date.
-    const unblockBtn = target.closest('.unblock-date-btn') as HTMLButtonElement | null;
-    if (unblockBtn) {
-      const date = unblockBtn.getAttribute('data-date');
-      if (!date) return;
-      if (!confirm('Make this date available again?')) return;
-
-      unblockBtn.disabled = true;
-      const ok = await postBlocked('DELETE', { date });
-      if (ok) {
-        window.location.reload();
-      } else {
-        unblockBtn.disabled = false;
-      }
-    }
-  });
-
-  // Live total = compenso + spesa stimata, per request row.
-  function updateLinkTotal(id: string | null) {
-    if (!id) return;
-    const feeInput = document.querySelector(`.send-link-fee[data-id="${id}"]`) as HTMLInputElement | null;
-    const groceryInput = document.querySelector(`.send-link-grocery[data-id="${id}"]`) as HTMLInputElement | null;
-    const totalEl = document.querySelector(`.send-link-total[data-id="${id}"]`) as HTMLElement | null;
-    if (!totalEl) return;
-    const fee = feeInput && feeInput.value !== '' ? parseFloat(feeInput.value) : 0;
-    const grocery = groceryInput && groceryInput.value !== '' ? parseFloat(groceryInput.value) : 0;
-    const total = (Number.isFinite(fee) ? fee : 0) + (Number.isFinite(grocery) ? grocery : 0);
-    totalEl.textContent = `€${total}`;
-  }
-
-  document.addEventListener('input', (e) => {
-    const target = e.target as HTMLElement;
-    if (target.matches('.send-link-fee') || target.matches('.send-link-grocery')) {
-      updateLinkTotal(target.getAttribute('data-id'));
-    }
-  });
-
-  document.addEventListener('change', async (e) => {
-    const target = e.target as HTMLElement;
-
-    if (target.matches('.quote-status-select')) {
-      const sel = target as HTMLSelectElement;
-      const quoteId = sel.getAttribute('data-quote-id');
-      const current = sel.getAttribute('data-current');
-      const status = sel.value;
-      if (!quoteId || status === current) return;
-
-      sel.disabled = true;
-      const ok = await post({ type: 'quote', quote_id: quoteId, status });
-      if (ok) {
-        window.location.reload();
-      } else {
-        sel.disabled = false;
-        if (current) sel.value = current;
-      }
-    }
-  });
-</script>
-
-<script>
-  // Owner-side chat: open a client's thread, reply, live updates. Uses the
-  // owner's session (RLS via is_owner_or_admin lets the owner read/write all).
-  import { supabase } from '../../lib/supabase';
-
-  const overlay = document.getElementById('thread-overlay');
-  const threadMsgs = document.getElementById('thread-messages');
-  const threadName = document.getElementById('thread-name');
-  const threadAvatar = document.getElementById('thread-avatar');
-  const threadForm = document.getElementById('thread-form') as HTMLFormElement | null;
-  const threadInput = document.getElementById('thread-input') as HTMLTextAreaElement | null;
-  const threadClose = document.getElementById('thread-close');
-
-  let currentClientId: string | null = null;
-  let channel: any = null;
-
-  function esc(s: string) {
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
-
-  function bubble(m: { sender: string; body: string; created_at?: string }) {
-    const mine = m.sender === 'owner';
-    const time = m.created_at
-      ? new Date(m.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-      : '';
-    return `
-      <div class="flex ${mine ? 'justify-end' : 'justify-start'}">
-        <div class="${mine ? 'bg-gold-600 text-white' : 'bg-white text-gray-800 border border-gray-200'} max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-sm">
-          <div>${esc(m.body)}</div>
-          <div class="${mine ? 'text-gold-100' : 'text-gray-400'} text-[10px] mt-1 text-right">${time}</div>
-        </div>
-      </div>`;
-  }
-
-  function append(m: any) {
-    if (!threadMsgs) return;
-    threadMsgs.insertAdjacentHTML('beforeend', bubble(m));
-    threadMsgs.scrollTop = threadMsgs.scrollHeight;
-  }
-
-  async function openThread(clientId: string, name: string) {
-    currentClientId = clientId;
-    if (threadName) threadName.textContent = name;
-    if (threadAvatar) threadAvatar.textContent = (name[0] || 'C').toUpperCase();
-    if (threadMsgs) threadMsgs.innerHTML = '';
-    overlay?.classList.remove('hidden');
-
-    const { data } = await supabase
-      .from('messages')
-      .select('sender, body, created_at')
-      .eq('client_id', clientId)
-      .order('created_at', { ascending: true });
-    (data || []).forEach(append);
-
-    // Mark the client's messages as read by the owner.
-    await supabase.from('messages').update({ read_by_owner: true })
-      .eq('client_id', clientId).eq('sender', 'client').eq('read_by_owner', false);
-
-    if (channel) supabase.removeChannel(channel);
-    channel = supabase
-      .channel(`owner-chat:${clientId}`)
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `client_id=eq.${clientId}` },
-        (payload: any) => append(payload.new)
-      )
-      .subscribe();
-  }
-
-  function closeThread() {
-    overlay?.classList.add('hidden');
-    if (channel) { supabase.removeChannel(channel); channel = null; }
-    currentClientId = null;
-  }
-
-  document.querySelectorAll('.chat-open').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const el = btn as HTMLElement;
-      const id = el.getAttribute('data-client-id');
-      const name = el.getAttribute('data-name') || 'Client';
-      if (id) openThread(id, name);
-    });
-  });
-  threadClose?.addEventListener('click', closeThread);
-  overlay?.addEventListener('click', (e) => { if (e.target === overlay) closeThread(); });
-
-  threadInput?.addEventListener('input', () => {
-    if (!threadInput) return;
-    threadInput.style.height = 'auto';
-    threadInput.style.height = Math.min(threadInput.scrollHeight, 112) + 'px';
-  });
-
-  threadForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!currentClientId || !threadInput) return;
-    const body = threadInput.value.trim();
-    if (!body) return;
-    threadInput.value = '';
-    threadInput.style.height = 'auto';
-    const { error } = await supabase.from('messages').insert({ client_id: currentClientId, sender: 'owner', body });
-    if (error) alert('Reply not sent, please try again.');
-    // On success the realtime INSERT handler appends it.
-  });
-</script>
