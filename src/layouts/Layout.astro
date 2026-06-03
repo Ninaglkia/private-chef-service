@@ -1,4 +1,6 @@
 ---
+import ChatWidget from '../components/ChatWidget.astro';
+
 interface Props {
 	title?: string;
 	description?: string;
@@ -101,6 +103,7 @@ const ogImage = new URL('/og-image.jpg', Astro.site ?? Astro.url).href;
 	</head>
 	<body class={`antialiased ${bodyClass}`}>
 		<slot />
+		<ChatWidget />
 		<script>
 			// Restore scroll position to top on reload for mobile devices
 			if (history.scrollRestoration) {

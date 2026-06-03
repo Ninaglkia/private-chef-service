@@ -60,9 +60,13 @@ const { data: requestsData } = await supabaseAdmin
   .eq('status', 'pending')
   .order('created_at', { ascending: false });
 
+// Chat conversations (one thread per client) — summary via security-definer RPC.
+const { data: conversationsData } = await supabaseAdmin.rpc('chat_conversations');
+
 const bookings = bookingsData ?? [];
 const quotes = quotesData ?? [];
 const requests = requestsData ?? [];
+const conversations = conversationsData ?? [];
 
 // --- Summary stats (computed from the already-fetched rows) ---
 const revenueCents = bookings
@@ -243,6 +247,40 @@ const fmtDate = (d?: string | null) =>
         </div>
       </section>
 
+      <!-- ============================ MESSAGES ============================ -->
+      <section class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="font-serif text-2xl font-semibold text-gray-900">Messaggi</h2>
+          <span class="text-xs text-gray-400">Chat con i clienti</span>
+        </div>
+        <div class="bg-white rounded-2xl shadow-soft border border-gray-100 divide-y divide-gray-100" id="chat-conversations">
+          {conversations.length === 0 ? (
+            <p class="px-5 py-6 text-sm text-gray-400">Nessuna conversazione ancora.</p>
+          ) : (
+            conversations.map((c: any) => (
+              <button
+                class="chat-open w-full text-left px-5 py-4 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                data-client-id={c.client_id}
+                data-name={c.full_name || c.email || 'Cliente'}
+              >
+                <span class="flex items-center justify-center w-10 h-10 rounded-full bg-gold-100 text-gold-700 font-semibold shrink-0">
+                  {((c.full_name || c.email || 'C')[0] || 'C').toUpperCase()}
+                </span>
+                <span class="flex-1 min-w-0">
+                  <span class="flex items-center justify-between gap-2">
+                    <span class="font-medium text-gray-900 truncate">{c.full_name || c.email || 'Cliente'}</span>
+                    {c.unread > 0 && (
+                      <span class="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">{c.unread}</span>
+                    )}
+                  </span>
+                  <span class="block text-sm text-gray-500 truncate">{c.last_body}</span>
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </section>
+
       <!-- ============================ BOOKINGS ============================ -->
       <section class="space-y-4">
         <div class="flex items-center gap-3">
@@ -369,6 +407,24 @@ const fmtDate = (d?: string | null) =>
       </section>
     </div>
   </main>
+
+  <!-- Chat thread overlay -->
+  <div id="thread-overlay" class="hidden fixed inset-0 z-[70] bg-black/40 flex items-end sm:items-center justify-center sm:p-4">
+    <div class="bg-white w-full sm:max-w-md h-[85vh] sm:h-[600px] rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div class="bg-[#17130d] text-white px-4 py-3 flex items-center gap-3">
+        <span id="thread-avatar" class="flex items-center justify-center w-9 h-9 rounded-full bg-gold-600 font-semibold">C</span>
+        <p id="thread-name" class="flex-1 text-sm font-semibold truncate">Cliente</p>
+        <button id="thread-close" aria-label="Chiudi" class="text-gray-300 hover:text-white text-2xl leading-none">×</button>
+      </div>
+      <div id="thread-messages" class="flex-1 overflow-y-auto px-3 py-4 space-y-2 bg-[#faf7f1]"></div>
+      <form id="thread-form" class="border-t border-gray-100 p-2.5 flex items-end gap-2">
+        <textarea id="thread-input" rows="1" placeholder="Rispondi al cliente…" class="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 max-h-28"></textarea>
+        <button type="submit" class="shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-gold-500 to-gold-700 text-white flex items-center justify-center">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+        </button>
+      </form>
+    </div>
+  </div>
 </Layout>
 
 <script>
@@ -521,5 +577,111 @@ const fmtDate = (d?: string | null) =>
         if (current) sel.value = current;
       }
     }
+  });
+</script>
+
+<script>
+  // Owner-side chat: open a client's thread, reply, live updates. Uses the
+  // owner's session (RLS via is_owner_or_admin lets the owner read/write all).
+  import { supabase } from '../../lib/supabase';
+
+  const overlay = document.getElementById('thread-overlay');
+  const threadMsgs = document.getElementById('thread-messages');
+  const threadName = document.getElementById('thread-name');
+  const threadAvatar = document.getElementById('thread-avatar');
+  const threadForm = document.getElementById('thread-form') as HTMLFormElement | null;
+  const threadInput = document.getElementById('thread-input') as HTMLTextAreaElement | null;
+  const threadClose = document.getElementById('thread-close');
+
+  let currentClientId: string | null = null;
+  let channel: any = null;
+
+  function esc(s: string) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function bubble(m: { sender: string; body: string; created_at?: string }) {
+    const mine = m.sender === 'owner';
+    const time = m.created_at
+      ? new Date(m.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+      : '';
+    return `
+      <div class="flex ${mine ? 'justify-end' : 'justify-start'}">
+        <div class="${mine ? 'bg-gold-600 text-white' : 'bg-white text-gray-800 border border-gray-200'} max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-sm">
+          <div>${esc(m.body)}</div>
+          <div class="${mine ? 'text-gold-100' : 'text-gray-400'} text-[10px] mt-1 text-right">${time}</div>
+        </div>
+      </div>`;
+  }
+
+  function append(m: any) {
+    if (!threadMsgs) return;
+    threadMsgs.insertAdjacentHTML('beforeend', bubble(m));
+    threadMsgs.scrollTop = threadMsgs.scrollHeight;
+  }
+
+  async function openThread(clientId: string, name: string) {
+    currentClientId = clientId;
+    if (threadName) threadName.textContent = name;
+    if (threadAvatar) threadAvatar.textContent = (name[0] || 'C').toUpperCase();
+    if (threadMsgs) threadMsgs.innerHTML = '';
+    overlay?.classList.remove('hidden');
+
+    const { data } = await supabase
+      .from('messages')
+      .select('sender, body, created_at')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: true });
+    (data || []).forEach(append);
+
+    // Mark the client's messages as read by the owner.
+    await supabase.from('messages').update({ read_by_owner: true })
+      .eq('client_id', clientId).eq('sender', 'client').eq('read_by_owner', false);
+
+    if (channel) supabase.removeChannel(channel);
+    channel = supabase
+      .channel(`owner-chat:${clientId}`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `client_id=eq.${clientId}` },
+        (payload: any) => append(payload.new)
+      )
+      .subscribe();
+  }
+
+  function closeThread() {
+    overlay?.classList.add('hidden');
+    if (channel) { supabase.removeChannel(channel); channel = null; }
+    currentClientId = null;
+  }
+
+  document.querySelectorAll('.chat-open').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const el = btn as HTMLElement;
+      const id = el.getAttribute('data-client-id');
+      const name = el.getAttribute('data-name') || 'Cliente';
+      if (id) openThread(id, name);
+    });
+  });
+  threadClose?.addEventListener('click', closeThread);
+  overlay?.addEventListener('click', (e) => { if (e.target === overlay) closeThread(); });
+
+  threadInput?.addEventListener('input', () => {
+    if (!threadInput) return;
+    threadInput.style.height = 'auto';
+    threadInput.style.height = Math.min(threadInput.scrollHeight, 112) + 'px';
+  });
+
+  threadForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentClientId || !threadInput) return;
+    const body = threadInput.value.trim();
+    if (!body) return;
+    threadInput.value = '';
+    threadInput.style.height = 'auto';
+    const { error } = await supabase.from('messages').insert({ client_id: currentClientId, sender: 'owner', body });
+    if (error) alert('Risposta non inviata, riprova.');
+    // On success the realtime INSERT handler appends it.
   });
 </script>

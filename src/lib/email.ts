@@ -368,6 +368,26 @@ export async function sendBirthdayEmail(user: { email: string; full_name?: strin
   });
 }
 
+// 3c. CHAT NOTIFICATION (owner alert when a client sends a chat message)
+export async function sendChatNotificationEmail(data: { clientName?: string | null; body: string }) {
+  const name = data.clientName?.trim() || 'Un cliente';
+  const html = getHtmlTemplate(
+    'Nuovo messaggio',
+    `
+      <h2>Nuovo messaggio in chat</h2>
+      <p><strong>${escapeHtml(name)}</strong> ti ha scritto:</p>
+      <div class="details-box"><p style="margin:0;">${escapeHtml(data.body)}</p></div>
+      <div class="btn-wrap"><a class="btn" href="https://ninos-privatechefs.com/admin/control-panel">Apri la chat</a></div>
+    `
+  );
+  await sendEmail({
+    to: ORGANIZER_EMAIL,
+    subject: `[CHAT] Nuovo messaggio da ${name}`,
+    html,
+    from: FROM_EMAIL_SYSTEM,
+  });
+}
+
 // 4. PAYMENT LINK (pay-later flow: owner sends a Stripe payment link to the customer)
 export async function sendPaymentLinkEmail(booking: any, paymentUrl: string): Promise<void> {
   const { customer_name, customer_email, total_price, chef_payout, grocery_budget, plan } = booking;

@@ -1,0 +1,190 @@
+---
+// Floating client chat widget (bottom-right), shown on every page via Layout.
+// Logged-in clients get a real-time two-way thread with Chef Nino; guests get a
+// prompt to log in plus a direct WhatsApp link.
+const WHATSAPP_NUMBER = '393285515590'; // Chef Nino — also reachable on WhatsApp
+---
+
+<div id="chat-widget" class="fixed bottom-5 right-5 z-[60] font-sans">
+  <!-- Launcher -->
+  <button
+    id="chat-launcher"
+    aria-label="Apri la chat"
+    class="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-xl hover:scale-105 active:scale-95 transition-transform"
+  >
+    <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.38 8.38 0 0 1 4 11.5a8.5 8.5 0 0 1 8.5-8.5 8.38 8.38 0 0 1 8.5 8.5Z" />
+    </svg>
+    <span id="chat-unread" class="hidden absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"></span>
+  </button>
+
+  <!-- Panel -->
+  <div
+    id="chat-panel"
+    class="hidden absolute bottom-16 right-0 w-[92vw] max-w-sm h-[70vh] max-h-[560px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden"
+  >
+    <div class="bg-[#17130d] text-white px-4 py-3 flex items-center gap-3">
+      <span class="flex items-center justify-center w-9 h-9 rounded-full bg-gold-600 text-white font-serif italic">N</span>
+      <div class="flex-1">
+        <p class="text-sm font-semibold leading-tight">Chef Nino</p>
+        <p class="text-[11px] text-gray-300 leading-tight">Di solito risponde in poche ore</p>
+      </div>
+      <button id="chat-close" aria-label="Chiudi" class="text-gray-300 hover:text-white text-xl leading-none">×</button>
+    </div>
+
+    <div id="chat-messages" class="flex-1 overflow-y-auto px-3 py-4 space-y-2 bg-[#faf7f1]"></div>
+
+    <!-- Guest state -->
+    <div id="chat-guest" class="hidden p-4 text-center border-t border-gray-100">
+      <p class="text-sm text-gray-600 mb-3">Accedi per scrivere a Chef Nino, oppure scrivici su WhatsApp.</p>
+      <a href="/login?returnTo=%2F" class="block w-full mb-2 rounded-lg bg-black text-white py-2.5 text-sm font-semibold">Accedi</a>
+      <a id="chat-wa" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener" class="block w-full rounded-lg border border-green-500 text-green-600 py-2.5 text-sm font-semibold">Scrivici su WhatsApp</a>
+    </div>
+
+    <!-- Composer -->
+    <form id="chat-form" class="hidden border-t border-gray-100 p-2.5 flex items-end gap-2">
+      <textarea
+        id="chat-input"
+        rows="1"
+        placeholder="Scrivi un messaggio…"
+        class="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 max-h-28"
+      ></textarea>
+      <button type="submit" class="shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-gold-500 to-gold-700 text-white flex items-center justify-center disabled:opacity-50">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  const launcher = document.getElementById('chat-launcher');
+  const panel = document.getElementById('chat-panel');
+  const closeBtn = document.getElementById('chat-close');
+  const list = document.getElementById('chat-messages');
+  const form = document.getElementById('chat-form') as HTMLFormElement | null;
+  const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
+  const guestBox = document.getElementById('chat-guest');
+  const unreadBadge = document.getElementById('chat-unread');
+
+  let clientId: string | null = null;
+  let loaded = false;
+  let open = false;
+
+  function esc(s: string) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function bubble(m: { sender: string; body: string; created_at?: string }) {
+    const mine = m.sender === 'client';
+    const time = m.created_at
+      ? new Date(m.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+      : '';
+    return `
+      <div class="flex ${mine ? 'justify-end' : 'justify-start'}">
+        <div class="${mine ? 'bg-gold-600 text-white' : 'bg-white text-gray-800 border border-gray-200'} max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-sm">
+          <div>${esc(m.body)}</div>
+          <div class="${mine ? 'text-gold-100' : 'text-gray-400'} text-[10px] mt-1 text-right">${time}</div>
+        </div>
+      </div>`;
+  }
+
+  function scrollDown() {
+    if (list) list.scrollTop = list.scrollHeight;
+  }
+
+  function append(m: any) {
+    if (!list) return;
+    list.insertAdjacentHTML('beforeend', bubble(m));
+    scrollDown();
+  }
+
+  async function loadThread() {
+    if (!clientId || !list) return;
+    const { data } = await supabase
+      .from('messages')
+      .select('sender, body, created_at')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: true });
+    list.innerHTML = '';
+    if (!data || data.length === 0) {
+      list.innerHTML = `<div class="text-center text-gray-400 text-sm py-6">Ciao! 👋 Scrivi a Chef Nino per qualsiasi domanda sulla tua prenotazione o sul menù.</div>`;
+    } else {
+      for (const m of data) append(m);
+    }
+    // Mark owner messages as read by the client.
+    await supabase.from('messages').update({ read_by_client: true })
+      .eq('client_id', clientId).eq('sender', 'owner').eq('read_by_client', false);
+    if (unreadBadge) unreadBadge.classList.add('hidden');
+  }
+
+  function subscribe() {
+    if (!clientId) return;
+    supabase
+      .channel(`chat:${clientId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `client_id=eq.${clientId}` },
+        (payload: any) => {
+          const m = payload.new;
+          append(m);
+          if (m.sender === 'owner' && !open && unreadBadge) {
+            unreadBadge.textContent = '1';
+            unreadBadge.classList.remove('hidden');
+          }
+        }
+      )
+      .subscribe();
+  }
+
+  async function init() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      guestBox?.classList.remove('hidden');
+      return;
+    }
+    clientId = user.id;
+    form?.classList.remove('hidden');
+    await loadThread();
+    subscribe();
+    loaded = true;
+  }
+
+  launcher?.addEventListener('click', async () => {
+    open = !open;
+    panel?.classList.toggle('hidden', !open);
+    if (open && !loaded) await init();
+    if (open) {
+      scrollDown();
+      if (unreadBadge) unreadBadge.classList.add('hidden');
+    }
+  });
+  closeBtn?.addEventListener('click', () => {
+    open = false;
+    panel?.classList.add('hidden');
+  });
+
+  input?.addEventListener('input', () => {
+    if (!input) return;
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 112) + 'px';
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!clientId || !input) return;
+    const body = input.value.trim();
+    if (!body) return;
+    input.value = '';
+    input.style.height = 'auto';
+    const { error } = await supabase.from('messages').insert({ client_id: clientId, sender: 'client', body });
+    if (error) {
+      append({ sender: 'client', body, created_at: new Date().toISOString() });
+      alert('Messaggio non inviato, riprova.');
+    }
+    // On success the realtime INSERT handler appends it.
+  });
+</script>
