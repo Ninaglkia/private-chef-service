@@ -202,92 +202,29 @@ import Header from '../components/Header.astro';
      }
   }
 
-  // --- AI Verification Logic ---
+  // --- File selection (lightweight; the server validates files on submit) ---
+  // NOTE: heavy in-browser AI document/image verification (TensorFlow.js +
+  // pdf.js, ~2.8MB) was removed — it bloated the page for a low-value check.
+  // Recruitment is low volume and reviewed by a human; files are validated
+  // server-side in /api/recruitment/submit (type/size, private bucket).
 
-  async function verifyCV(file: File) {
-      if (!file) return;
-      
-      cvStatus!.innerHTML = '<span class="text-blue-600 flex items-center gap-1"><svg class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Analysing document...</span>';
-      btnSubmit.disabled = true;
-
-      try {
-          const { verifyCVDocument } = await import('../lib/ai-verification');
-          const result = await verifyCVDocument(file);
-
-          if (result.valid) {
-              isCvValid = true;
-              cvStatus!.innerHTML = `<span class="text-green-600 flex items-center gap-1">
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 
-                  Valid document ${result.isAI ? '(Verified by AI)' : ''}
-              </span>`;
-          } else {
-              isCvValid = false;
-              cvInput.value = ''; // Clear input
-              cvStatus!.innerHTML = `<span class="text-red-600 flex items-center gap-1">
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                  ${result.reason} <button type="button" class="underline ml-1" onclick="alert('Thank you for your feedback. Our team will review the model.')">Report an error</button>
-              </span>`;
-          }
-      } catch (e) {
-          console.error(e);
-          // Fallback allow
-          isCvValid = true;
-          cvStatus!.innerHTML = '<span class="text-yellow-600">AI verification skipped (technical error).</span>';
-      } finally {
-          updateSubmitState();
-      }
+  function verifyCV(file: File) {
+      if (!file) { isCvValid = false; cvStatus!.innerHTML = ''; updateSubmitState(); return; }
+      isCvValid = true;
+      cvStatus!.innerHTML = `<span class="text-green-600 flex items-center gap-1"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Document attached</span>`;
+      updateSubmitState();
   }
 
-  async function verifyPhotos(files: FileList | null) {
+  function verifyPhotos(files: FileList | null) {
       if (!files || files.length === 0) {
           arePhotosValid = false; // Required for chef
+          photosStatus!.innerHTML = '';
           updateSubmitState();
           return;
       }
-
-      photosStatus!.innerHTML = '<span class="text-blue-600 flex items-center gap-1"><svg class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Analysing images...</span>';
-      btnSubmit.disabled = true;
-
-      try {
-          const { verifyChefImage } = await import('../lib/ai-verification');
-          
-          let allValid = true;
-          let errors: string[] = [];
-
-          for (let i = 0; i < files.length; i++) {
-              const file = files[i];
-              const result = await verifyChefImage(file);
-              if (!result.valid) {
-                  allValid = false;
-                  errors.push(`${file.name}: ${result.reason}`);
-              }
-          }
-
-          if (allValid) {
-              arePhotosValid = true;
-              photosStatus!.innerHTML = `<span class="text-green-600 flex items-center gap-1">
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 
-                  All images are relevant.
-              </span>`;
-          } else {
-              arePhotosValid = false;
-              photosInput.value = ''; // Clear all because we can't remove specific ones easily
-              photosStatus!.innerHTML = `<div class="text-red-600 text-sm">
-                  <p class="font-bold flex items-center gap-1"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Some images were rejected:</p>
-                  <ul class="list-disc pl-5 mt-1 text-xs text-gray-700">
-                      ${errors.map(e => `<li>${e}</li>`).join('')}
-                  </ul>
-                  <p class="mt-1">Please upload only photos of dishes or culinary preparations.</p>
-              </div>`;
-          }
-
-      } catch (e) {
-          console.error(e);
-          arePhotosValid = true;
-          photosStatus!.innerHTML = '<span class="text-yellow-600">AI verification skipped (technical error).</span>';
-      } finally {
-          updateSubmitState();
-      }
+      arePhotosValid = true;
+      photosStatus!.innerHTML = `<span class="text-green-600 flex items-center gap-1"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${files.length} photo(s) attached</span>`;
+      updateSubmitState();
   }
 
   // --- Event Listeners ---

@@ -322,7 +322,7 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
         </ul>
       </div>
 
-      ${emailButton('https://ninos-privatechefs.com/#booking', 'Book now')}
+      ${emailButton('https://ninos-privatechefs.com/richiesta', 'Book now')}
       <p style="font-size:13px;color:#6b7280;">To use the code, mention it when you submit your booking request: we will apply the 10% to your Payment Link.</p>
 
       <p>If you have any questions, feel free to reply to this email — our team is here to help.</p>
