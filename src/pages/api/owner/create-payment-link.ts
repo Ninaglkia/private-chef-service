@@ -94,6 +94,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       line_items: lineItems,
       metadata: { booking_id },
       payment_intent_data: { metadata: { booking_id } },
+      // Let customers enter the welcome code BENVENUTO10 at checkout. The promo
+      // code is restricted to first_time_transaction, so Stripe enforces "once
+      // per customer, first booking only" automatically — no manual discounting.
+      allow_promotion_codes: true,
       // Generate a Stripe invoice (with PDF) for every payment, so the day-after
       // thank-you email can attach it. NOTE: this is a Stripe invoice/receipt,
       // not an Italian SDI electronic invoice.
