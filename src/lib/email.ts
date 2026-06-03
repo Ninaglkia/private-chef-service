@@ -37,6 +37,10 @@ function enforceSenderDomain(rawFrom: string | undefined, fallbackLocalPart: str
 const FROM_EMAIL_CUSTOMER = enforceSenderDomain(import.meta.env.EMAIL_FROM, 'info');
 const FROM_EMAIL_SYSTEM = enforceSenderDomain(import.meta.env.EMAIL_SYSTEM, 'sistema');
 
+// Reusable Stripe "pay what you want" link for optional gratuity. Customers can
+// enter any amount. Shared in the booking confirmation (thank-you) email.
+const TIP_PAYMENT_LINK = 'https://buy.stripe.com/4gM6oH72G13X1WQ8DF9fW05';
+
 interface EmailData {
   to: string;
   subject: string;
@@ -264,6 +268,10 @@ export async function sendBookingConfirmationEmails(booking: any) {
 
       <p><strong>Please note:</strong> groceries are billed separately, at cost, and are not included in the amount above.</p>
       <p><strong>Next Steps:</strong> Chef Nino will contact you shortly to discuss menu preferences and dietary requirements.</p>
+
+      <hr style="border:none;border-top:1px solid #e7e0d4;margin:28px 0;" />
+      <p style="text-align:center;">Enjoyed the experience? You can leave Chef Nino a tip — any amount you wish. It's entirely optional and always appreciated.</p>
+      ${emailButton(TIP_PAYMENT_LINK, 'Leave a tip')}
     `
   );
 
