@@ -12,7 +12,6 @@ const EXPERIENCES = [
   { label: 'Event / party', img: '/images/experiences/event.jpg', kicker: 'With everyone', desc: 'A signature buffet for your guests' },
   { label: 'Seafood menu', img: '/images/experiences/seafood.jpg', kicker: 'From the sea', desc: 'Raw and cooked, perfectly fresh' },
   { label: 'Chef for several days', img: '/images/experiences/multiday.jpg', kicker: 'At your home', desc: 'A week of fine dining' },
-  { label: 'Something else', img: '', kicker: 'Bespoke', desc: 'Have something unique in mind?' },
 ];
 
 // NOTE: availability is intentionally NOT managed in the website. The guest only
@@ -37,7 +36,7 @@ const EXPERIENCES = [
         <span class="h-px w-8 bg-[#c6a15b]/60"></span>
       </div>
       <h1 class="font-serif text-5xl sm:text-6xl font-semibold leading-tight">Let's design your evening.</h1>
-      <p class="mt-4 text-gray-500 max-w-xl mx-auto">Choose your experience, tell us about it and Chef Nino will get back to you with a proposal and a price. No payment now.</p>
+      <p class="mt-4 text-gray-500 max-w-xl mx-auto">Tell Chef Nino about the evening you have in mind and he'll reply with a bespoke proposal and price. No payment now — no account needed.</p>
     </section>
 
     <!-- CHAPTER 01 — L'ESPERIENZA -->
@@ -53,31 +52,18 @@ const EXPERIENCES = [
       <div id="exp-track" class="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar px-[7vw] lg:px-[12vw]">
         {EXPERIENCES.map((ex, i) => (
           <article
-            class="exp-slide group relative snap-center shrink-0 min-w-[86vw] sm:min-w-[68vw] lg:min-w-[54vw] rounded-3xl overflow-hidden scale-[0.96] opacity-80 transition-[transform,opacity] duration-[600ms] ease-out cursor-pointer"
-            data-service={ex.label}
+            class="exp-slide group relative snap-center shrink-0 min-w-[86vw] sm:min-w-[68vw] lg:min-w-[54vw] rounded-3xl overflow-hidden scale-[0.96] opacity-80 transition-[transform,opacity] duration-[600ms] ease-out"
             data-index={i}
-            tabindex="0"
-            role="button"
-            aria-label={`Choose: ${ex.label}`}
             style="height:clamp(460px,74vh,660px)"
           >
-            {ex.img ? (
-              <img src={ex.img} alt={ex.label} loading={i === 0 ? 'eager' : 'lazy'} class="absolute inset-0 h-full w-full object-cover" />
-            ) : (
-              <span class="absolute inset-0 bg-[#17130d]"></span>
-            )}
+            <img src={ex.img} alt={ex.label} loading={i === 0 ? 'eager' : 'lazy'} class="absolute inset-0 h-full w-full object-cover" />
             <span class="absolute inset-0 bg-gradient-to-t from-[#17130d]/85 via-[#17130d]/25 to-transparent"></span>
             <span class="absolute inset-0 bg-[#cc6600]/10 mix-blend-multiply"></span>
-
-            <span class="exp-seal absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-[#c6a15b] text-[#17130d] text-xs font-semibold px-3 py-1 opacity-0 transition-opacity">✦ Chosen</span>
 
             <div class="absolute inset-x-0 bottom-0 p-6 sm:p-8">
               <p class="text-[11px] uppercase tracking-[0.2em] text-[#c6a15b] mb-1">{String(i + 1).padStart(2, '0')} · {ex.kicker}</p>
               <h3 class="exp-title font-serif text-4xl sm:text-5xl text-[#fdf8ef] leading-none">{ex.label}</h3>
               <p class="mt-2 font-serif italic text-lg text-[#fdf8ef]/80">{ex.desc}</p>
-              <button type="button" class="exp-choose mt-4 inline-flex items-center gap-2 rounded-full border border-[#c6a15b] text-[#fdf8ef] px-5 py-2.5 text-sm font-semibold hover:bg-[#c6a15b] hover:text-[#17130d] transition-colors" data-service={ex.label}>
-                Choose this evening
-              </button>
             </div>
           </article>
         ))}
@@ -95,8 +81,6 @@ const EXPERIENCES = [
     </section>
 
     <form id="request-form" novalidate>
-      <input type="hidden" id="service_type" name="service_type" />
-
       <!-- CHAPTER 02 — I DETTAGLI -->
       <div id="details" class="max-w-2xl mx-auto px-5 mt-16 scroll-mt-24">
         <div class="flex items-center gap-4 mb-8">
@@ -203,7 +187,7 @@ const EXPERIENCES = [
 
         <div class="mt-6">
           <label for="event_address" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Address</label>
-          <input id="event_address" name="event_address" type="text"
+          <input id="event_address" name="event_address" type="text" required
             class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" placeholder="Where should the event take place? Street and number" />
         </div>
       </div>
@@ -223,9 +207,9 @@ const EXPERIENCES = [
           <span class="h-px flex-1 bg-[#c6a15b]/25"></span>
         </div>
 
-        <textarea id="event_details" name="event_details" rows="5"
+        <textarea id="event_details" name="event_details" rows="5" required
           class="w-full rounded-3xl bg-white border border-[#c6a15b]/25 shadow-lg px-5 py-4 text-base focus:outline-none focus:ring-2 focus:ring-gold-500 placeholder:text-gray-400"
-          placeholder="Describe your evening… occasion, menu, allergies, budget. Chef Nino will reply with a proposal and a price."></textarea>
+          placeholder="Describe your evening… occasion, type of event, menu, allergies, budget. Chef Nino will reply with a proposal and a price."></textarea>
 
         <!-- honeypot -->
         <input type="text" name="company_website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
@@ -305,12 +289,10 @@ const EXPERIENCES = [
     window.addEventListener('resize', update);
   })();
 
-  // ===== SLIDESHOW =====
+  // ===== SLIDESHOW (visual gallery — inspiration only, no selection) =====
   (() => {
     const track = document.getElementById('exp-track');
     const slides = Array.from(document.querySelectorAll('.exp-slide')) as HTMLElement[];
-    const service = document.getElementById('service_type') as HTMLInputElement | null;
-    const echo = document.getElementById('exp-echo');
     const dotsWrap = document.getElementById('exp-dots');
     if (!track || !slides.length) return;
 
@@ -337,31 +319,6 @@ const EXPERIENCES = [
       });
     }, { root: track, threshold: 0.6 });
     slides.forEach((s) => io.observe(s));
-
-    function select(el: HTMLElement) {
-      const label = el.getAttribute('data-service') || '';
-      if (service) service.value = label;
-      slides.forEach((s) => {
-        s.classList.remove('is-selected', 'shadow-[inset_0_0_0_1px_rgba(198,161,91,.9)]', 'ring-1', 'ring-[#c6a15b]');
-        s.querySelector('.exp-seal')?.classList.remove('opacity-100');
-        s.querySelector('.exp-title')?.classList.remove('text-[#c6a15b]');
-      });
-      el.classList.add('is-selected', 'shadow-[inset_0_0_0_1px_rgba(198,161,91,.9)]', 'ring-1', 'ring-[#c6a15b]');
-      el.querySelector('.exp-seal')?.classList.add('opacity-100');
-      if (echo) echo.innerHTML = `You chose: <span class="text-[#17130d] font-semibold">${label}</span>`;
-
-      // Momentum: a deliberate choice flows the guest down to the details.
-      window.setTimeout(() => {
-        document.getElementById('details')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        if (label === 'Something else') document.getElementById('event_details')?.focus();
-      }, 360);
-    }
-
-    slides.forEach((s) => {
-      s.addEventListener('click', () => select(s));
-      s.addEventListener('keydown', (ev) => { if ((ev as KeyboardEvent).key === 'Enter') select(s); });
-    });
-    document.querySelectorAll('.exp-choose').forEach((b) => b.addEventListener('click', (ev) => { ev.stopPropagation(); select((b as HTMLElement).closest('.exp-slide') as HTMLElement); }));
 
     const step = () => (slides[0]?.getBoundingClientRect().width || 320) + 20;
     document.getElementById('exp-prev')?.addEventListener('click', () => track.scrollBy({ left: -step(), behavior: 'smooth' }));
@@ -561,16 +518,18 @@ const EXPERIENCES = [
       errorBox?.classList.add('hidden');
       const v = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value.trim() || '';
       const consent = (document.getElementById('consent') as HTMLInputElement | null)?.checked;
-      if (!v('service_type')) return showErr('Please choose an experience in the slideshow first.');
-      if (!v('customer_name') || !v('customer_email') || !v('customer_phone')) return showErr('Please fill in your name, email and phone.');
+      if (!v('customer_name')) return showErr('Please enter your full name.');
+      if (!v('customer_email')) return showErr('Please enter your email.');
+      if (!v('customer_phone')) return showErr('Please enter your phone number.');
       if (!v('num_guests')) return showErr('Please enter the number of guests.');
       if (!v('start_date')) return showErr('Please choose a date.');
       if (!v('city')) return showErr('Please enter the city.');
+      if (!v('event_address')) return showErr('Please enter the address of the event.');
+      if (!v('event_details')) return showErr('Please describe the evening you have in mind.');
       if (!consent) return showErr('Please tick the consent box to send.');
 
-      // Their idea (free text) + the chosen experience.
-      const idea = eventDetails?.value.trim() || '';
-      const details = (idea ? idea + '\n\n' : '') + ('Experience: ' + v('service_type'));
+      // Their idea (free text).
+      const details = eventDetails?.value.trim() || '';
       if (submitBtn) submitBtn.disabled = true;
       spinner?.classList.remove('hidden');
       try {
@@ -578,7 +537,7 @@ const EXPERIENCES = [
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             customer_name: v('customer_name'), customer_email: v('customer_email'), customer_phone: v('customer_phone'),
-            service_type: v('service_type'), num_guests: v('num_guests'), start_date: v('start_date'), end_date: v('end_date'), city: v('city'), event_address: v('event_address'),
+            num_guests: v('num_guests'), start_date: v('start_date'), end_date: v('end_date'), city: v('city'), event_address: v('event_address'),
             event_details: details, product: 'custom', marketing_consent: true,
             company_website: (document.querySelector('[name="company_website"]') as HTMLInputElement | null)?.value || '',
           }),
