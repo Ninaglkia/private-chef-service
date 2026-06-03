@@ -231,52 +231,25 @@ const cadenceFor = (days: number) =>
 
     <section id="pricing" class="py-16 md:py-32 bg-white">
       <div class="container mx-auto px-4 md:px-6">
-        <div class="text-center mb-12 md:mb-20">
-          <h2 class="text-3xl md:text-5xl font-semibold text-gray-900 mb-4 md:mb-6">
-            Pricing
-          </h2>
-          <p class="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
-            One flat rate, for up to {MAX_GUESTS} guests — the price is the same regardless of headcount. Choose the length of service that suits you.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-7xl mx-auto items-stretch">
-          {PRODUCT_LIST.map((product) => (
-            <PricingCard
-              name={product.name}
-              priceCents={product.priceCents}
-              cadence={cadenceFor(product.days)}
-              tagline={product.tagline}
-              features={product.features}
-              highlighted={product.highlight}
-              buttonText="Book Now"
-              buttonHref={`/booking?product=${product.id}`}
-              badge={product.highlight ? 'Best value' : undefined}
-            />
-          ))}
-          <PricingCard
-            name={CUSTOM_PLAN.name}
-            priceLabel="By quote"
-            cadenceLabel="tailored to your destination"
-            tagline={CUSTOM_PLAN.tagline}
-            features={CUSTOM_PLAN.features}
-            buttonText="Request a Quote"
-            buttonHref="/booking?product=custom"
-            badge="Custom"
-          />
-        </div>
-
-        <div class="max-w-3xl mx-auto mt-10 md:mt-14">
-          <div class="flex flex-col sm:flex-row items-start gap-3 bg-gold-50 border border-gold-200 rounded-2xl px-5 sm:px-6 py-5 text-sm text-gray-700">
-            <svg class="w-5 h-5 text-gold-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p class="leading-relaxed">
-              <span class="font-semibold text-gray-900">Groceries are billed separately, at cost.</span>
-              Service is provided in Lombardy — anywhere else is quoted on request, with travel and
-              accommodation arranged per destination.
-            </p>
+        <div class="max-w-2xl mx-auto text-center">
+          <div class="flex items-center justify-center gap-3 mb-5">
+            <span class="h-px w-8 bg-gold-500/60"></span>
+            <span class="text-[11px] uppercase tracking-[0.25em] text-gold-600">Su misura</span>
+            <span class="h-px w-8 bg-gold-500/60"></span>
           </div>
+          <h2 class="text-3xl md:text-5xl font-semibold text-gray-900 mb-5">Ogni evento è unico</h2>
+          <p class="text-base md:text-lg text-gray-600 leading-relaxed">
+            Niente pacchetti preconfezionati. Raccontaci la sera che immagini — occasione, ospiti, atmosfera —
+            e Chef Nino disegna il menù e ti invia una proposta su misura con il prezzo. La spesa è fatturata
+            a parte, al costo. Servizio in Lombardia e, su richiesta, all'estero.
+          </p>
+
+          <a href="/richiesta"
+            class="mt-9 inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 text-white px-8 py-4 text-base font-semibold shadow-lg hover:bg-black active:scale-[0.99] transition-all">
+            <span class="text-gold-400">✦</span>
+            Disegna la tua sera
+          </a>
+          <p class="mt-4 text-sm text-gray-400">Nessun pagamento ora · risposta entro 24 ore</p>
         </div>
       </div>
     </section>
