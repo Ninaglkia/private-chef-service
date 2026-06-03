@@ -413,7 +413,6 @@ export async function sendRequestNotificationEmail(data: {
         ${row('When', data.start_date)}
       </div>
       ${data.event_details ? `<p style="margin-top:16px;"><strong>Their idea:</strong></p><div class="details-box"><p style="margin:0;">${escapeHtml(data.event_details)}</p></div>` : ''}
-      ${emailButton('https://ninos-privatechefs.com/admin/control-panel', 'Open in panel')}
     `
   );
   await sendEmail({
@@ -433,7 +432,6 @@ export async function sendChatNotificationEmail(data: { clientName?: string | nu
       <h2>New chat message</h2>
       <p><strong>${escapeHtml(name)}</strong> has written to you:</p>
       <div class="details-box"><p style="margin:0;">${escapeHtml(data.body)}</p></div>
-      ${emailButton('https://ninos-privatechefs.com/admin/control-panel', 'Open chat')}
     `
   );
   await sendEmail({
@@ -538,7 +536,6 @@ export async function sendRecruitmentEmails(data: {
         ${row('Phone', data.phone)}
       </div>
       ${data.bio ? `<p style="margin-top:16px;"><strong>Introduction:</strong></p><div class="details-box"><p style="margin:0;">${escapeHtml(data.bio)}</p></div>` : ''}
-      ${emailButton('https://ninos-privatechefs.com/admin/control-panel', 'View in panel')}
     `
   );
 
