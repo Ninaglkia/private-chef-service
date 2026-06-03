@@ -1,9 +1,9 @@
 
 import { type APIContext } from 'astro';
 import { PRODUCTS } from './pricing';
+import { ORGANIZER_EMAIL } from './admin';
 
 const RESEND_API_KEY = import.meta.env.RESEND_API_KEY;
-const ORGANIZER_EMAIL = 'ninaglia089@gmail.com';
 
 // This app may ONLY send from its own verified domain. The EMAIL_FROM /
 // EMAIL_SYSTEM env vars have been copied from other projects before (e.g. a
@@ -487,4 +487,63 @@ export async function sendPaymentLinkEmail(booking: any, paymentUrl: string): Pr
     html: customerHtml,
     from: FROM_EMAIL_CUSTOMER,
   });
+}
+
+// 5. RECRUITMENT APPLICATION ("Work with us"): confirmation to the candidate +
+// alert to the owner. Every dynamic value is escaped — these come from a public,
+// untrusted form, so the old unescaped notify-recruitment endpoint was an XSS
+// vector in the owner's inbox. Sender is forced onto the verified domain.
+export async function sendRecruitmentEmails(data: {
+  first_name: string;
+  last_name?: string | null;
+  email: string;
+  phone?: string | null;
+  role?: string | null;
+  availability?: string | null;
+  city?: string | null;
+  bio?: string | null;
+}): Promise<void> {
+  const fullName = `${data.first_name}${data.last_name ? ' ' + data.last_name : ''}`.trim();
+  const roleLabel =
+    data.role === 'chef' ? 'Private Chef'
+    : data.role === 'waiter' ? 'Waiter / Front-of-House'
+    : (data.role || '—');
+
+  const candidateHtml = getHtmlTemplate(
+    'Application received',
+    `
+      <h2>Thank you for your application, ${escapeHtml(data.first_name)}!</h2>
+      <p>We have received your application for the <strong>${escapeHtml(roleLabel)}</strong> position${data.city ? ' in ' + escapeHtml(data.city) : ''}.</p>
+      <p>Our team will review your profile and get in touch if there is an opportunity matching your skills.</p>
+      <p>Kind regards,<br>Nino's Private Chef Team</p>
+    `
+  );
+
+  const row = (label: string, value: unknown) =>
+    value
+      ? `<div class="details-row"><span class="label">${escapeHtml(label)}:</span> <span class="value">${escapeHtml(String(value))}</span></div>`
+      : '';
+
+  const ownerHtml = getHtmlTemplate(
+    'New application',
+    `
+      <h2>New job application</h2>
+      <p>A new candidate applied via the website:</p>
+      <div class="details-box">
+        ${row('Name', fullName)}
+        ${row('Role', roleLabel)}
+        ${row('Availability', data.availability)}
+        ${row('City', data.city)}
+        ${row('Email', data.email)}
+        ${row('Phone', data.phone)}
+      </div>
+      ${data.bio ? `<p style="margin-top:16px;"><strong>Introduction:</strong></p><div class="details-box"><p style="margin:0;">${escapeHtml(data.bio)}</p></div>` : ''}
+      ${emailButton('https://ninos-privatechefs.com/admin/control-panel', 'View in panel')}
+    `
+  );
+
+  await Promise.all([
+    sendEmail({ to: data.email, subject: "We received your application — Nino's Private Chef", html: candidateHtml, from: FROM_EMAIL_CUSTOMER }),
+    sendEmail({ to: ORGANIZER_EMAIL, subject: `[APPLICATION] ${fullName} — ${roleLabel}`, html: ownerHtml, from: FROM_EMAIL_SYSTEM }),
+  ]);
 }

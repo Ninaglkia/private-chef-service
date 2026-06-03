@@ -114,6 +114,13 @@ export type ChefRecruitmentApplication = {
   email: string;
   city: string;
   tax_id?: string | null;
+  // Dedicated columns (older rows created before 2026-06-03 may be null).
+  role?: string | null;
+  availability?: string | null;
+  bio?: string | null;
+  phone?: string | null;
+  // cv_url / photos_urls hold object PATHS in the PRIVATE 'chef-applications'
+  // bucket (signed on read), NOT public URLs.
   cv_url?: string | null;
   photos_urls?: string[] | null;
   status: 'pending' | 'approved' | 'rejected';

@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { createClient } from '@supabase/supabase-js';
+import { isOwnerEmail } from '../lib/admin';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
@@ -38,9 +39,8 @@ if (!profileError) {
   }
 }
 
-// HARDCODED OVERRIDE FOR OWNER
-const email = user.email?.toLowerCase() || '';
-const isOwner = email === 'ninaglia089@gmail.com';
+// Owner override — email allowlist centralised in lib/admin.ts.
+const isOwner = isOwnerEmail(user.email);
 
 // Optional: Redirect admin/owner to control panel if they land here? 
 // The client-side code does this. We can do it here too for faster redirect.

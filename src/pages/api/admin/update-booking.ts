@@ -1,8 +1,7 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-
-const OWNER_EMAIL = 'ninaglia089@gmail.com';
+import { isOwnerEmail } from '../../../lib/admin';
 
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-12-15.clover',
@@ -42,8 +41,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return json({ error: 'Not authenticated' }, 401);
     }
 
-    const email = user.email?.toLowerCase() || '';
-    const isOwner = email === OWNER_EMAIL;
+    const isOwner = isOwnerEmail(user.email);
 
     if (!isOwner) {
       // Verify admin role via service-role read (bypass RLS)

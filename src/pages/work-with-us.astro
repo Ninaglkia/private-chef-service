@@ -50,6 +50,11 @@ import Header from '../components/Header.astro';
 
     <form id="application-form" class="space-y-8 bg-white border border-gray-200 rounded-2xl p-5 sm:p-8 shadow-lg">
 
+      <!-- Honeypot: hidden from humans; bots tend to fill it. The server drops any submission where this is set. -->
+      <div aria-hidden="true" style="position:absolute; left:-9999px; top:-9999px; height:0; width:0; overflow:hidden;">
+        <label>Company website<input type="text" name="company_website" tabindex="-1" autocomplete="off" /></label>
+      </div>
+
       <!-- Honeypot: hidden from real users; bots that fill it are silently rejected. -->
       <input type="text" name="company_website" id="company_website" tabindex="-1" autocomplete="off" aria-hidden="true"
         class="hidden" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" />
@@ -160,8 +165,6 @@ import Header from '../components/Header.astro';
 </Layout>
 
 <script>
-  import { supabase } from '../lib/supabase';
-
   const form = document.getElementById('application-form') as HTMLFormElement;
   const btnSubmit = document.getElementById('btn-submit') as HTMLButtonElement;
   const submitSpinner = document.getElementById('submit-spinner');
@@ -350,123 +353,23 @@ import Header from '../components/Header.astro';
     submitSpinner!.classList.remove('hidden');
 
     try {
+        // All persistence happens server-side. The browser only does the AI
+        // verification gate above, then POSTs the multipart form (fields + files
+        // + honeypot) to the service-role endpoint, which stores files in the
+        // PRIVATE bucket and inserts the row. No anon storage/DB writes here.
         const formData = new FormData(form);
-        const firstName = formData.get('first_name') as string;
-        const lastName = formData.get('last_name') as string;
-        const email = formData.get('email') as string;
-        const phone = formData.get('phone') as string;
-        const city = formData.get('city') as string;
-        const taxId = formData.get('tax_id') as string;
-        const role = formData.get('role') as string;
-        const availability = formData.get('availability') as string;
-        const bio = formData.get('bio') as string;
-        const cvFile = formData.get('cv_file') as File;
-        const photos = formData.getAll('photos') as File[];
+        const res = await fetch('/api/recruitment/submit', {
+            method: 'POST',
+            body: formData,
+        });
 
-        // 1. Upload CV
-        let cvUrl = '';
-        if (cvFile && cvFile.size > 0) {
-            const fileExt = cvFile.name.split('.').pop();
-            const fileName = `cv_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-            const { data, error } = await supabase.storage
-                .from('chef-applications') // Using existing bucket
-                .upload(`cvs/${fileName}`, cvFile);
-            
-            if (error) throw new Error('Error uploading CV: ' + error.message);
-            
-            const { data: { publicUrl } } = supabase.storage
-                .from('chef-applications')
-                .getPublicUrl(`cvs/${fileName}`);
-            
-            cvUrl = publicUrl;
-        }
-
-        // 2. Upload Photos (if Chef)
-        const photoUrls: string[] = [];
-        if (role === 'chef') {
-            for (const photo of photos) {
-                if (photo instanceof File && photo.size > 0) {
-                    const fileExt = photo.name.split('.').pop();
-                    const fileName = `dish_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-                    const { data, error } = await supabase.storage
-                        .from('chef-applications')
-                        .upload(`photos/${fileName}`, photo);
-                    
-                    if (error) throw new Error('Error uploading photo: ' + error.message);
-                    
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('chef-applications')
-                        .getPublicUrl(`photos/${fileName}`);
-                    
-                    photoUrls.push(publicUrl);
-                }
-            }
-        }
-
-        // 3. Create Extra Data JSON (to preserve fields not in table)
-        const extraData = {
-            role,
-            availability,
-            bio,
-            phone,
-            submitted_at: new Date().toISOString()
-        };
-        
-        // Upload Extra Data as JSON file
-        const jsonBlob = new Blob([JSON.stringify(extraData, null, 2)], { type: 'application/json' });
-        const jsonFileName = `details_${Date.now()}_${Math.random().toString(36).substring(7)}.json`;
-        
-        const { error: jsonError } = await supabase.storage
-            .from('chef-applications')
-            .upload(`details/${jsonFileName}`, jsonBlob);
-
-        let detailsUrl = '';
-        if (!jsonError) {
-             const { data: { publicUrl } } = supabase.storage
-                .from('chef-applications')
-                .getPublicUrl(`details/${jsonFileName}`);
-             detailsUrl = publicUrl;
-             // Append details URL to photos so it's accessible
-             photoUrls.push(detailsUrl);
-        }
-
-        // 4. Insert into Database
-        // We use the new table 'chef_recruitment_applications' to avoid conflict with booking apps
-        // We pack Role and Availability into 'city' for immediate visibility in dashboard
-        const cityWithMetadata = `${city} [${role.toUpperCase()} - ${availability}]`;
-
-        const { error: dbError } = await supabase
-            .from('chef_recruitment_applications')
-            .insert({
-                first_name: firstName,
-                last_name: lastName,
-                email,
-                city: cityWithMetadata, // Hack to show role
-                tax_id: taxId,
-                cv_url: cvUrl,
-                photos_urls: photoUrls, // Contains photos + details.json link
-                status: 'pending'
-            });
-
-        if (dbError) throw dbError;
-
-        // 5. Send Notifications (Email & WhatsApp)
-        try {
-            await fetch('/api/notify-recruitment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    firstName,
-                    lastName,
-                    email,
-                    phone,
-                    role,
-                    city,
-                    company_website: (formData.get('company_website') as string) || ''
-                })
-            });
-        } catch (notifyErr) {
-            console.warn('Notification failed but application saved:', notifyErr);
+        if (!res.ok) {
+            let msg = 'An error occurred. Please try again later.';
+            try {
+                const j = await res.json();
+                if (j?.error) msg = j.error;
+            } catch {}
+            throw new Error(msg);
         }
 
         // Success

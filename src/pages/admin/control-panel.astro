@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/Header.astro';
 import { createClient } from '@supabase/supabase-js';
 import { PRODUCTS, formatPrice } from '../../lib/pricing';
+import { isOwnerEmail } from '../../lib/admin';
 
 // Server-side Route Protection
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
@@ -31,9 +32,8 @@ const { data: profile } = await supabaseAdmin
   .eq('id', user.id)
   .single();
 
-// HARDCODED OVERRIDE FOR OWNER
-const email = user.email?.toLowerCase() || '';
-const isOwner = email === 'ninaglia089@gmail.com';
+// Owner override — email allowlist centralised in lib/admin.ts.
+const isOwner = isOwnerEmail(user.email);
 
 if ((!profile || profile.role !== 'admin') && !isOwner) {
   return Astro.redirect('/');
@@ -71,6 +71,52 @@ const quotes = quotesData ?? [];
 const requests = requestsData ?? [];
 const conversations = conversationsData ?? [];
 const blocked = blockedData ?? [];
+
+// Recruitment applications ("Work with us"). Files live in the PRIVATE
+// 'chef-applications' bucket; mint short-lived signed URLs server-side so the
+// owner can open CVs/photos without the bucket ever being public.
+const { data: recruitmentData } = await supabaseAdmin
+  .from('chef_recruitment_applications')
+  .select('*')
+  .order('created_at', { ascending: false });
+
+const SIGN_TTL = 60 * 60; // 1 hour
+
+// Recover the object path whether we stored a bare path (new rows) or a full
+// public URL (legacy rows created before the bucket was locked down).
+function toObjectPath(stored?: string | null): string | null {
+  if (!stored) return null;
+  const marker = '/object/public/chef-applications/';
+  const i = stored.indexOf(marker);
+  if (i !== -1) return stored.slice(i + marker.length);
+  if (stored.startsWith('chef-applications/')) return stored.slice('chef-applications/'.length);
+  return stored;
+}
+
+async function signPath(path: string | null): Promise<string | null> {
+  if (!path) return null;
+  const { data } = await supabaseAdmin.storage
+    .from('chef-applications')
+    .createSignedUrl(path, SIGN_TTL);
+  return data?.signedUrl ?? null;
+}
+
+const applications = await Promise.all(
+  (recruitmentData ?? []).map(async (a: any) => {
+    const cvSigned = await signPath(toObjectPath(a.cv_url));
+    const photoPaths = Array.isArray(a.photos_urls)
+      ? (a.photos_urls.map(toObjectPath).filter(Boolean) as string[])
+      : [];
+    const photosSigned = (await Promise.all(photoPaths.map(signPath))).filter(Boolean) as string[];
+    return { ...a, cvSigned, photosSigned };
+  })
+);
+
+const RECRUIT_BADGE: Record<string, string> = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  approved: 'bg-green-100 text-green-800',
+  rejected: 'bg-gray-100 text-gray-700',
+};
 
 // --- Summary stats (computed from the already-fetched rows) ---
 const revenueCents = bookings
@@ -543,6 +589,66 @@ const waPayLink = (req: any): string | null => {
                       </div>
                   </div>
               ))
+          )}
+        </div>
+      </section>
+
+      <!-- ===================== RECRUITMENT (WORK WITH US) ===================== -->
+      <section class="space-y-4">
+        <div class="flex items-center gap-3">
+          <h2 class="font-serif text-2xl font-semibold text-gray-900">Recruitment</h2>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{applications.length}</span>
+          <span class="text-sm text-gray-400">Work-with-us applications</span>
+        </div>
+        <div class="space-y-4">
+          {(applications.length === 0) ? (
+            <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+              <p class="text-sm text-gray-500">No applications yet.</p>
+            </div>
+          ) : (
+            applications.map((a: any) => (
+              <div class="bg-white border border-gray-100 rounded-2xl shadow-soft p-5 sm:p-6 flex flex-col gap-3">
+                <div class="flex flex-wrap justify-between items-start gap-3">
+                  <div class="space-y-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="font-semibold text-gray-900 text-lg">{a.first_name} {a.last_name}</p>
+                      <span class={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${RECRUIT_BADGE[a.status] ?? 'bg-gray-100 text-gray-700'}`}>{a.status}</span>
+                      {a.role && <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-black text-white uppercase tracking-wide">{a.role}</span>}
+                    </div>
+                    <p class="text-sm text-gray-600">
+                      <a href={`mailto:${a.email}`} class="underline">{a.email}</a>
+                      {a.phone && <span> • {a.phone}</span>}
+                    </p>
+                    <p class="text-sm text-gray-700">
+                      {a.city}
+                      {a.availability && <span> • {a.availability}</span>}
+                      {' • '}Received {fmtDate(a.created_at)}
+                    </p>
+                    {a.tax_id && <p class="text-xs text-gray-400">Tax code: {a.tax_id}</p>}
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    {a.cvSigned && (
+                      <a href={a.cvSigned} target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800">
+                        View CV
+                      </a>
+                    )}
+                    {a.phone && (
+                      <a href={`https://wa.me/${waDigits(a.phone)}`} target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50">
+                        WhatsApp
+                      </a>
+                    )}
+                  </div>
+                </div>
+                {a.bio && <p class="text-sm text-gray-600 italic border-l-2 border-gray-200 pl-3">“{a.bio}”</p>}
+                {a.photosSigned && a.photosSigned.length > 0 && (
+                  <div class="flex flex-wrap gap-2 pt-1">
+                    {a.photosSigned.map((url: string, i: number) => (
+                      <a href={url} target="_blank" rel="noopener" class="text-xs underline text-gray-500 hover:text-gray-800">Attachment {i + 1}</a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
           )}
         </div>
       </section>
