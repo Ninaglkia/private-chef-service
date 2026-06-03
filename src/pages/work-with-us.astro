@@ -49,7 +49,11 @@ import Header from '../components/Header.astro';
     </div>
 
     <form id="application-form" class="space-y-8 bg-white border border-gray-200 rounded-2xl p-5 sm:p-8 shadow-lg">
-      
+
+      <!-- Honeypot: hidden from real users; bots that fill it are silently rejected. -->
+      <input type="text" name="company_website" id="company_website" tabindex="-1" autocomplete="off" aria-hidden="true"
+        class="hidden" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" />
+
       <!-- Position Selection -->
       <div class="space-y-4">
         <h3 class="text-xl font-semibold text-gray-900 border-b pb-2">Position Applied For</h3>
@@ -457,7 +461,8 @@ import Header from '../components/Header.astro';
                     email,
                     phone,
                     role,
-                    city
+                    city,
+                    company_website: (formData.get('company_website') as string) || ''
                 })
             });
         } catch (notifyErr) {
