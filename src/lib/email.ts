@@ -368,6 +368,47 @@ export async function sendBirthdayEmail(user: { email: string; full_name?: strin
   });
 }
 
+// 3d. NEW REQUEST (owner summary email when a client submits the request form)
+export async function sendRequestNotificationEmail(data: {
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string | null;
+  service_type?: string | null;
+  num_guests?: number | string | null;
+  city?: string | null;
+  start_date?: string | null;
+  event_details?: string | null;
+}) {
+  const row = (label: string, value: unknown) =>
+    value
+      ? `<div class="details-row"><span class="label">${escapeHtml(label)}:</span> <span class="value">${escapeHtml(String(value))}</span></div>`
+      : '';
+  const html = getHtmlTemplate(
+    'Nuova richiesta',
+    `
+      <h2>Nuova richiesta di prenotazione</h2>
+      <p>Un cliente ha inviato una richiesta dal sito:</p>
+      <div class="details-box">
+        ${row('Nome', data.customer_name)}
+        ${row('Email', data.customer_email)}
+        ${row('Telefono', data.customer_phone)}
+        ${row('Servizio', data.service_type)}
+        ${row('Persone', data.num_guests)}
+        ${row('Dove', data.city)}
+        ${row('Quando', data.start_date)}
+      </div>
+      ${data.event_details ? `<p style="margin-top:16px;"><strong>La sua idea:</strong></p><div class="details-box"><p style="margin:0;">${escapeHtml(data.event_details)}</p></div>` : ''}
+      <div class="btn-wrap"><a class="btn" href="https://ninos-privatechefs.com/admin/control-panel">Apri nel pannello</a></div>
+    `
+  );
+  await sendEmail({
+    to: ORGANIZER_EMAIL,
+    subject: `[RICHIESTA] ${data.customer_name}${data.service_type ? ' — ' + data.service_type : ''}`,
+    html,
+    from: FROM_EMAIL_SYSTEM,
+  });
+}
+
 // 3c. CHAT NOTIFICATION (owner alert when a client sends a chat message)
 export async function sendChatNotificationEmail(data: { clientName?: string | null; body: string }) {
   const name = data.clientName?.trim() || 'Un cliente';

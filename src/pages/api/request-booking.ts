@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getProductPrice, getProductDays, isValidProduct, MAX_GUESTS, type Product } from '../../lib/pricing';
 import { rateLimit, getClientIp } from '../../lib/rate-limit';
 import { notifyOrganizer } from '../../lib/sms';
+import { sendRequestNotificationEmail } from '../../lib/email';
 
 const supabaseAdmin = createClient(
   import.meta.env.PUBLIC_SUPABASE_URL,
@@ -57,6 +58,8 @@ export const POST: APIRoute = async ({ request }) => {
       start_date,
       num_guests,
       product,
+      service_type,
+      event_details,
       dietary_preferences,
       marketing_consent,
       company_website, // HONEYPOT
@@ -68,12 +71,14 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // --- Validation ---
-    if (!customer_name || !customer_email || !city || !start_date || !product) {
+    // The request form has no fixed packages: default to 'custom' (owner prices it later).
+    const plan = product && String(product).trim() ? String(product) : 'custom';
+    if (!customer_name || !customer_email || !city || !start_date) {
       return json({ error: 'Missing required fields' }, 400);
     }
 
-    const isCustom = product === 'custom';
-    if (!isCustom && !isValidProduct(product)) {
+    const isCustom = plan === 'custom';
+    if (!isCustom && !isValidProduct(plan)) {
       return json({ error: 'Invalid product' }, 400);
     }
 
@@ -84,8 +89,8 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Price: server-authoritative for fixed plans, NULL for 'custom' (owner sets it later).
-    const totalPrice = isCustom ? null : getProductPrice(product as Product);
-    const days = isCustom ? 1 : getProductDays(product as Product);
+    const totalPrice = isCustom ? null : getProductPrice(plan as Product);
+    const days = isCustom ? 1 : getProductDays(plan as Product);
 
     const startDateObj = new Date(start_date);
     if (Number.isNaN(startDateObj.getTime())) {
@@ -118,8 +123,8 @@ export const POST: APIRoute = async ({ request }) => {
         num_guests: guests,
         total_price: totalPrice,
         status: 'pending',
-        dietary_preferences: dietary_preferences || null,
-        plan: product,
+        dietary_preferences: event_details || dietary_preferences || null,
+        plan,
         marketing_consent: !!marketing_consent,
         add_saturday: false,
         add_sunday: false,
@@ -132,14 +137,29 @@ export const POST: APIRoute = async ({ request }) => {
       return json({ error: 'Failed to create booking' }, 500);
     }
 
-    // Notify the owner best-effort — never let messaging failures break the request.
+    // Notify the owner best-effort (WhatsApp + email) — never let messaging break the request.
+    const svc = service_type ? String(service_type) : (isCustom ? 'Su misura' : plan);
     try {
-      const fullName = company ? `${customer_name} (${company})` : customer_name;
+      const idea = event_details ? ` • Idea: ${String(event_details).slice(0, 220)}` : '';
       await notifyOrganizer(
-        `New booking request: ${fullName} — ${product} • ${guests} guest${guests > 1 ? 's' : ''} • ${city} • from ${start_date}. Email: ${customer_email}`
+        `Nuova richiesta: ${customer_name} — ${svc} • ${guests} ospiti • ${city} • dal ${start_date}. Tel: ${customer_phone || 'n/d'} • Email: ${customer_email}${idea}`
       );
     } catch (notifyError) {
-      console.error('Owner notification failed:', notifyError);
+      console.error('Owner WhatsApp notification failed:', notifyError);
+    }
+    try {
+      await sendRequestNotificationEmail({
+        customer_name,
+        customer_email,
+        customer_phone: customer_phone || null,
+        service_type: svc,
+        num_guests: guests,
+        city,
+        start_date,
+        event_details: event_details || null,
+      });
+    } catch (emailError) {
+      console.error('Owner request email failed:', emailError);
     }
 
     return json({ ok: true, booking_id: booking.id }, 200);
