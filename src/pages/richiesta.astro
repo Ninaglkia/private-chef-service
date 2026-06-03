@@ -2,218 +2,516 @@
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 
-// Experience carousel. NOTE: images are placeholders (existing photos) until the
-// AI-generated experience images are added under /images/experiences/.
+// Experience slideshow. Images are PLACEHOLDERS (existing photos) until the
+// AI-generated experience images land under /images/experiences/.
 const EXPERIENCES = [
-  { label: 'Cena in villa', img: '/images/dish1.jpg' },
-  { label: 'Cena romantica', img: '/images/dish2.jpg' },
-  { label: 'Evento / festa', img: '/images/team.jpg' },
-  { label: 'Chef per più giorni', img: '/images/chef.jpg' },
-  { label: 'Menù di pesce', img: '/images/dish2.jpg' },
-  { label: 'Altro', img: '' },
+  { label: 'Cena in villa', img: '/images/dish1.jpg', kicker: 'La sera', desc: 'Tavolo sotto le stelle, a bordo piscina' },
+  { label: 'Cena romantica', img: '/images/dish2.jpg', kicker: 'A due', desc: 'Un menù intimo, a lume di candela' },
+  { label: 'Evento / festa', img: '/images/team.jpg', kicker: 'Con tutti', desc: "Buffet d'autore per i tuoi ospiti" },
+  { label: 'Menù di pesce', img: '/images/dish1.jpg', kicker: 'Dal mare', desc: 'Crudi e cotti, freschissimi' },
+  { label: 'Chef per più giorni', img: '/images/chef.jpg', kicker: 'A casa tua', desc: 'Una settimana di alta cucina' },
+  { label: 'Altro', img: '', kicker: 'Su misura', desc: 'Hai in mente qualcosa di unico?' },
 ];
 ---
 
-<Layout title="Richiedi Chef Nino - Private Chef" bodyClass="bg-[#faf7f1] text-gray-900">
+<Layout title="Richiedi Chef Nino — Su misura" bodyClass="bg-[#faf7f1] text-[#17130d]">
   <Header transparent={false} />
 
-  <section class="min-h-[100dvh] pt-28 pb-20 px-4 sm:px-6 lg:px-8">
-    <div class="w-full max-w-2xl mx-auto">
-      <div class="text-center mb-8">
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-gold-600">Su misura per te</p>
-        <h1 class="mt-2 font-serif text-3xl sm:text-4xl font-semibold text-gray-900">Racconta il tuo evento</h1>
-        <p class="mt-3 text-gray-500">Dicci com'è la tua idea: Chef Nino la legge e ti ricontatta con la proposta e il prezzo. Nessun pacchetto fisso — su misura.</p>
+  <main class="overflow-x-hidden">
+    <!-- MASTHEAD -->
+    <section class="max-w-3xl mx-auto px-5 pt-32 pb-12 text-center">
+      <div class="flex items-center justify-center gap-3 mb-4">
+        <span class="h-px w-8 bg-[#c6a15b]/60"></span>
+        <span class="text-[11px] uppercase tracking-[0.25em] text-[#c6a15b]">Su misura</span>
+        <span class="h-px w-8 bg-[#c6a15b]/60"></span>
       </div>
+      <h1 class="font-serif text-5xl sm:text-6xl font-semibold leading-tight">Disegniamo la tua sera.</h1>
+      <p class="mt-4 text-gray-500 max-w-xl mx-auto">Scegli l'esperienza, raccontala al mio assistente e Chef Nino ti ricontatta con la proposta e il prezzo. Nessun pagamento ora.</p>
+    </section>
 
-      <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sm:p-8">
-        <form id="request-form" class="space-y-5" novalidate>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label for="customer_name" class="block text-xs font-semibold text-gray-700 mb-1">Nome e cognome *</label>
-              <input id="customer_name" name="customer_name" type="text" required
-                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                placeholder="Nome Cognome" />
-            </div>
-            <div>
-              <label for="customer_phone" class="block text-xs font-semibold text-gray-700 mb-1">Telefono *</label>
-              <input id="customer_phone" name="customer_phone" type="tel" required
-                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                placeholder="+39 333 1234567" />
-            </div>
-          </div>
-
-          <div>
-            <label for="customer_email" class="block text-xs font-semibold text-gray-700 mb-1">Email *</label>
-            <input id="customer_email" name="customer_email" type="email" required
-              class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-              placeholder="tu@esempio.com" />
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-gray-700 mb-2">Quale esperienza ti interessa? *</label>
-            <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
-              {EXPERIENCES.map((ex) => (
-                <button
-                  type="button"
-                  class="exp-card snap-start shrink-0 w-40 rounded-xl overflow-hidden border-2 border-gray-200 bg-white shadow-sm text-left transition-all hover:shadow-md focus:outline-none"
-                  data-service={ex.label}
-                >
-                  {ex.img ? (
-                    <span class="block h-24 w-full bg-cover bg-center" style={`background-image:url(${ex.img})`}></span>
-                  ) : (
-                    <span class="flex h-24 w-full items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 text-gray-400">
-                      <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
-                    </span>
-                  )}
-                  <span class="exp-label block px-3 py-2 text-sm font-semibold text-gray-800">{ex.label}</span>
-                </button>
-              ))}
-            </div>
-            <input type="hidden" id="service_type" name="service_type" />
-            <p id="exp-error" class="mt-1 text-xs text-red-500 hidden">Scegli un'esperienza.</p>
-          </div>
-
-          <div>
-            <label for="num_guests" class="block text-xs font-semibold text-gray-700 mb-1">Per quante persone? *</label>
-            <input id="num_guests" name="num_guests" type="number" min="1" max="200" required
-              class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-              placeholder="es. 6" />
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label for="start_date" class="block text-xs font-semibold text-gray-700 mb-1">Quando? *</label>
-              <input id="start_date" name="start_date" type="date" required
-                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500" />
-            </div>
-            <div>
-              <label for="city" class="block text-xs font-semibold text-gray-700 mb-1">Dove? *</label>
-              <input id="city" name="city" type="text" required
-                class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                placeholder="Città (e indirizzo se vuoi)" />
-            </div>
-          </div>
-
-          <div>
-            <label for="event_details" class="block text-xs font-semibold text-gray-700 mb-1">Raccontami la tua idea</label>
-            <textarea id="event_details" name="event_details" rows="5"
-              class="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-              placeholder="Occasione, tipo di menù, preferenze o allergie, budget indicativo…"></textarea>
-          </div>
-
-          <!-- Honeypot -->
-          <input type="text" name="company_website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
-
-          <label class="flex items-start gap-2 text-xs text-gray-600">
-            <input id="consent" type="checkbox" required class="mt-0.5 h-4 w-4 rounded border-gray-300 text-gold-600 focus:ring-gold-500" />
-            <span>Autorizzo il trattamento dei miei dati per essere ricontattato riguardo a questa richiesta.</span>
-          </label>
-
-          <button id="request-submit" type="submit"
-            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#17130d] text-white py-3.5 text-sm font-semibold tracking-wide shadow-lg hover:bg-black active:scale-[0.99] transition-all disabled:opacity-60">
-            <span id="request-submit-label">Invia la richiesta</span>
-            <span id="request-spinner" class="hidden h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-          </button>
-          <p id="request-error" class="text-sm text-red-500 hidden"></p>
-        </form>
-
-        <!-- Success state -->
-        <div id="request-success" class="hidden text-center py-6">
-          <div class="flex justify-center">
-            <span class="flex h-14 w-14 items-center justify-center rounded-full bg-green-50 text-green-600">
-              <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            </span>
-          </div>
-          <h2 class="mt-5 font-serif text-2xl font-semibold text-gray-900">Richiesta inviata! 🎉</h2>
-          <p class="mt-2 text-gray-500">Grazie — Chef Nino ha ricevuto la tua idea e ti ricontatterà a breve con la proposta e il prezzo.</p>
-          <a href="/" class="mt-6 inline-block rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Torna alla home</a>
-        </div>
+    <!-- CHAPTER 01 — L'ESPERIENZA -->
+    <div class="max-w-3xl mx-auto px-5">
+      <div class="flex items-center gap-4">
+        <span class="font-serif text-2xl text-[#c6a15b]">I</span>
+        <span class="text-xs uppercase tracking-[0.2em] text-[#17130d]/70">L'esperienza</span>
+        <span class="h-px flex-1 bg-[#c6a15b]/25"></span>
       </div>
     </div>
-  </section>
+
+    <section class="relative left-1/2 right-1/2 -mx-[50vw] w-screen mt-6">
+      <div id="exp-track" class="flex gap-5 overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar px-[8vw] lg:px-[14vw]">
+        {EXPERIENCES.map((ex, i) => (
+          <article
+            class="exp-slide group relative snap-center shrink-0 min-w-[84vw] sm:min-w-[72vw] lg:min-w-[64vw] rounded-3xl overflow-hidden scale-[0.94] opacity-70 transition-[transform,opacity] duration-[600ms] ease-out cursor-pointer"
+            data-service={ex.label}
+            data-index={i}
+            tabindex="0"
+            role="button"
+            aria-label={`Scegli: ${ex.label}`}
+            style="height:clamp(360px,56vh,560px)"
+          >
+            {ex.img ? (
+              <img src={ex.img} alt={ex.label} loading={i === 0 ? 'eager' : 'lazy'} class="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <span class="absolute inset-0 bg-[#17130d]"></span>
+            )}
+            <span class="absolute inset-0 bg-gradient-to-t from-[#17130d]/85 via-[#17130d]/25 to-transparent"></span>
+            <span class="absolute inset-0 bg-[#cc6600]/10 mix-blend-multiply"></span>
+
+            <span class="exp-seal absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-[#c6a15b] text-[#17130d] text-xs font-semibold px-3 py-1 opacity-0 transition-opacity">✦ Scelta</span>
+
+            <div class="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+              <p class="text-[11px] uppercase tracking-[0.2em] text-[#c6a15b] mb-1">{String(i + 1).padStart(2, '0')} · {ex.kicker}</p>
+              <h3 class="exp-title font-serif text-4xl sm:text-5xl text-[#fdf8ef] leading-none">{ex.label}</h3>
+              <p class="mt-2 font-serif italic text-lg text-[#fdf8ef]/80">{ex.desc}</p>
+              <button type="button" class="exp-choose mt-4 inline-flex items-center gap-2 rounded-full border border-[#c6a15b] text-[#fdf8ef] px-4 py-2 text-sm font-semibold hover:bg-[#c6a15b] hover:text-[#17130d] transition-colors" data-service={ex.label}>
+                Scegli questa sera
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <!-- controls -->
+      <div class="max-w-3xl mx-auto px-5 mt-4 flex items-center justify-between">
+        <p id="exp-echo" class="text-sm text-gray-500">Scorri per esplorare →</p>
+        <div class="flex items-center gap-2">
+          <button type="button" id="exp-prev" aria-label="Precedente" class="hidden sm:flex w-9 h-9 items-center justify-center rounded-full border border-[#c6a15b]/40 text-[#17130d] hover:bg-[#17130d] hover:text-white transition-colors">‹</button>
+          <button type="button" id="exp-next" aria-label="Successiva" class="hidden sm:flex w-9 h-9 items-center justify-center rounded-full border border-[#c6a15b]/40 text-[#17130d] hover:bg-[#17130d] hover:text-white transition-colors">›</button>
+        </div>
+      </div>
+      <div id="exp-dots" class="flex justify-center gap-2 mt-3"></div>
+    </section>
+
+    <form id="request-form" novalidate>
+      <input type="hidden" id="service_type" name="service_type" />
+
+      <!-- CHAPTER 02 — I DETTAGLI -->
+      <div class="max-w-2xl mx-auto px-5 mt-16">
+        <div class="flex items-center gap-4 mb-8">
+          <span class="font-serif text-2xl text-[#c6a15b]">II</span>
+          <span class="text-xs uppercase tracking-[0.2em] text-[#17130d]/70">I dettagli</span>
+          <span class="h-px flex-1 bg-[#c6a15b]/25"></span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div>
+            <label for="customer_name" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Nome e cognome</label>
+            <input id="customer_name" name="customer_name" type="text" required
+              class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" placeholder="Nome Cognome" />
+          </div>
+          <div>
+            <label for="customer_phone" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Telefono</label>
+            <input id="customer_phone" name="customer_phone" type="tel" required
+              class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" placeholder="+39 333 1234567" />
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <label for="customer_email" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Email</label>
+          <input id="customer_email" name="customer_email" type="email" required
+            class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" placeholder="tu@esempio.com" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Ospiti</label>
+            <div class="flex items-center gap-4 py-1.5 border-b border-gray-300">
+              <button type="button" id="g-minus" aria-label="Meno" class="w-9 h-9 rounded-full border border-[#c6a15b]/40 text-xl leading-none text-[#17130d] hover:bg-[#17130d] hover:text-white transition-colors">−</button>
+              <input id="num_guests" name="num_guests" type="number" min="1" max="200" value="2" required
+                class="w-16 text-center bg-transparent border-0 p-0 text-lg focus:ring-0" />
+              <button type="button" id="g-plus" aria-label="Più" class="w-9 h-9 rounded-full border border-[#c6a15b]/40 text-xl leading-none text-[#17130d] hover:bg-[#17130d] hover:text-white transition-colors">+</button>
+            </div>
+          </div>
+          <div class="relative">
+            <label for="date-display" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Quando</label>
+            <button type="button" id="date-display" aria-haspopup="dialog" aria-expanded="false"
+              class="w-full flex items-center justify-between bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg text-left focus:border-[#c6a15b] focus:outline-none">
+              <span id="date-label" class="text-gray-400">Scegli la data</span>
+              <svg class="w-5 h-5 text-[#c6a15b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            </button>
+            <input type="hidden" id="start_date" name="start_date" />
+            <div id="cal-popover" data-open="false" class="absolute z-30 mt-2 right-0 w-80 rounded-2xl border border-[#c6a15b]/30 bg-[#fffef9] shadow-xl p-4 origin-top transition data-[open=false]:opacity-0 data-[open=false]:translate-y-1 data-[open=false]:pointer-events-none">
+              <div class="flex items-center justify-between mb-3">
+                <button type="button" id="cal-prev" aria-label="Mese precedente" class="w-9 h-9 rounded-full text-[#17130d] hover:text-[#c6a15b] disabled:opacity-30 disabled:hover:text-[#17130d]">‹</button>
+                <span id="cal-title" class="font-serif text-lg"></span>
+                <button type="button" id="cal-next" aria-label="Mese successivo" class="w-9 h-9 rounded-full text-[#17130d] hover:text-[#c6a15b]">›</button>
+              </div>
+              <div class="grid grid-cols-7 gap-1 text-center text-[11px] uppercase tracking-wider text-[#c6a15b] mb-1">
+                <span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span><span>D</span>
+              </div>
+              <div id="cal-grid" class="grid grid-cols-7 gap-1" role="grid"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <label for="city" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Dove</label>
+          <input id="city" name="city" type="text" required
+            class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" placeholder="Città (e indirizzo, se vuoi)" />
+        </div>
+      </div>
+
+      <!-- divider -->
+      <div class="max-w-2xl mx-auto px-5 flex items-center gap-4 my-14">
+        <span class="h-px flex-1 bg-[#c6a15b]/30"></span>
+        <span class="font-serif text-[#c6a15b]">✦</span>
+        <span class="h-px flex-1 bg-[#c6a15b]/30"></span>
+      </div>
+
+      <!-- CHAPTER 03 — LA TUA IDEA (AI ASSISTANT) -->
+      <div class="max-w-2xl mx-auto px-5">
+        <div class="flex items-center gap-4 mb-8">
+          <span class="font-serif text-2xl text-[#c6a15b]">III</span>
+          <span class="text-xs uppercase tracking-[0.2em] text-[#17130d]/70">La tua idea</span>
+          <span class="h-px flex-1 bg-[#c6a15b]/25"></span>
+        </div>
+
+        <div class="bg-white rounded-3xl border border-[#c6a15b]/25 shadow-lg overflow-hidden">
+          <div class="flex items-center gap-3 px-5 py-4 border-b border-[#c6a15b]/20">
+            <span class="flex items-center justify-center w-10 h-10 rounded-full bg-[#17130d] text-[#c6a15b] font-serif">✦</span>
+            <div class="flex-1">
+              <p class="font-serif text-lg leading-tight">Assistente di Chef Nino</p>
+              <p class="flex items-center gap-1.5 text-[11px] text-gray-400"><span class="w-1.5 h-1.5 rounded-full bg-[#c6a15b]"></span>Online · risponde in italiano</p>
+            </div>
+          </div>
+
+          <div id="chat-log" class="flex flex-col gap-3 px-4 py-5 max-h-[60vh] overflow-y-auto"></div>
+
+          <div id="chat-chips" class="flex flex-wrap gap-2 px-4 pb-3">
+            <button type="button" class="chat-chip rounded-full border border-[#c6a15b]/50 px-3 py-1.5 text-sm font-serif italic hover:bg-[#faf7f1]">Una cena romantica</button>
+            <button type="button" class="chat-chip rounded-full border border-[#c6a15b]/50 px-3 py-1.5 text-sm font-serif italic hover:bg-[#faf7f1]">Compleanno in villa</button>
+            <button type="button" class="chat-chip rounded-full border border-[#c6a15b]/50 px-3 py-1.5 text-sm font-serif italic hover:bg-[#faf7f1]">Menù di pesce</button>
+          </div>
+
+          <div class="flex items-end gap-2 border-t border-[#c6a15b]/20 p-3">
+            <textarea id="chat-input" rows="1" placeholder="Descrivi la tua sera… occasione, menù, allergie, budget"
+              class="flex-1 resize-none rounded-2xl bg-[#faf7f1] border border-[#c6a15b]/30 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 max-h-32"></textarea>
+            <button type="button" id="chat-send" aria-label="Invia" class="shrink-0 w-11 h-11 rounded-full bg-[#17130d] text-[#c6a15b] flex items-center justify-center disabled:opacity-50">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- honeypot + consent -->
+        <input type="text" name="company_website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
+        <input type="hidden" id="event_details" name="event_details" />
+
+        <label class="flex items-start gap-2 text-xs text-gray-500 mt-6">
+          <input id="consent" type="checkbox" required class="mt-0.5 h-4 w-4 rounded border-gray-300 text-gold-600 focus:ring-gold-500" />
+          <span>Autorizzo il trattamento dei miei dati per essere ricontattato riguardo a questa richiesta.</span>
+        </label>
+
+        <button id="request-submit" type="button"
+          class="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-[#17130d] text-[#fdf8ef] py-4 text-sm font-serif tracking-wide hover:bg-black active:scale-[0.99] transition-all disabled:opacity-60">
+          <span class="text-[#c6a15b]">✦</span>
+          <span id="request-submit-label">Invia la richiesta a Chef Nino</span>
+          <span id="request-spinner" class="hidden h-4 w-4 border-2 border-[#fdf8ef] border-t-transparent rounded-full animate-spin"></span>
+        </button>
+        <p id="request-error" class="mt-2 text-sm text-red-500 hidden"></p>
+        <p class="mt-3 text-center text-xs text-gray-400">Nessun pagamento ora. Chef Nino ti scrive con la proposta e il prezzo.</p>
+      </div>
+
+      <!-- success -->
+      <div id="request-success" class="hidden max-w-2xl mx-auto px-5 py-16 text-center">
+        <div class="flex justify-center">
+          <span class="flex h-16 w-16 items-center justify-center rounded-full bg-[#c6a15b]/15 text-[#c6a15b] text-2xl font-serif">✦</span>
+        </div>
+        <h2 class="mt-5 font-serif text-3xl">Richiesta inviata</h2>
+        <p class="mt-2 text-gray-500">Grazie — Chef Nino ti scrive a brevissimo con la proposta e il prezzo su misura.</p>
+        <a href="/" class="mt-6 inline-block rounded-full border border-[#c6a15b]/40 px-6 py-2.5 text-sm font-semibold hover:bg-white">Torna alla home</a>
+      </div>
+    </form>
+
+    <div class="h-20"></div>
+  </main>
 </Layout>
 
-<script>
-  const form = document.getElementById('request-form') as HTMLFormElement | null;
-  const successBox = document.getElementById('request-success');
-  const errorBox = document.getElementById('request-error') as HTMLParagraphElement | null;
-  const submitBtn = document.getElementById('request-submit') as HTMLButtonElement | null;
-  const spinner = document.getElementById('request-spinner');
-  const serviceInput = document.getElementById('service_type') as HTMLInputElement | null;
-  const expError = document.getElementById('exp-error');
-
-  // Experience carousel selection.
-  document.querySelectorAll('.exp-card').forEach((card) => {
-    card.addEventListener('click', () => {
-      const el = card as HTMLElement;
-      if (serviceInput) serviceInput.value = el.getAttribute('data-service') || '';
-      document.querySelectorAll('.exp-card').forEach((c) => {
-        c.classList.remove('border-gold-500', 'ring-2', 'ring-gold-400');
-        c.classList.add('border-gray-200');
-      });
-      el.classList.remove('border-gray-200');
-      el.classList.add('border-gold-500', 'ring-2', 'ring-gold-400');
-      expError?.classList.add('hidden');
-    });
-  });
-
-  function showError(msg: string) {
-    if (!errorBox) return;
-    errorBox.textContent = msg;
-    errorBox.classList.remove('hidden');
+<style>
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  @keyframes bubble-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .bubble-in { animation: bubble-in 240ms ease-out; }
+  @keyframes typedot { 0%,80%,100% { transform: translateY(0); opacity: .4; } 40% { transform: translateY(-4px); opacity: 1; } }
+  .typedot { animation: typedot 1s infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .exp-slide { transform: none !important; opacity: 1 !important; }
   }
+</style>
 
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errorBox?.classList.add('hidden');
-    if (!form.checkValidity()) {
-      form.reportValidity();
-      return;
-    }
-    if (!serviceInput || !serviceInput.value) {
-      expError?.classList.remove('hidden');
-      expError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
+<script>
+  // ===== SLIDESHOW =====
+  (() => {
+    const track = document.getElementById('exp-track');
+    const slides = Array.from(document.querySelectorAll('.exp-slide')) as HTMLElement[];
+    const service = document.getElementById('service_type') as HTMLInputElement | null;
+    const echo = document.getElementById('exp-echo');
+    const dotsWrap = document.getElementById('exp-dots');
+    if (!track || !slides.length) return;
 
-    const fd = new FormData(form);
-    const payload = {
-      customer_name: String(fd.get('customer_name') || '').trim(),
-      customer_email: String(fd.get('customer_email') || '').trim(),
-      customer_phone: String(fd.get('customer_phone') || '').trim(),
-      service_type: String(fd.get('service_type') || '').trim(),
-      num_guests: String(fd.get('num_guests') || '').trim(),
-      start_date: String(fd.get('start_date') || '').trim(),
-      city: String(fd.get('city') || '').trim(),
-      event_details: String(fd.get('event_details') || '').trim(),
-      marketing_consent: true,
-      product: 'custom',
-      company_website: String(fd.get('company_website') || ''),
-    };
+    // dots
+    slides.forEach((_, i) => {
+      const d = document.createElement('button');
+      d.type = 'button';
+      d.className = 'h-1 w-6 rounded-full bg-[#c6a15b]/25 transition-colors';
+      d.addEventListener('click', () => slides[i].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }));
+      dotsWrap?.appendChild(d);
+    });
+    const dots = Array.from(dotsWrap?.children || []) as HTMLElement[];
 
-    if (submitBtn) submitBtn.disabled = true;
-    spinner?.classList.remove('hidden');
-
-    try {
-      const res = await fetch('/api/request-booking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        const el = e.target as HTMLElement;
+        const i = slides.indexOf(el);
+        if (e.isIntersecting && e.intersectionRatio >= 0.6) {
+          slides.forEach((s) => s.classList.remove('is-active', 'scale-100', 'opacity-100'));
+          el.classList.add('is-active', 'scale-100', 'opacity-100');
+          dots.forEach((d, di) => d.classList.toggle('bg-[#c6a15b]', di === i));
+          dots.forEach((d, di) => d.classList.toggle('bg-[#c6a15b]/25', di !== i));
+        }
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        showError(data?.error || 'Invio non riuscito, riprova.');
-        if (submitBtn) submitBtn.disabled = false;
-        spinner?.classList.add('hidden');
-        return;
+    }, { root: track, threshold: 0.6 });
+    slides.forEach((s) => io.observe(s));
+
+    function select(el: HTMLElement) {
+      const label = el.getAttribute('data-service') || '';
+      if (service) service.value = label;
+      slides.forEach((s) => {
+        s.classList.remove('is-selected', 'shadow-[inset_0_0_0_1px_rgba(198,161,91,.9)]', 'ring-1', 'ring-[#c6a15b]');
+        s.querySelector('.exp-seal')?.classList.remove('opacity-100');
+        s.querySelector('.exp-title')?.classList.remove('text-[#c6a15b]');
+      });
+      el.classList.add('is-selected', 'shadow-[inset_0_0_0_1px_rgba(198,161,91,.9)]', 'ring-1', 'ring-[#c6a15b]');
+      el.querySelector('.exp-seal')?.classList.add('opacity-100');
+      if (echo) echo.innerHTML = `Hai scelto: <span class="text-[#17130d] font-semibold">${label}</span>`;
+      if (label === 'Altro') document.getElementById('chat-input')?.focus();
+    }
+
+    slides.forEach((s) => {
+      s.addEventListener('click', () => select(s));
+      s.addEventListener('keydown', (ev) => { if ((ev as KeyboardEvent).key === 'Enter') select(s); });
+    });
+    document.querySelectorAll('.exp-choose').forEach((b) => b.addEventListener('click', (ev) => { ev.stopPropagation(); select((b as HTMLElement).closest('.exp-slide') as HTMLElement); }));
+
+    const step = () => (slides[0]?.getBoundingClientRect().width || 320) + 20;
+    document.getElementById('exp-prev')?.addEventListener('click', () => track.scrollBy({ left: -step(), behavior: 'smooth' }));
+    document.getElementById('exp-next')?.addEventListener('click', () => track.scrollBy({ left: step(), behavior: 'smooth' }));
+  })();
+
+  // ===== GUESTS STEPPER =====
+  (() => {
+    const inp = document.getElementById('num_guests') as HTMLInputElement | null;
+    if (!inp) return;
+    const clamp = (n: number) => Math.max(1, Math.min(200, n));
+    document.getElementById('g-minus')?.addEventListener('click', () => { inp.value = String(clamp((parseInt(inp.value, 10) || 1) - 1)); });
+    document.getElementById('g-plus')?.addEventListener('click', () => { inp.value = String(clamp((parseInt(inp.value, 10) || 1) + 1)); });
+  })();
+
+  // ===== CUSTOM CALENDAR =====
+  (() => {
+    const trigger = document.getElementById('date-display');
+    const labelEl = document.getElementById('date-label');
+    const hidden = document.getElementById('start_date') as HTMLInputElement | null;
+    const pop = document.getElementById('cal-popover');
+    const title = document.getElementById('cal-title');
+    const grid = document.getElementById('cal-grid');
+    const prev = document.getElementById('cal-prev') as HTMLButtonElement | null;
+    const next = document.getElementById('cal-next');
+    if (!trigger || !pop || !grid || !title || !hidden) return;
+
+    const MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+    const now = new Date();
+    const todayY = now.getFullYear(), todayM = now.getMonth(), todayD = now.getDate();
+    let viewY = todayY, viewM = todayM;
+    let selISO = '';
+
+    const iso = (y: number, m: number, d: number) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const atStart = () => viewY === todayY && viewM === todayM;
+
+    function render() {
+      title!.textContent = `${MONTHS[viewM]} ${viewY}`;
+      if (prev) prev.disabled = atStart();
+      grid!.innerHTML = '';
+      const first = new Date(viewY, viewM, 1).getDay(); // 0=Sun
+      const offset = (first + 6) % 7; // Monday-first
+      const days = new Date(viewY, viewM + 1, 0).getDate();
+      for (let i = 0; i < offset; i++) grid!.appendChild(document.createElement('span'));
+      for (let d = 1; d <= days; d++) {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.textContent = String(d);
+        const past = viewY === todayY && viewM === todayM && d < todayD;
+        const isToday = viewY === todayY && viewM === todayM && d === todayD;
+        const thisISO = iso(viewY, viewM, d);
+        cell.className = 'h-10 w-10 rounded-full text-sm flex items-center justify-center transition-colors';
+        if (past) {
+          cell.className += ' text-gray-300 cursor-default';
+          cell.disabled = true;
+        } else {
+          cell.className += ' hover:bg-[#faf0dd]';
+          if (isToday) cell.className += ' ring-1 ring-gold-500';
+          if (thisISO === selISO) cell.className += ' bg-[#17130d] text-[#fdf8ef] hover:bg-[#17130d]';
+          cell.addEventListener('click', () => {
+            selISO = thisISO;
+            hidden!.value = thisISO;
+            const dd = new Date(viewY, viewM, d);
+            labelEl!.textContent = dd.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+            labelEl!.classList.remove('text-gray-400');
+            close();
+          });
+        }
+        grid!.appendChild(cell);
       }
-      form.classList.add('hidden');
+    }
+    function open() { pop!.dataset.open = 'true'; trigger!.setAttribute('aria-expanded', 'true'); render(); }
+    function close() { pop!.dataset.open = 'false'; trigger!.setAttribute('aria-expanded', 'false'); }
+
+    trigger.addEventListener('click', () => { pop!.dataset.open === 'true' ? close() : open(); });
+    prev?.addEventListener('click', () => { if (atStart()) return; viewM--; if (viewM < 0) { viewM = 11; viewY--; } render(); });
+    next?.addEventListener('click', () => { viewM++; if (viewM > 11) { viewM = 0; viewY++; } render(); });
+    document.addEventListener('click', (e) => { if (!pop.contains(e.target as Node) && !trigger.contains(e.target as Node)) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    render();
+  })();
+
+  // ===== CHAT (AI assistant) + SUBMIT =====
+  (() => {
+    const log = document.getElementById('chat-log');
+    const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
+    const sendBtn = document.getElementById('chat-send') as HTMLButtonElement | null;
+    const chips = document.getElementById('chat-chips');
+    const form = document.getElementById('request-form');
+    const submitBtn = document.getElementById('request-submit') as HTMLButtonElement | null;
+    const submitLabel = document.getElementById('request-submit-label');
+    const spinner = document.getElementById('request-spinner');
+    const errorBox = document.getElementById('request-error');
+    const successBox = document.getElementById('request-success');
+    const eventDetails = document.getElementById('event_details') as HTMLInputElement | null;
+    if (!log || !input) return;
+
+    const convo: { role: string; content: string }[] = [];
+    let submitted = false;
+    let sending = false;
+
+    const esc = (s: string) => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+
+    function bubble(role: 'assistant' | 'client', text: string) {
+      const wrap = document.createElement('div');
+      wrap.className = role === 'client'
+        ? 'self-end max-w-[80%] rounded-2xl rounded-br-sm bg-[#17130d] text-[#fdf8ef] px-4 py-2.5 text-sm bubble-in'
+        : 'self-start max-w-[80%] rounded-2xl rounded-tl-sm bg-[#fffaf0] border-l-2 border-[#c6a15b]/50 text-[#17130d] px-4 py-2.5 text-sm bubble-in';
+      wrap.innerHTML = esc(text).replace(/\n/g, '<br>');
+      log!.appendChild(wrap);
+      log!.scrollTop = log!.scrollHeight;
+    }
+
+    function typing(on: boolean) {
+      let t = document.getElementById('chat-typing');
+      if (on) {
+        if (t) return;
+        t = document.createElement('div');
+        t.id = 'chat-typing';
+        t.className = 'self-start rounded-2xl rounded-tl-sm bg-[#fffaf0] px-4 py-3 flex gap-1';
+        t.innerHTML = '<span class="typedot w-1.5 h-1.5 rounded-full bg-[#c6a15b]"></span><span class="typedot w-1.5 h-1.5 rounded-full bg-[#c6a15b]" style="animation-delay:.15s"></span><span class="typedot w-1.5 h-1.5 rounded-full bg-[#c6a15b]" style="animation-delay:.3s"></span>';
+        log!.appendChild(t);
+        log!.scrollTop = log!.scrollHeight;
+      } else { t?.remove(); }
+    }
+
+    // seed greeting (UI only)
+    bubble('assistant', "Buonasera 👋 Sono l'assistente di Chef Nino. Raccontami la sera che immagini — occasione, atmosfera, e se hai preferenze o allergie. Penso io a tradurla per lo chef.");
+
+    function ctx() {
+      const v = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value || '';
+      const now = new Date();
+      return {
+        customer_name: v('customer_name'), customer_email: v('customer_email'), customer_phone: v('customer_phone'),
+        service_type: v('service_type'), num_guests: v('num_guests'), start_date: v('start_date'), city: v('city'),
+        today_iso: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+      };
+    }
+
+    function transcript() {
+      return convo.map((m) => `${m.role === 'client' ? 'Cliente' : 'Assistente'}: ${m.content}`).join('\n');
+    }
+
+    function showSuccess() {
+      submitted = true;
+      form?.querySelectorAll('input,textarea,button').forEach((el) => ((el as HTMLButtonElement).disabled = true));
+      // hide everything except success
+      Array.from((form as HTMLElement).children).forEach((c) => { if (c.id !== 'request-success') (c as HTMLElement).style.display = 'none'; });
       successBox?.classList.remove('hidden');
       successBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } catch {
-      showError('Errore di rete, riprova.');
-      if (submitBtn) submitBtn.disabled = false;
-      spinner?.classList.add('hidden');
     }
-  });
+
+    async function send(text: string) {
+      if (sending || submitted || !text.trim()) return;
+      sending = true;
+      chips?.classList.add('hidden');
+      bubble('client', text);
+      convo.push({ role: 'client', content: text });
+      input!.value = ''; input!.style.height = 'auto';
+      typing(true);
+      try {
+        const res = await fetch('/api/assistant', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: convo.map((m) => ({ role: m.role === 'client' ? 'user' : 'assistant', content: m.content })), context: ctx() }),
+        });
+        const data = await res.json().catch(() => ({}));
+        typing(false);
+        if (!res.ok || !data.reply) {
+          bubble('assistant', 'Scusa, ho avuto un intoppo. Scrivi pure tutto qui e lo giro io a Chef Nino. 🙏');
+          sending = false;
+          return;
+        }
+        bubble('assistant', data.reply);
+        convo.push({ role: 'assistant', content: data.reply });
+        if (data.submitted) { setTimeout(showSuccess, 900); }
+      } catch {
+        typing(false);
+        bubble('assistant', 'Connessione interrotta. Riprova o usa il pulsante "Invia la richiesta" qui sotto.');
+      }
+      sending = false;
+    }
+
+    input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 128) + 'px'; });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input.value); } });
+    sendBtn?.addEventListener('click', () => send(input.value));
+    document.querySelectorAll('.chat-chip').forEach((c) => c.addEventListener('click', () => { input.value = (c as HTMLElement).textContent || ''; input.focus(); }));
+
+    // Manual submit (fallback / form-only path) -> existing /api/request-booking
+    function showErr(m: string) { if (errorBox) { errorBox.textContent = m; errorBox.classList.remove('hidden'); } }
+    submitBtn?.addEventListener('click', async () => {
+      if (submitted) return;
+      errorBox?.classList.add('hidden');
+      const v = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value.trim() || '';
+      const consent = (document.getElementById('consent') as HTMLInputElement | null)?.checked;
+      if (!v('service_type')) return showErr('Scegli prima un\'esperienza nello slideshow.');
+      if (!v('customer_name') || !v('customer_email') || !v('customer_phone')) return showErr('Compila nome, email e telefono.');
+      if (!v('num_guests')) return showErr('Indica il numero di ospiti.');
+      if (!v('start_date')) return showErr('Scegli la data.');
+      if (!v('city')) return showErr('Indica il luogo.');
+      if (!consent) return showErr('Spunta il consenso per inviare.');
+
+      const details = (transcript() ? transcript() + '\n\n' : '') + ('Esperienza: ' + v('service_type'));
+      if (eventDetails) eventDetails.value = details;
+      if (submitBtn) submitBtn.disabled = true;
+      spinner?.classList.remove('hidden');
+      try {
+        const res = await fetch('/api/request-booking', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_name: v('customer_name'), customer_email: v('customer_email'), customer_phone: v('customer_phone'),
+            service_type: v('service_type'), num_guests: v('num_guests'), start_date: v('start_date'), city: v('city'),
+            event_details: details, product: 'custom', marketing_consent: true,
+            company_website: (document.querySelector('[name="company_website"]') as HTMLInputElement | null)?.value || '',
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { showErr(data?.error || 'Invio non riuscito, riprova.'); if (submitBtn) submitBtn.disabled = false; spinner?.classList.add('hidden'); return; }
+        showSuccess();
+      } catch { showErr('Errore di rete, riprova.'); if (submitBtn) submitBtn.disabled = false; spinner?.classList.add('hidden'); }
+    });
+  })();
 </script>
