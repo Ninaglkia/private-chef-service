@@ -2,14 +2,13 @@
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 
-// Experience slideshow. Images are PLACEHOLDERS (existing photos) until the
-// AI-generated experience images land under /images/experiences/.
+// Experience slideshow. Dedicated photography under /images/experiences/.
 const EXPERIENCES = [
-  { label: 'Dinner at the villa', img: '/images/dish1.jpg', kicker: 'The evening', desc: 'A table under the stars, by the poolside' },
-  { label: 'Romantic dinner', img: '/images/dish2.jpg', kicker: 'For two', desc: 'An intimate menu, by candlelight' },
-  { label: 'Event / party', img: '/images/team.jpg', kicker: 'With everyone', desc: 'A signature buffet for your guests' },
-  { label: 'Seafood menu', img: '/images/dish1.jpg', kicker: 'From the sea', desc: 'Raw and cooked, perfectly fresh' },
-  { label: 'Chef for several days', img: '/images/chef.jpg', kicker: 'At your home', desc: 'A week of fine dining' },
+  { label: 'Dinner at the villa', img: '/images/experiences/villa.jpg', kicker: 'The evening', desc: 'A table under the stars, by the poolside' },
+  { label: 'Romantic dinner', img: '/images/experiences/romantic.jpg', kicker: 'For two', desc: 'An intimate menu, by candlelight' },
+  { label: 'Event / party', img: '/images/experiences/event.jpg', kicker: 'With everyone', desc: 'A signature buffet for your guests' },
+  { label: 'Seafood menu', img: '/images/experiences/seafood.jpg', kicker: 'From the sea', desc: 'Raw and cooked, perfectly fresh' },
+  { label: 'Chef for several days', img: '/images/experiences/multiday.jpg', kicker: 'At your home', desc: 'A week of fine dining' },
   { label: 'Something else', img: '', kicker: 'Bespoke', desc: 'Have something unique in mind?' },
 ];
 ---
