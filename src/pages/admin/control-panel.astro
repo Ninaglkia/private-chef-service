@@ -91,6 +91,21 @@ const waDigits = (phone?: string | null): string | null => {
   else if (!p.startsWith('39')) p = '39' + p;
   return p;
 };
+
+// Incoming requests: the /richiesta form saves every request here as 'pending'.
+// READ-ONLY — payments/scheduling happen off-site, so there are no fee/Stripe
+// controls, just visibility + a one-tap way to reply.
+const { data: requestsData } = await supabaseAdmin
+  .from('bookings')
+  .select('*')
+  .eq('status', 'pending')
+  .order('created_at', { ascending: false });
+const requests = requestsData ?? [];
+
+const dateRange = (b: any) => {
+  const s = fmtDate(b.start_date);
+  return b.end_date && b.end_date !== b.start_date ? `${s} → ${fmtDate(b.end_date)}` : s;
+};
 ---
 
 <Layout title="Admin — Nino's Private Chef" bodyClass="bg-[#faf7f1] text-gray-900">
@@ -105,11 +120,57 @@ const waDigits = (phone?: string | null): string | null => {
     <!-- Bookings & payments are handled outside the site -->
     <div class="mb-10 rounded-2xl border border-[#e6d4ac] bg-white p-5 sm:p-6">
       <p class="text-sm text-gray-600 leading-relaxed">
-        <strong>Bookings &amp; payments are handled outside the site.</strong>
-        New requests reach you by <strong>email</strong> and <strong>WhatsApp</strong> — you create the
-        payment link in Stripe and send it on WhatsApp. This panel only reviews job applications.
+        <strong>Payments are handled outside the site.</strong>
+        Every request is saved here <strong>and</strong> sent to you by email + WhatsApp; you reply and
+        bill via <strong>Stripe + WhatsApp</strong>. Nothing is charged or scheduled inside the site.
       </p>
     </div>
+
+    <!-- ===================== REQUESTS (read-only) ===================== -->
+    <section class="space-y-4 mb-12">
+      <div class="flex items-center gap-3">
+        <h2 class="font-serif text-2xl font-semibold text-gray-900">Requests</h2>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{requests.length}</span>
+        <span class="text-sm text-gray-400">Saved &amp; sent to you — reply off-site</span>
+      </div>
+      <div class="space-y-4">
+        {(requests.length === 0) ? (
+          <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+            <p class="text-sm text-gray-500">No requests yet.</p>
+          </div>
+        ) : (
+          requests.map((r: any) => (
+            <div class="bg-white border border-gray-100 rounded-2xl shadow-soft p-5 sm:p-6 flex flex-col gap-3">
+              <div class="flex flex-wrap justify-between items-start gap-3">
+                <div class="space-y-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <p class="font-semibold text-gray-900 text-lg">{r.customer_name || 'Request'}</p>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-yellow-100 text-yellow-800">New</span>
+                  </div>
+                  <p class="text-sm text-gray-600">
+                    <a href={`mailto:${r.customer_email}`} class="underline">{r.customer_email}</a>
+                    {r.customer_phone && <span> • {r.customer_phone}</span>}
+                  </p>
+                  <p class="text-sm text-gray-700">
+                    {r.num_guests} {r.num_guests === 1 ? 'guest' : 'guests'}
+                    {r.city && <span> • {r.city}</span>}
+                    {' • '}{dateRange(r)}
+                  </p>
+                  {r.dietary_preferences && <p class="text-sm text-gray-500 italic mt-1">“{r.dietary_preferences}”</p>}
+                  <p class="text-xs text-gray-400">Received {fmtDate(r.created_at)}</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  {r.customer_phone && waDigits(r.customer_phone) && (
+                    <a href={`https://wa.me/${waDigits(r.customer_phone)}`} target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#25D366] text-white text-sm font-semibold hover:bg-[#1ebe5b]">WhatsApp</a>
+                  )}
+                  <a href={`mailto:${r.customer_email}`} class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50">Email</a>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
 
     <!-- ===================== RECRUITMENT (WORK WITH US) ===================== -->
     <section class="space-y-4">
