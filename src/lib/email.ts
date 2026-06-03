@@ -539,7 +539,7 @@ export async function sendBookingConfirmationLinkEmail(data: {
       </div>
       ${data.recap ? `<p style="margin-top:4px;"><strong>What we agreed:</strong></p><div class="details-box"><p style="margin:0;">${recapHtml}</p></div>` : ''}
 
-      ${emailButton(data.payment_url, 'Confirm &amp; pay')}
+      ${emailButton(data.payment_url, 'Confirm & pay')}
 
       <p class="fine">Groceries are billed separately, at cost, and are not included in the amount above. If the button doesn't work, copy this link into your browser:<br><a href="${escapeHtml(data.payment_url)}">${escapeHtml(data.payment_url)}</a></p>
       <p>À bientôt,<br>Chef Nino</p>
