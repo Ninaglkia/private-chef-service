@@ -31,6 +31,7 @@ THE SERVICE
 YOUR TASK
 - Understand the client's event and gather: type of event/occasion, date (or period), number of guests, location (city and, if possible, address), menu preferences/allergies, and contact details (name, email, phone) if not already present in the context.
 - Ask a few questions at a time, in a natural and welcoming way. Don't interrogate: converse.
+- When relevant, kindly ask for the exact event address (street and number) so Chef Nino knows where to come.
 - Use the CONTEXT already provided by the form and DO NOT ask for anything already present.
 
 WHEN YOU HAVE ENOUGH (at least: type of event, date/period, number of guests, location, an idea of the menu/occasion, and the contact details) — briefly confirm to the client what you are about to send, then CALL the "invia_richiesta" tool with a complete summary. After sending, reassure them: Chef Nino will get back to them shortly with the proposal and the price. Do not call the tool more than once. Always reply in English.`;
@@ -49,6 +50,7 @@ const TOOLS = [
         num_guests: { type: 'integer' },
         start_date: { type: 'string', description: 'date in YYYY-MM-DD format if known' },
         city: { type: 'string', description: 'city and address if provided' },
+        event_address: { type: 'string', description: 'The full address where the event/dinner will take place, if the guest provides it' },
         event_details: { type: 'string', description: "complete summary of the event: occasion, menu/preferences, allergies, period, notes" },
       },
       required: ['event_details'],
@@ -66,6 +68,7 @@ async function submitRequest(input: Record<string, any>, ctx: Record<string, any
   const customer_phone = clean(input.customer_phone || ctx.customer_phone || '', 60) || null;
   const service_type = clean(input.service_type || ctx.service_type || 'Bespoke', 120);
   const city = clean(input.city || ctx.city || '—', 300);
+  const event_address = clean(input.event_address || ctx.event_address || '', 300) || null;
   const event_details = clean(input.event_details || '', 4000);
 
   let guests = parseInt(String(input.num_guests ?? ctx.num_guests ?? ''), 10);
@@ -89,6 +92,7 @@ async function submitRequest(input: Record<string, any>, ctx: Record<string, any
       customer_email,
       customer_phone,
       city,
+      event_address,
       start_date,
       end_date: start_date,
       num_guests: guests,
@@ -112,7 +116,7 @@ async function submitRequest(input: Record<string, any>, ctx: Record<string, any
   try {
     await sendRequestNotificationEmail({
       customer_name, customer_email, customer_phone,
-      service_type, num_guests: guests, city, start_date, event_details,
+      service_type, num_guests: guests, city, event_address, start_date, event_details,
     });
   } catch (e) { console.error('assistant email notify failed', e); }
 

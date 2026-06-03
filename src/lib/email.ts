@@ -389,6 +389,7 @@ export async function sendRequestNotificationEmail(data: {
   service_type?: string | null;
   num_guests?: number | string | null;
   city?: string | null;
+  event_address?: string | null;
   start_date?: string | null;
   event_details?: string | null;
 }) {
@@ -408,6 +409,7 @@ export async function sendRequestNotificationEmail(data: {
         ${row('Service', data.service_type)}
         ${row('Guests', data.num_guests)}
         ${row('Where', data.city)}
+        ${row('Address', data.event_address)}
         ${row('When', data.start_date)}
       </div>
       ${data.event_details ? `<p style="margin-top:16px;"><strong>Their idea:</strong></p><div class="details-box"><p style="margin:0;">${escapeHtml(data.event_details)}</p></div>` : ''}

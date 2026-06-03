@@ -55,6 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
       customer_email,
       customer_phone,
       city,
+      event_address,
       start_date,
       num_guests,
       product,
@@ -118,6 +119,7 @@ export const POST: APIRoute = async ({ request }) => {
         customer_email,
         customer_phone: customer_phone || null,
         city,
+        event_address: event_address || null,
         start_date,
         end_date,
         num_guests: guests,
@@ -155,6 +157,7 @@ export const POST: APIRoute = async ({ request }) => {
         service_type: svc,
         num_guests: guests,
         city,
+        event_address: event_address || null,
         start_date,
         event_details: event_details || null,
       });

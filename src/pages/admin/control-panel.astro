@@ -63,10 +63,14 @@ const { data: requestsData } = await supabaseAdmin
 // Chat conversations (one thread per client) — summary via security-definer RPC.
 const { data: conversationsData } = await supabaseAdmin.rpc('chat_conversations');
 
+// Blocked (unavailable) dates — managed from the Availability section below.
+const { data: blockedData } = await supabaseAdmin.from('blocked_dates').select('*').order('date');
+
 const bookings = bookingsData ?? [];
 const quotes = quotesData ?? [];
 const requests = requestsData ?? [];
 const conversations = conversationsData ?? [];
+const blocked = blockedData ?? [];
 
 // --- Summary stats (computed from the already-fetched rows) ---
 const revenueCents = bookings
@@ -247,6 +251,9 @@ const waPayLink = (req: any): string | null => {
                                   {req.city && <span> • {req.city}</span>}
                                   {' • '}{fmtDate(req.start_date)}
                               </p>
+                              {req.event_address && (
+                                  <p class="text-sm text-gray-700">📍 {req.event_address}</p>
+                              )}
                               {req.dietary_preferences && (
                                   <p class="text-sm text-gray-500 mt-1 italic">“{req.dietary_preferences}”</p>
                               )}
@@ -313,6 +320,68 @@ const waPayLink = (req: any): string | null => {
                   </div>
               ))
           )}
+        </div>
+      </section>
+
+      <!-- ===================== AVAILABILITY / BLOCKED DATES ===================== -->
+      <section class="space-y-4">
+        <div class="flex items-center gap-3">
+          <h2 class="font-serif text-2xl font-semibold text-gray-900">Availability / Blocked dates</h2>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{blocked.length}</span>
+          <span class="text-sm text-gray-400">Dates you are unavailable</span>
+        </div>
+
+        <div class="bg-white border border-gray-100 rounded-2xl shadow-soft p-5 sm:p-6 space-y-5">
+          <!-- Block a new date -->
+          <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+            <div class="flex flex-col">
+              <label for="block-date" class="text-xs font-medium text-gray-400 mb-1">Date</label>
+              <input
+                type="date"
+                id="block-date"
+                class="border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
+              />
+            </div>
+            <div class="flex flex-col flex-1">
+              <label for="block-reason" class="text-xs font-medium text-gray-400 mb-1">Reason (optional)</label>
+              <input
+                type="text"
+                id="block-reason"
+                placeholder="Reason (optional)"
+                class="border border-gray-300 rounded-lg px-3 py-2.5 min-h-[44px] text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
+              />
+            </div>
+            <button
+              id="block-date-btn"
+              type="button"
+              class="px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold text-white bg-gradient-to-br from-gold-500 to-gold-700 rounded-lg hover:from-gold-600 hover:to-gold-800 disabled:opacity-50 transition-colors"
+            >
+              Block date
+            </button>
+          </div>
+
+          <!-- Currently blocked dates -->
+          <div class="space-y-2 pt-4 border-t border-gray-100">
+            {(blocked.length === 0) ? (
+                <p class="text-sm text-gray-500">No blocked dates. All dates are available.</p>
+            ) : (
+                blocked.map((b: any) => (
+                    <div class="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-gray-900">{fmtDate(b.date)}</p>
+                            {b.reason && <p class="text-xs text-gray-500 truncate">{b.reason}</p>}
+                        </div>
+                        <button
+                            type="button"
+                            class="unblock-date-btn shrink-0 px-3 py-2 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 active:bg-red-200 transition-colors"
+                            data-date={b.date}
+                        >
+                            Unblock
+                        </button>
+                    </div>
+                ))
+            )}
+          </div>
         </div>
       </section>
 
@@ -385,6 +454,9 @@ const waPayLink = (req: any): string | null => {
                                   {fmtDate(booking.start_date)}
                                   {booking.end_date && <span> → {fmtDate(booking.end_date)}</span>}
                               </p>
+                              {booking.event_address && (
+                                  <p class="text-sm text-gray-700">📍 {booking.event_address}</p>
+                              )}
                               {booking.stripe_payment_intent && (
                                   <p class="text-xs text-gray-400 font-mono break-all">PI: {booking.stripe_payment_intent}</p>
                               )}
@@ -540,6 +612,26 @@ const waPayLink = (req: any): string | null => {
     }
   }
 
+  // Availability: block / unblock a date via the admin blocked-dates endpoint.
+  async function postBlocked(method: 'POST' | 'DELETE', body: Record<string, unknown>): Promise<boolean> {
+    try {
+      const res = await fetch('/api/admin/blocked-dates', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.error || `Request failed (${res.status})`);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      alert('Network error. Please try again.');
+      return false;
+    }
+  }
+
   document.addEventListener('click', async (e) => {
     const target = e.target as HTMLElement;
 
@@ -615,6 +707,43 @@ const waPayLink = (req: any): string | null => {
           copyBtn.textContent = 'Copied ✓';
           setTimeout(() => { copyBtn.textContent = original; }, 1500);
         }).catch(() => alert('Copy failed. Link: ' + link));
+      }
+    }
+
+    // Availability: block a new date.
+    if (target.closest('#block-date-btn')) {
+      const btn = target.closest('#block-date-btn') as HTMLButtonElement;
+      const dateInput = document.getElementById('block-date') as HTMLInputElement | null;
+      const reasonInput = document.getElementById('block-reason') as HTMLInputElement | null;
+      const date = dateInput?.value || '';
+      if (!date) {
+        alert('Please pick a date to block.');
+        return;
+      }
+      const reason = reasonInput?.value.trim() || '';
+
+      btn.disabled = true;
+      const ok = await postBlocked('POST', { date, reason });
+      if (ok) {
+        window.location.reload();
+      } else {
+        btn.disabled = false;
+      }
+    }
+
+    // Availability: unblock an existing date.
+    const unblockBtn = target.closest('.unblock-date-btn') as HTMLButtonElement | null;
+    if (unblockBtn) {
+      const date = unblockBtn.getAttribute('data-date');
+      if (!date) return;
+      if (!confirm('Make this date available again?')) return;
+
+      unblockBtn.disabled = true;
+      const ok = await postBlocked('DELETE', { date });
+      if (ok) {
+        window.location.reload();
+      } else {
+        unblockBtn.disabled = false;
       }
     }
   });

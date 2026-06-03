@@ -1,6 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
+import { COUNTRIES } from '../lib/countries';
+import { createClient } from '@supabase/supabase-js';
+
+// SSR so unavailable dates are always fresh.
+export const prerender = false;
 
 // Experience slideshow. Dedicated photography under /images/experiences/.
 const EXPERIENCES = [
@@ -11,6 +16,59 @@ const EXPERIENCES = [
   { label: 'Chef for several days', img: '/images/experiences/multiday.jpg', kicker: 'At your home', desc: 'A week of fine dining' },
   { label: 'Something else', img: '', kicker: 'Bespoke', desc: 'Have something unique in mind?' },
 ];
+
+// --- Unavailable calendar dates (server-side, bypasses RLS) ---
+const supabaseAdmin = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { persistSession: false, autoRefreshToken: false } }
+);
+
+// Current date as YYYY-MM-DD (UTC-safe).
+const today = new Date().toISOString().slice(0, 10);
+
+const unavailableSet = new Set<string>();
+
+// Format a Date as YYYY-MM-DD using its UTC fields.
+const isoUTC = (d: Date) =>
+  `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+
+try {
+  // Query A: active bookings overlapping today or later.
+  const { data: bookingRows } = await supabaseAdmin
+    .from('bookings')
+    .select('start_date,end_date,status')
+    .in('status', ['pending', 'confirmed'])
+    .gte('end_date', today);
+
+  for (const row of bookingRows || []) {
+    const startStr = (row as any).start_date as string | null;
+    const endStr = ((row as any).end_date as string | null) || startStr;
+    if (!startStr) continue;
+    const start = new Date(`${startStr}T00:00:00Z`);
+    const end = new Date(`${(endStr as string)}T00:00:00Z`);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
+    for (let cur = new Date(start); cur.getTime() <= end.getTime(); cur.setUTCDate(cur.getUTCDate() + 1)) {
+      unavailableSet.add(isoUTC(cur));
+    }
+  }
+
+  // Query B: manually blocked dates.
+  const { data: blockedRows } = await supabaseAdmin
+    .from('blocked_dates')
+    .select('date')
+    .gte('date', today);
+
+  for (const row of blockedRows || []) {
+    const d = (row as any).date as string | null;
+    if (d) unavailableSet.add(d.slice(0, 10));
+  }
+} catch (err) {
+  // Fail open: a calendar without disabled dates is better than a broken page.
+  console.error('Failed to load unavailable dates', err);
+}
+
+const unavailableDates: string[] = Array.from(unavailableSet);
 ---
 
 <Layout title="Request Chef Nino — Bespoke" bodyClass="bg-[#faf7f1] text-[#17130d]">
@@ -100,9 +158,43 @@ const EXPERIENCES = [
               class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" placeholder="First name Surname" />
           </div>
           <div>
-            <label for="customer_phone" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Phone</label>
-            <input id="customer_phone" name="customer_phone" type="tel" required
-              class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" placeholder="+39 333 1234567" />
+            <label for="phone_local" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Phone</label>
+            <div class="flex items-end gap-2 border-b border-gray-300 focus-within:border-[#c6a15b]">
+              <!-- Country-code selector -->
+              <div class="relative shrink-0">
+                <button type="button" id="phone-cc-btn" aria-haspopup="listbox" aria-expanded="false"
+                  class="flex items-center gap-1.5 py-2.5 text-lg text-[#17130d] focus:outline-none">
+                  <span id="phone-cc-flag">🇮🇹</span>
+                  <span id="phone-cc-dial" class="tabular-nums">+39</span>
+                  <svg class="w-4 h-4 text-[#c6a15b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div id="phone-cc-pop" data-open="false"
+                  class="absolute z-30 mt-2 left-0 w-72 rounded-2xl border border-[#c6a15b]/30 bg-[#fffef9] shadow-xl origin-top transition data-[open=false]:opacity-0 data-[open=false]:translate-y-1 data-[open=false]:pointer-events-none">
+                  <div class="p-2 border-b border-[#c6a15b]/15">
+                    <input id="phone-cc-search" type="text" autocomplete="off" placeholder="Search country…"
+                      class="w-full bg-transparent border-0 border-b border-gray-200 px-1 py-1.5 text-sm focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" />
+                  </div>
+                  <ul id="phone-cc-list" role="listbox" class="max-h-60 overflow-y-auto py-1 text-sm">
+                    {COUNTRIES.map((c) => (
+                      <li>
+                        <button type="button" class="phone-cc-opt w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-[#faf0dd]"
+                          data-dial={c.dial_code} data-flag={c.flag} data-name={c.name}>
+                          <span>{c.flag}</span>
+                          <span class="flex-1 truncate text-[#17130d]">{c.name}</span>
+                          <span class="text-gray-400 tabular-nums">{c.dial_code}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <!-- Local number -->
+              <input id="phone_local" type="tel" inputmode="tel" required
+                class="flex-1 min-w-0 bg-transparent border-0 px-0 py-2.5 text-lg focus:ring-0 placeholder:text-gray-400" placeholder="333 1234567" />
+            </div>
+            <!-- Full international number, kept in sync; read by the submit code. -->
+            <input id="customer_phone" name="customer_phone" type="hidden" />
+            <p id="phone-error" class="mt-1 text-xs text-red-500 hidden">Please enter 6–15 digits.</p>
           </div>
         </div>
 
@@ -140,14 +232,21 @@ const EXPERIENCES = [
                 <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
               </div>
               <div id="cal-grid" class="grid grid-cols-7 gap-1" role="grid"></div>
+              <p class="mt-2 text-[11px] text-gray-400 text-center">Crossed-out days are unavailable.</p>
             </div>
           </div>
         </div>
 
         <div class="mt-6">
-          <label for="city" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Where</label>
+          <label for="city" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">City</label>
           <input id="city" name="city" type="text" required
-            class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" placeholder="City (and address, if you like)" />
+            class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" placeholder="City" />
+        </div>
+
+        <div class="mt-6">
+          <label for="event_address" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Address</label>
+          <input id="event_address" name="event_address" type="text"
+            class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" placeholder="Where should the event take place? Street and number" />
         </div>
       </div>
 
@@ -239,6 +338,8 @@ const EXPERIENCES = [
   }
 </style>
 
+<script is:inline define:vars={{ unavailableDates }}>window.__UNAVAILABLE__ = unavailableDates || [];</script>
+
 <script>
   // ===== SLIDESHOW =====
   (() => {
@@ -307,6 +408,66 @@ const EXPERIENCES = [
     document.getElementById('g-plus')?.addEventListener('click', () => { inp.value = String(clamp((parseInt(inp.value, 10) || 1) + 1)); });
   })();
 
+  // ===== PHONE COUNTRY-CODE SELECTOR =====
+  (() => {
+    const btn = document.getElementById('phone-cc-btn');
+    const pop = document.getElementById('phone-cc-pop');
+    const flagEl = document.getElementById('phone-cc-flag');
+    const dialEl = document.getElementById('phone-cc-dial');
+    const search = document.getElementById('phone-cc-search') as HTMLInputElement | null;
+    const localInp = document.getElementById('phone_local') as HTMLInputElement | null;
+    const hidden = document.getElementById('customer_phone') as HTMLInputElement | null;
+    const errEl = document.getElementById('phone-error');
+    const opts = Array.from(document.querySelectorAll('.phone-cc-opt')) as HTMLButtonElement[];
+    if (!btn || !pop || !flagEl || !dialEl || !localInp || !hidden) return;
+
+    let dial = '+39';
+
+    function syncHidden() {
+      const digits = localInp!.value.replace(/\D/g, '');
+      hidden!.value = digits ? `${dial} ${digits}` : '';
+    }
+
+    function validate() {
+      const digits = localInp!.value.replace(/\D/g, '');
+      const ok = digits.length >= 6 && digits.length <= 15;
+      if (errEl) errEl.classList.toggle('hidden', ok || digits.length === 0);
+      return ok;
+    }
+
+    function openPop() { pop!.dataset.open = 'true'; btn!.setAttribute('aria-expanded', 'true'); if (search) { search.value = ''; filter(''); search.focus(); } }
+    function closePop() { pop!.dataset.open = 'false'; btn!.setAttribute('aria-expanded', 'false'); }
+
+    function filter(q: string) {
+      const needle = q.trim().toLowerCase();
+      opts.forEach((o) => {
+        const name = (o.dataset.name || '').toLowerCase();
+        const d = (o.dataset.dial || '').toLowerCase();
+        const li = o.parentElement as HTMLElement;
+        li.style.display = !needle || name.includes(needle) || d.includes(needle) ? '' : 'none';
+      });
+    }
+
+    btn.addEventListener('click', () => { pop!.dataset.open === 'true' ? closePop() : openPop(); });
+    search?.addEventListener('input', () => filter(search.value));
+    opts.forEach((o) => o.addEventListener('click', () => {
+      dial = o.dataset.dial || '+39';
+      flagEl!.textContent = o.dataset.flag || '';
+      dialEl!.textContent = dial;
+      syncHidden();
+      closePop();
+      localInp!.focus();
+    }));
+
+    localInp.addEventListener('input', () => { syncHidden(); validate(); });
+    localInp.addEventListener('blur', validate);
+
+    document.addEventListener('click', (e) => { if (!pop.contains(e.target as Node) && !btn.contains(e.target as Node)) closePop(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
+
+    syncHidden();
+  })();
+
   // ===== CUSTOM CALENDAR =====
   (() => {
     const trigger = document.getElementById('date-display');
@@ -329,6 +490,7 @@ const EXPERIENCES = [
     const atStart = () => viewY === todayY && viewM === todayM;
 
     function render() {
+      const blocked = new Set<string>(((window as any).__UNAVAILABLE__ as string[]) || []);
       title!.textContent = `${MONTHS[viewM]} ${viewY}`;
       if (prev) prev.disabled = atStart();
       grid!.innerHTML = '';
@@ -346,6 +508,9 @@ const EXPERIENCES = [
         cell.className = 'h-10 w-10 rounded-full text-sm flex items-center justify-center transition-colors';
         if (past) {
           cell.className += ' text-gray-300 cursor-default';
+          cell.disabled = true;
+        } else if (blocked.has(thisISO)) {
+          cell.className += ' text-gray-300 line-through cursor-not-allowed';
           cell.disabled = true;
         } else {
           cell.className += ' hover:bg-[#faf0dd]';
@@ -426,7 +591,7 @@ const EXPERIENCES = [
       const now = new Date();
       return {
         customer_name: v('customer_name'), customer_email: v('customer_email'), customer_phone: v('customer_phone'),
-        service_type: v('service_type'), num_guests: v('num_guests'), start_date: v('start_date'), city: v('city'),
+        service_type: v('service_type'), num_guests: v('num_guests'), start_date: v('start_date'), city: v('city'), event_address: v('event_address'),
         today_iso: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
       };
     }
@@ -502,7 +667,7 @@ const EXPERIENCES = [
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             customer_name: v('customer_name'), customer_email: v('customer_email'), customer_phone: v('customer_phone'),
-            service_type: v('service_type'), num_guests: v('num_guests'), start_date: v('start_date'), city: v('city'),
+            service_type: v('service_type'), num_guests: v('num_guests'), start_date: v('start_date'), city: v('city'), event_address: v('event_address'),
             event_details: details, product: 'custom', marketing_consent: true,
             company_website: (document.querySelector('[name="company_website"]') as HTMLInputElement | null)?.value || '',
           }),
