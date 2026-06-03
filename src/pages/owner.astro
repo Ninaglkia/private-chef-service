@@ -26,6 +26,7 @@ const { data: pending } = await supabaseAdmin
   .limit(60);
 
 const requests = pending ?? [];
+const stripeLive = String(import.meta.env.STRIPE_SECRET_KEY || '').startsWith('sk_live');
 const fmtDate = (s: string | null) =>
   s ? new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 ---
@@ -40,12 +41,18 @@ const fmtDate = (s: string | null) =>
     </div>
     <h1 class="font-serif text-3xl sm:text-4xl font-semibold">Send a confirmation &amp; payment link</h1>
     <p class="mt-2 text-gray-500 max-w-2xl text-sm">
-      Pick a request, paste the Stripe link you created, write the recap you agreed on WhatsApp and the price,
-      then send it by email and/or WhatsApp.
+      Pick a request, set the price with the calculator, hit <strong>Generate link</strong> to create the Stripe
+      payment link automatically, write the recap you agreed, then send it by email and/or WhatsApp.
     </p>
-    <p class="mt-3 inline-block rounded-full bg-amber-100 text-amber-800 text-xs font-medium px-3 py-1">
-      ⚠️ Stripe is in TEST mode — links won't take real money until you go live.
-    </p>
+    {stripeLive ? (
+      <p class="mt-3 inline-block rounded-full bg-green-100 text-green-800 text-xs font-medium px-3 py-1">
+        ● Stripe is LIVE — links take real payments.
+      </p>
+    ) : (
+      <p class="mt-3 inline-block rounded-full bg-amber-100 text-amber-800 text-xs font-medium px-3 py-1">
+        ⚠️ Stripe is in TEST mode — links won't take real money until you go live.
+      </p>
+    )}
 
     <div class="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,360px)_1fr] gap-8">
       <!-- LEFT: pending requests -->
@@ -144,10 +151,20 @@ const fmtDate = (s: string | null) =>
           </label>
         </div>
 
-        <label class="block mt-6">
-          <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Stripe payment link *</span>
-          <input id="f_link" type="url" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-base focus:border-[#c6a15b] focus:ring-0" placeholder="https://buy.stripe.com/…" />
-        </label>
+        <div class="mt-6">
+          <div class="flex items-end justify-between gap-3">
+            <label class="block flex-1">
+              <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Stripe payment link *</span>
+              <input id="f_link" type="url" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-base focus:border-[#c6a15b] focus:ring-0" placeholder="https://buy.stripe.com/… (generate it →)" />
+            </label>
+            <button id="btn-genlink" type="button"
+              class="shrink-0 inline-flex items-center gap-2 rounded-2xl border border-[#c6a15b] text-[#17130d] px-4 py-2.5 text-sm font-medium hover:bg-[#c6a15b]/10 active:scale-[0.99] transition-all disabled:opacity-50">
+              <span class="text-[#c6a15b]">⚡</span>
+              <span id="btn-genlink-label">Generate link</span>
+            </button>
+          </div>
+          <span class="block mt-1 text-xs text-gray-400">Builds the Stripe link from the calculator above (Chef + meal × guests). No need to open Stripe.</span>
+        </div>
 
         <label class="block mt-6">
           <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Recap — what you agreed on WhatsApp *</span>
@@ -299,5 +316,50 @@ const fmtDate = (s: string | null) =>
       link,
     ].filter((l) => l !== undefined).join('\n');
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(lines)}`, '_blank');
+  });
+
+  // ---- Generate the Stripe payment link automatically from the calculator ----
+  const btnGen = document.getElementById('btn-genlink') as HTMLButtonElement | null;
+  const btnGenLabel = document.getElementById('btn-genlink-label');
+  btnGen?.addEventListener('click', async () => {
+    if (!val('f_booking_id')) return status('Select a pending request first.', false);
+    const price = Number(val('f_price'));
+    if (!Number.isFinite(price) || price <= 0) return status('Set a valid price before generating the link.', false);
+
+    const tier = Number(val('f_tier')) || 1;
+    const mealSel = $('f_meal') as unknown as HTMLSelectElement | null;
+    const mealBase = Number(val('f_meal')) || 0;
+    const mealName = (mealSel && mealSel.selectedIndex > 0 ? (mealSel.options[mealSel.selectedIndex].dataset.name || 'Meal') : '') + (tier === 2 ? ' Premium' : '');
+
+    btnGen.disabled = true;
+    if (btnGenLabel) btnGenLabel.textContent = 'Generating…';
+    try {
+      const res = await fetch('/api/owner/create-payment-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: val('f_booking_id'),
+          customer_name: val('f_name'),
+          customer_email: val('f_email'),
+          chef_eur: Number(val('f_chef')) || 0,
+          meal_unit_eur: mealBase * tier,
+          meal_name: mealName.trim(),
+          guests: Number(val('f_guests')) || 0,
+          total_eur: price,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.url) {
+        status(data?.error || 'Could not generate the link.', false);
+      } else {
+        set('f_link', data.url);
+        status('✓ Stripe link generated' + (data.itemized ? ' (itemized)' : ' (single total)') + ' — now send it.', true);
+      }
+    } catch {
+      status('Network error, please try again.', false);
+    } finally {
+      btnGen.disabled = false;
+      if (btnGenLabel) btnGenLabel.textContent = 'Generate link';
+    }
   });
 </script>
