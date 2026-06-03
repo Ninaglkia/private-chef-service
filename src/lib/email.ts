@@ -268,10 +268,6 @@ export async function sendBookingConfirmationEmails(booking: any) {
 
       <p><strong>Please note:</strong> groceries are billed separately, at cost, and are not included in the amount above.</p>
       <p><strong>Next Steps:</strong> Chef Nino will contact you shortly to discuss menu preferences and dietary requirements.</p>
-
-      <hr style="border:none;border-top:1px solid #e7e0d4;margin:28px 0;" />
-      <p style="text-align:center;">Enjoyed the experience? You can leave Chef Nino a tip — any amount you wish. It's entirely optional and always appreciated.</p>
-      ${emailButton(TIP_PAYMENT_LINK, 'Leave a tip')}
     `
   );
 
@@ -301,6 +297,32 @@ export async function sendBookingConfirmationEmails(booking: any) {
     sendEmail({ to: customer_email, subject: 'Booking Confirmation - Private Chef Service', html: customerHtml, from: FROM_EMAIL_CUSTOMER }),
     sendEmail({ to: ORGANIZER_EMAIL, subject: `[NEW BOOKING] ${customer_name} - ${formattedPrice}`, html: organizerHtml, from: FROM_EMAIL_SYSTEM })
   ]);
+}
+
+// 2b. THANK-YOU EMAIL (sent the day AFTER the event by the thank-you cron, once
+// the guest has actually experienced the service). Carries the optional tip link.
+export async function sendThankYouEmail(booking: any): Promise<void> {
+  const { customer_name, customer_email } = booking;
+  const firstName = String(customer_name || '').trim().split(/\s+/)[0] || 'there';
+
+  const customerHtml = getHtmlTemplate(
+    'Thank you',
+    `
+      <h2>Thank you for choosing Nino's Private Chef</h2>
+      <p>Dear ${escapeHtml(firstName)},</p>
+      <p>It was a true pleasure to cook for you. We hope every dish lived up to the occasion and that you and your guests enjoyed the experience as much as Chef Nino enjoyed creating it.</p>
+      <p>If you'd like to share your appreciation, you can leave Chef Nino a tip below — any amount you wish. It's entirely optional and always warmly appreciated.</p>
+      ${emailButton(TIP_PAYMENT_LINK, 'Leave a tip')}
+      <p style="text-align:center;" class="fine">Thank you again for welcoming us to your table. We would be honoured to cook for you again.</p>
+    `
+  );
+
+  await sendEmail({
+    to: customer_email,
+    subject: "Thank you for choosing Nino's Private Chef",
+    html: customerHtml,
+    from: FROM_EMAIL_CUSTOMER,
+  });
 }
 
 // 3. WELCOME EMAIL (new user signup or first Google login)

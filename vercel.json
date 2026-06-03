@@ -1,6 +1,7 @@
 {
   "crons": [
-    { "path": "/api/cron/birthday", "schedule": "0 7 * * *" }
+    { "path": "/api/cron/birthday", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/thank-you", "schedule": "0 8 * * *" }
   ],
   "headers": [
     {
