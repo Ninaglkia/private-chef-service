@@ -470,6 +470,59 @@ export async function sendRequestConfirmationToGuest(data: {
   });
 }
 
+// 4a. BOOKING CONFIRMATION + PAYMENT LINK (owner-driven, after the WhatsApp chat).
+// The owner pastes the Stripe link + the agreed recap and price; this sends the
+// branded "confirm your booking" email to the guest, from the customer address.
+export async function sendBookingConfirmationLinkEmail(data: {
+  customer_name: string;
+  customer_email: string;
+  payment_url: string;
+  price_eur: number;
+  recap: string;
+  num_guests?: number | string | null;
+  city?: string | null;
+  event_address?: string | null;
+  start_date?: string | null;
+}) {
+  const name = (data.customer_name || '').trim() || 'there';
+  const priceFmt = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(
+    Number.isFinite(data.price_eur) ? data.price_eur : 0
+  );
+  const recapHtml = escapeHtml(data.recap).replace(/\n/g, '<br>');
+  const row = (label: string, value: unknown) =>
+    value
+      ? `<div class="details-row"><span class="label">${escapeHtml(label)}:</span> <span class="value">${escapeHtml(String(value))}</span></div>`
+      : '';
+  const html = getHtmlTemplate(
+    'Confirm your booking',
+    `
+      <h2>Confirm your booking with Chef Nino</h2>
+      <p>Dear ${escapeHtml(name)},</p>
+      <p>As agreed, here is the confirmation of your bespoke dining experience with Chef Nino. To secure your date, simply complete the payment with the secure link below.</p>
+
+      <div class="details-box">
+        ${row('Guests', data.num_guests)}
+        ${row('Where', data.city)}
+        ${row('Address', data.event_address)}
+        ${row('When', data.start_date)}
+        <div class="details-row"><span class="label">Total:</span> <span class="value">${escapeHtml(priceFmt)}</span></div>
+      </div>
+      ${data.recap ? `<p style="margin-top:4px;"><strong>What we agreed:</strong></p><div class="details-box"><p style="margin:0;">${recapHtml}</p></div>` : ''}
+
+      ${emailButton(data.payment_url, 'Confirm &amp; pay')}
+
+      <p class="fine">Groceries are billed separately, at cost, and are not included in the amount above. If the button doesn't work, copy this link into your browser:<br><a href="${escapeHtml(data.payment_url)}">${escapeHtml(data.payment_url)}</a></p>
+      <p>À bientôt,<br>Chef Nino</p>
+    `
+  );
+  await sendEmail({
+    to: data.customer_email,
+    subject: "Confirm your booking — Nino's Private Chef",
+    html,
+    from: FROM_EMAIL_CUSTOMER,
+  });
+}
+
 // 3c. CHAT NOTIFICATION (owner alert when a client sends a chat message)
 export async function sendChatNotificationEmail(data: { clientName?: string | null; body: string }) {
   const name = data.clientName?.trim() || 'A client';

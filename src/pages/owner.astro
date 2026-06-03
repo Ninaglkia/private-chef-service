@@ -1,0 +1,253 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import { createClient } from '@supabase/supabase-js';
+import { isOwnerEmail } from '../lib/admin';
+
+export const prerender = false;
+
+// Owner-only console. Middleware resolves the signed-in user from the access
+// cookie; gate on login + the owner email allowlist (lib/admin.ts).
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/login?returnTo=/owner');
+if (!isOwnerEmail(user.email)) return Astro.redirect('/');
+
+const supabaseAdmin = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
+  { auth: { persistSession: false, autoRefreshToken: false } }
+);
+
+const { data: pending } = await supabaseAdmin
+  .from('bookings')
+  .select('id, customer_name, customer_email, customer_phone, num_guests, city, event_address, start_date, dietary_preferences, total_price, payment_link_url, link_sent_at, created_at')
+  .eq('status', 'pending')
+  .order('created_at', { ascending: false })
+  .limit(60);
+
+const requests = pending ?? [];
+const fmtDate = (s: string | null) =>
+  s ? new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+---
+
+<Layout title="Owner — Send confirmation" bodyClass="bg-[#faf7f1] text-[#17130d]">
+  <Header transparent={false} />
+
+  <main class="max-w-6xl mx-auto px-5 pt-28 pb-24">
+    <div class="flex items-center gap-3 mb-2">
+      <span class="h-px w-8 bg-[#c6a15b]/60"></span>
+      <span class="text-[11px] uppercase tracking-[0.25em] text-[#c6a15b]">Owner</span>
+    </div>
+    <h1 class="font-serif text-3xl sm:text-4xl font-semibold">Send a confirmation &amp; payment link</h1>
+    <p class="mt-2 text-gray-500 max-w-2xl text-sm">
+      Pick a request, paste the Stripe link you created, write the recap you agreed on WhatsApp and the price,
+      then send it by email and/or WhatsApp.
+    </p>
+    <p class="mt-3 inline-block rounded-full bg-amber-100 text-amber-800 text-xs font-medium px-3 py-1">
+      ⚠️ Stripe is in TEST mode — links won't take real money until you go live.
+    </p>
+
+    <div class="mt-8 grid grid-cols-1 lg:grid-cols-[minmax(0,360px)_1fr] gap-8">
+      <!-- LEFT: pending requests -->
+      <section>
+        <h2 class="text-xs uppercase tracking-[0.2em] text-[#17130d]/70 mb-3">Pending requests ({requests.length})</h2>
+        <div class="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+          {requests.length === 0 && (
+            <p class="text-sm text-gray-400">No pending requests right now.</p>
+          )}
+          {requests.map((r) => (
+            <button
+              type="button"
+              class="req-card w-full text-left rounded-2xl border border-[#c6a15b]/25 bg-white p-4 transition-all hover:border-[#c6a15b] hover:shadow-[0_0_28px_-12px_rgba(198,161,91,0.7)]"
+              data-id={r.id}
+              data-name={r.customer_name ?? ''}
+              data-email={r.customer_email ?? ''}
+              data-phone={r.customer_phone ?? ''}
+              data-guests={r.num_guests ?? ''}
+              data-city={r.city ?? ''}
+              data-address={r.event_address ?? ''}
+              data-date={r.start_date ?? ''}
+              data-idea={r.dietary_preferences ?? ''}
+            >
+              <div class="flex items-center justify-between gap-2">
+                <strong class="font-serif text-lg">{r.customer_name}</strong>
+                {r.link_sent_at && <span class="text-[10px] uppercase tracking-wider text-green-700 bg-green-100 rounded-full px-2 py-0.5">link sent</span>}
+              </div>
+              <p class="text-sm text-gray-600 mt-0.5">{r.num_guests} guests · {r.city || '—'} · {fmtDate(r.start_date)}</p>
+              <p class="text-xs text-gray-400 mt-1 truncate">{r.customer_email}{r.customer_phone ? ' · ' + r.customer_phone : ''}</p>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <!-- RIGHT: confirmation form -->
+      <section class="rounded-3xl border border-[#c6a15b]/25 bg-white p-6 sm:p-8 shadow-lg">
+        <input type="hidden" id="f_booking_id" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <label class="block">
+            <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Customer name</span>
+            <input id="f_name" type="text" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0" placeholder="Name" />
+          </label>
+          <label class="block">
+            <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Customer email *</span>
+            <input id="f_email" type="email" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0" placeholder="you@example.com" />
+          </label>
+          <label class="block">
+            <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Customer phone (for WhatsApp)</span>
+            <input id="f_phone" type="tel" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0" placeholder="+39 333 1234567" />
+          </label>
+          <label class="block">
+            <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Price (€) *</span>
+            <input id="f_price" type="number" min="1" step="1" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0" placeholder="600" />
+          </label>
+          <label class="block">
+            <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Guests</span>
+            <input id="f_guests" type="number" min="1" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0" placeholder="8" />
+          </label>
+          <label class="block">
+            <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Date</span>
+            <input id="f_date" type="text" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0" placeholder="2026-07-12" />
+          </label>
+          <label class="block sm:col-span-2">
+            <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">City</span>
+            <input id="f_city" type="text" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0" placeholder="Milano" />
+          </label>
+          <label class="block sm:col-span-2">
+            <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Address</span>
+            <input id="f_address" type="text" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0" placeholder="Street and number" />
+          </label>
+        </div>
+
+        <label class="block mt-6">
+          <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Stripe payment link *</span>
+          <input id="f_link" type="url" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-base focus:border-[#c6a15b] focus:ring-0" placeholder="https://buy.stripe.com/…" />
+        </label>
+
+        <label class="block mt-6">
+          <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Recap — what you agreed on WhatsApp *</span>
+          <textarea id="f_recap" rows="6" class="w-full rounded-2xl bg-[#faf7f1] border border-[#c6a15b]/25 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#c6a15b]" placeholder="e.g. 5-course tasting menu, seafood starter, no shellfish for 2 guests, service from 8pm…"></textarea>
+        </label>
+
+        <div class="mt-7 flex flex-col sm:flex-row gap-3">
+          <button id="btn-email" type="button"
+            class="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#17130d] text-[#fdf8ef] py-3.5 text-sm font-serif tracking-wide hover:bg-black active:scale-[0.99] transition-all disabled:opacity-50">
+            <span class="text-[#c6a15b]">✦</span>
+            <span id="btn-email-label">Send confirmation email</span>
+          </button>
+          <button id="btn-wa" type="button"
+            class="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] text-white py-3.5 text-sm font-semibold hover:bg-[#1ebe5a] active:scale-[0.99] transition-all">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.748-.748zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+            Open WhatsApp
+          </button>
+        </div>
+        <p id="owner-status" class="mt-3 text-sm hidden"></p>
+      </section>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  const $ = (id: string) => document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | null;
+  const val = (id: string) => ($(id)?.value ?? '').trim();
+  const set = (id: string, v: string) => { const el = $(id); if (el) el.value = v; };
+
+  // ---- Select a pending request → prefill the form ----
+  document.querySelectorAll<HTMLButtonElement>('.req-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.req-card').forEach((c) => c.classList.remove('ring-2', 'ring-[#c6a15b]'));
+      card.classList.add('ring-2', 'ring-[#c6a15b]');
+      const d = card.dataset;
+      set('f_booking_id', d.id || '');
+      set('f_name', d.name || '');
+      set('f_email', d.email || '');
+      set('f_phone', d.phone || '');
+      set('f_guests', d.guests || '');
+      set('f_date', d.date || '');
+      set('f_city', d.city || '');
+      set('f_address', d.address || '');
+      // Seed the recap with the guest's original idea so the owner can edit it.
+      if (!val('f_recap') && d.idea) set('f_recap', d.idea);
+      ($('f_link') as HTMLInputElement | null)?.focus();
+    });
+  });
+
+  // ---- Status helper ----
+  const statusEl = document.getElementById('owner-status');
+  function status(msg: string, ok: boolean) {
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+    statusEl.className = 'mt-3 text-sm ' + (ok ? 'text-green-700' : 'text-red-600');
+  }
+
+  function validate(): string | null {
+    if (!/^\S+@\S+\.\S+$/.test(val('f_email'))) return 'Enter a valid customer email.';
+    if (!/^https:\/\/\S+$/i.test(val('f_link'))) return 'Paste a valid https Stripe link.';
+    const price = Number(val('f_price'));
+    if (!Number.isFinite(price) || price <= 0) return 'Enter a valid price.';
+    if (!val('f_recap')) return 'Add the recap of what you agreed.';
+    return null;
+  }
+
+  // ---- Send the branded email ----
+  const btnEmail = document.getElementById('btn-email') as HTMLButtonElement | null;
+  const btnEmailLabel = document.getElementById('btn-email-label');
+  btnEmail?.addEventListener('click', async () => {
+    const err = validate();
+    if (err) return status(err, false);
+    btnEmail.disabled = true;
+    if (btnEmailLabel) btnEmailLabel.textContent = 'Sending…';
+    try {
+      const res = await fetch('/api/owner/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: val('f_booking_id') || null,
+          customer_name: val('f_name'),
+          customer_email: val('f_email'),
+          payment_url: val('f_link'),
+          price_eur: Number(val('f_price')),
+          recap: val('f_recap'),
+          num_guests: val('f_guests') || null,
+          city: val('f_city') || null,
+          event_address: val('f_address') || null,
+          start_date: val('f_date') || null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) status(data?.error || 'Could not send the email.', false);
+      else status('✓ Confirmation email sent to ' + val('f_email'), true);
+    } catch {
+      status('Network error, please try again.', false);
+    } finally {
+      btnEmail.disabled = false;
+      if (btnEmailLabel) btnEmailLabel.textContent = 'Send confirmation email';
+    }
+  });
+
+  // ---- Open WhatsApp with the message prefilled (link always included) ----
+  document.getElementById('btn-wa')?.addEventListener('click', () => {
+    const err = validate();
+    if (err) return status(err, false);
+    const phone = val('f_phone').replace(/\D/g, '');
+    if (!phone) return status('No phone number for this customer — add one to use WhatsApp.', false);
+    const name = val('f_name') || 'ciao';
+    const price = val('f_price');
+    const date = val('f_date');
+    const guests = val('f_guests');
+    const city = val('f_city');
+    const recap = val('f_recap');
+    const link = val('f_link');
+    const lines = [
+      `Ciao ${name}! Ecco la conferma della tua prenotazione con Chef Nino 👨‍🍳`,
+      '',
+      recap,
+      '',
+      [date && `📅 ${date}`, guests && `👥 ${guests} ospiti`, city && `📍 ${city}`].filter(Boolean).join('  •  '),
+      `Totale: €${price}`,
+      '',
+      'Conferma e paga in sicurezza qui:',
+      link,
+    ].filter((l) => l !== undefined).join('\n');
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(lines)}`, '_blank');
+  });
+</script>

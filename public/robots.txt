@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /owner
 Disallow: /dashboard
 Disallow: /complete-profile
 
