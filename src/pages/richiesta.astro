@@ -215,7 +215,7 @@ const EXPERIENCES = [
         <span class="h-px flex-1 bg-[#c6a15b]/30"></span>
       </div>
 
-      <!-- CHAPTER 03 — LA TUA IDEA (AI ASSISTANT) -->
+      <!-- CHAPTER 03 — YOUR IDEA -->
       <div class="max-w-2xl mx-auto px-5">
         <div class="flex items-center gap-4 mb-8">
           <span class="font-serif text-2xl text-[#c6a15b]">III</span>
@@ -521,7 +521,7 @@ const EXPERIENCES = [
         grid!.appendChild(cell);
       }
     }
-    function open() { pop!.dataset.open = 'true'; trigger!.setAttribute('aria-expanded', 'true'); render(); }
+    function open() { phase = 'done'; pop!.dataset.open = 'true'; trigger!.setAttribute('aria-expanded', 'true'); render(); }
     function close() { pop!.dataset.open = 'false'; trigger!.setAttribute('aria-expanded', 'false'); }
 
     trigger.addEventListener('click', () => { pop!.dataset.open === 'true' ? close() : open(); });
@@ -565,7 +565,7 @@ const EXPERIENCES = [
       if (!v('customer_name') || !v('customer_email') || !v('customer_phone')) return showErr('Please fill in your name, email and phone.');
       if (!v('num_guests')) return showErr('Please enter the number of guests.');
       if (!v('start_date')) return showErr('Please choose a date.');
-      if (!v('city')) return showErr('Please enter the location.');
+      if (!v('city')) return showErr('Please enter the city.');
       if (!consent) return showErr('Please tick the consent box to send.');
 
       // Their idea (free text) + the chosen experience.
