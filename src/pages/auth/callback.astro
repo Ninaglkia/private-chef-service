@@ -121,6 +121,12 @@ import Header from '../../components/Header.astro';
     // 4. Mirror the session into the server-readable cookies (https-aware Secure flag).
     writeSessionCookies(session);
 
+    // The owner's home is the /owner console — skip customer onboarding.
+    if (user.email?.toLowerCase() === 'ninaglia089@gmail.com') {
+      window.location.href = '/owner';
+      return;
+    }
+
     // 5. Onboarding gate — same logic as login.astro.
     const { data: profile } = await supabase
       .from('profiles')

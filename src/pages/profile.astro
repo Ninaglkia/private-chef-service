@@ -2,12 +2,18 @@
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import ProfileForm from '../components/ProfileForm.astro';
+import { isOwnerEmail } from '../lib/admin';
 
 // Session resolved + refreshed in middleware → Astro.locals.user.
 const user = Astro.locals.user;
 
 if (!user) {
   return Astro.redirect(`/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
+}
+
+// The owner manages everything from the /owner console.
+if (isOwnerEmail(user.email)) {
+  return Astro.redirect('/owner');
 }
 ---
 

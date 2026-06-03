@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { createClient } from '@supabase/supabase-js';
+import { isOwnerEmail } from '../lib/admin';
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 
@@ -9,6 +10,11 @@ const user = Astro.locals.user;
 
 if (!user) {
   return Astro.redirect(`/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
+}
+
+// The owner's home is the /owner console, not the customer dashboard.
+if (isOwnerEmail(user.email)) {
+  return Astro.redirect('/owner');
 }
 
 // Onboarding gate: a complete profile (name, phone, city) is required to continue.
