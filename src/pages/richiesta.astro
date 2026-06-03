@@ -83,7 +83,7 @@ const unavailableDates: string[] = Array.from(unavailableSet);
         <span class="h-px w-8 bg-[#c6a15b]/60"></span>
       </div>
       <h1 class="font-serif text-5xl sm:text-6xl font-semibold leading-tight">Let's design your evening.</h1>
-      <p class="mt-4 text-gray-500 max-w-xl mx-auto">Choose your experience, tell my assistant about it and Chef Nino will get back to you with a proposal and a price. No payment now.</p>
+      <p class="mt-4 text-gray-500 max-w-xl mx-auto">Choose your experience, tell us about it and Chef Nino will get back to you with a proposal and a price. No payment now.</p>
     </section>
 
     <!-- CHAPTER 01 — L'ESPERIENZA -->
@@ -265,35 +265,12 @@ const unavailableDates: string[] = Array.from(unavailableSet);
           <span class="h-px flex-1 bg-[#c6a15b]/25"></span>
         </div>
 
-        <div class="bg-white rounded-3xl border border-[#c6a15b]/25 shadow-lg overflow-hidden">
-          <div class="flex items-center gap-3 px-5 py-4 border-b border-[#c6a15b]/20">
-            <span class="flex items-center justify-center w-10 h-10 rounded-full bg-[#17130d] text-[#c6a15b] font-serif">✦</span>
-            <div class="flex-1">
-              <p class="font-serif text-lg leading-tight">Chef Nino's Assistant</p>
-              <p class="flex items-center gap-1.5 text-[11px] text-gray-400"><span class="w-1.5 h-1.5 rounded-full bg-[#c6a15b]"></span>Online · replies in English</p>
-            </div>
-          </div>
+        <textarea id="event_details" name="event_details" rows="5"
+          class="w-full rounded-3xl bg-white border border-[#c6a15b]/25 shadow-lg px-5 py-4 text-base focus:outline-none focus:ring-2 focus:ring-gold-500 placeholder:text-gray-400"
+          placeholder="Describe your evening… occasion, menu, allergies, budget. Chef Nino will reply with a proposal and a price."></textarea>
 
-          <div id="chat-log" class="flex flex-col gap-3 px-4 py-5 max-h-[60vh] overflow-y-auto"></div>
-
-          <div id="chat-chips" class="flex flex-wrap gap-2 px-4 pb-3">
-            <button type="button" class="chat-chip rounded-full border border-[#c6a15b]/50 px-3 py-1.5 text-sm font-serif italic hover:bg-[#faf7f1]">A romantic dinner</button>
-            <button type="button" class="chat-chip rounded-full border border-[#c6a15b]/50 px-3 py-1.5 text-sm font-serif italic hover:bg-[#faf7f1]">Birthday at the villa</button>
-            <button type="button" class="chat-chip rounded-full border border-[#c6a15b]/50 px-3 py-1.5 text-sm font-serif italic hover:bg-[#faf7f1]">Seafood menu</button>
-          </div>
-
-          <div class="flex items-end gap-2 border-t border-[#c6a15b]/20 p-3">
-            <textarea id="chat-input" rows="1" placeholder="Describe your evening… occasion, menu, allergies, budget"
-              class="flex-1 resize-none rounded-2xl bg-[#faf7f1] border border-[#c6a15b]/30 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 max-h-32"></textarea>
-            <button type="button" id="chat-send" aria-label="Send" class="shrink-0 w-11 h-11 rounded-full bg-[#17130d] text-[#c6a15b] flex items-center justify-center disabled:opacity-50">
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- honeypot + consent -->
+        <!-- honeypot -->
         <input type="text" name="company_website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
-        <input type="hidden" id="event_details" name="event_details" />
 
         <label class="flex items-start gap-2 text-xs text-gray-500 mt-6">
           <input id="consent" type="checkbox" required class="mt-0.5 h-4 w-4 rounded border-gray-300 text-gold-600 focus:ring-gold-500" />
@@ -328,10 +305,6 @@ const unavailableDates: string[] = Array.from(unavailableSet);
 <style>
   .no-scrollbar { scrollbar-width: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
-  @keyframes bubble-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-  .bubble-in { animation: bubble-in 240ms ease-out; }
-  @keyframes typedot { 0%,80%,100% { transform: translateY(0); opacity: .4; } 40% { transform: translateY(-4px); opacity: 1; } }
-  .typedot { animation: typedot 1s infinite; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
     .exp-slide { transform: none !important; opacity: 1 !important; }
@@ -385,7 +358,7 @@ const unavailableDates: string[] = Array.from(unavailableSet);
       el.classList.add('is-selected', 'shadow-[inset_0_0_0_1px_rgba(198,161,91,.9)]', 'ring-1', 'ring-[#c6a15b]');
       el.querySelector('.exp-seal')?.classList.add('opacity-100');
       if (echo) echo.innerHTML = `You chose: <span class="text-[#17130d] font-semibold">${label}</span>`;
-      if (label === 'Something else') document.getElementById('chat-input')?.focus();
+      if (label === 'Something else') document.getElementById('event_details')?.focus();
     }
 
     slides.forEach((s) => {
@@ -539,114 +512,30 @@ const unavailableDates: string[] = Array.from(unavailableSet);
     render();
   })();
 
-  // ===== CHAT (AI assistant) + SUBMIT =====
+  // ===== SUBMIT (request form -> /api/request-booking) =====
   (() => {
-    const log = document.getElementById('chat-log');
-    const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
-    const sendBtn = document.getElementById('chat-send') as HTMLButtonElement | null;
-    const chips = document.getElementById('chat-chips');
     const form = document.getElementById('request-form');
     const submitBtn = document.getElementById('request-submit') as HTMLButtonElement | null;
-    const submitLabel = document.getElementById('request-submit-label');
     const spinner = document.getElementById('request-spinner');
     const errorBox = document.getElementById('request-error');
     const successBox = document.getElementById('request-success');
-    const eventDetails = document.getElementById('event_details') as HTMLInputElement | null;
-    if (!log || !input) return;
+    const eventDetails = document.getElementById('event_details') as HTMLTextAreaElement | null;
+    if (!form || !submitBtn) return;
 
-    const convo: { role: string; content: string }[] = [];
     let submitted = false;
-    let sending = false;
-
-    const esc = (s: string) => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
-
-    function bubble(role: 'assistant' | 'client', text: string) {
-      const wrap = document.createElement('div');
-      wrap.className = role === 'client'
-        ? 'self-end max-w-[80%] rounded-2xl rounded-br-sm bg-[#17130d] text-[#fdf8ef] px-4 py-2.5 text-sm bubble-in'
-        : 'self-start max-w-[80%] rounded-2xl rounded-tl-sm bg-[#fffaf0] border-l-2 border-[#c6a15b]/50 text-[#17130d] px-4 py-2.5 text-sm bubble-in';
-      wrap.innerHTML = esc(text).replace(/\n/g, '<br>');
-      log!.appendChild(wrap);
-      log!.scrollTop = log!.scrollHeight;
-    }
-
-    function typing(on: boolean) {
-      let t = document.getElementById('chat-typing');
-      if (on) {
-        if (t) return;
-        t = document.createElement('div');
-        t.id = 'chat-typing';
-        t.className = 'self-start rounded-2xl rounded-tl-sm bg-[#fffaf0] px-4 py-3 flex gap-1';
-        t.innerHTML = '<span class="typedot w-1.5 h-1.5 rounded-full bg-[#c6a15b]"></span><span class="typedot w-1.5 h-1.5 rounded-full bg-[#c6a15b]" style="animation-delay:.15s"></span><span class="typedot w-1.5 h-1.5 rounded-full bg-[#c6a15b]" style="animation-delay:.3s"></span>';
-        log!.appendChild(t);
-        log!.scrollTop = log!.scrollHeight;
-      } else { t?.remove(); }
-    }
-
-    // seed greeting (UI only)
-    bubble('assistant', "Good evening 👋 I'm Chef Nino's assistant. Tell me about the evening you have in mind — the occasion, the atmosphere, and any preferences or allergies. I'll pass it all on to the chef.");
-
-    function ctx() {
-      const v = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value || '';
-      const now = new Date();
-      return {
-        customer_name: v('customer_name'), customer_email: v('customer_email'), customer_phone: v('customer_phone'),
-        service_type: v('service_type'), num_guests: v('num_guests'), start_date: v('start_date'), city: v('city'), event_address: v('event_address'),
-        today_iso: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
-      };
-    }
-
-    function transcript() {
-      return convo.map((m) => `${m.role === 'client' ? 'Client' : 'Assistant'}: ${m.content}`).join('\n');
-    }
 
     function showSuccess() {
       submitted = true;
-      form?.querySelectorAll('input,textarea,button').forEach((el) => ((el as HTMLButtonElement).disabled = true));
-      // hide everything except success
+      form!.querySelectorAll('input,textarea,button').forEach((el) => ((el as HTMLButtonElement).disabled = true));
+      // hide everything except the success block
       Array.from((form as HTMLElement).children).forEach((c) => { if (c.id !== 'request-success') (c as HTMLElement).style.display = 'none'; });
       successBox?.classList.remove('hidden');
       successBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    async function send(text: string) {
-      if (sending || submitted || !text.trim()) return;
-      sending = true;
-      chips?.classList.add('hidden');
-      bubble('client', text);
-      convo.push({ role: 'client', content: text });
-      input!.value = ''; input!.style.height = 'auto';
-      typing(true);
-      try {
-        const res = await fetch('/api/assistant', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: convo.map((m) => ({ role: m.role === 'client' ? 'user' : 'assistant', content: m.content })), context: ctx() }),
-        });
-        const data = await res.json().catch(() => ({}));
-        typing(false);
-        if (!res.ok || !data.reply) {
-          bubble('assistant', 'Sorry, I hit a snag. Feel free to write everything here and I\'ll pass it on to Chef Nino. 🙏');
-          sending = false;
-          return;
-        }
-        bubble('assistant', data.reply);
-        convo.push({ role: 'assistant', content: data.reply });
-        if (data.submitted) { setTimeout(showSuccess, 900); }
-      } catch {
-        typing(false);
-        bubble('assistant', 'Connection lost. Please try again or use the "Send your request" button below.');
-      }
-      sending = false;
-    }
-
-    input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 128) + 'px'; });
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input.value); } });
-    sendBtn?.addEventListener('click', () => send(input.value));
-    document.querySelectorAll('.chat-chip').forEach((c) => c.addEventListener('click', () => { input.value = (c as HTMLElement).textContent || ''; input.focus(); }));
-
-    // Manual submit (fallback / form-only path) -> existing /api/request-booking
     function showErr(m: string) { if (errorBox) { errorBox.textContent = m; errorBox.classList.remove('hidden'); } }
-    submitBtn?.addEventListener('click', async () => {
+
+    submitBtn.addEventListener('click', async () => {
       if (submitted) return;
       errorBox?.classList.add('hidden');
       const v = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value.trim() || '';
@@ -658,8 +547,9 @@ const unavailableDates: string[] = Array.from(unavailableSet);
       if (!v('city')) return showErr('Please enter the location.');
       if (!consent) return showErr('Please tick the consent box to send.');
 
-      const details = (transcript() ? transcript() + '\n\n' : '') + ('Experience: ' + v('service_type'));
-      if (eventDetails) eventDetails.value = details;
+      // Their idea (free text) + the chosen experience.
+      const idea = eventDetails?.value.trim() || '';
+      const details = (idea ? idea + '\n\n' : '') + ('Experience: ' + v('service_type'));
       if (submitBtn) submitBtn.disabled = true;
       spinner?.classList.remove('hidden');
       try {
