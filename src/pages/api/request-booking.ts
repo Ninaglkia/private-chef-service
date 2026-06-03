@@ -57,6 +57,7 @@ export const POST: APIRoute = async ({ request }) => {
       city,
       event_address,
       start_date,
+      end_date: endDateInput,
       num_guests,
       product,
       service_type,
@@ -110,7 +111,17 @@ export const POST: APIRoute = async ({ request }) => {
     const yyyy = endUtc.getUTCFullYear();
     const mm = String(endUtc.getUTCMonth() + 1).padStart(2, '0');
     const dd = String(endUtc.getUTCDate()).padStart(2, '0');
-    const end_date = `${yyyy}-${mm}-${dd}`;
+    let end_date = `${yyyy}-${mm}-${dd}`;
+
+    // Honor an explicit end_date from the calendar's range picker (valid
+    // YYYY-MM-DD, on or after the start date); otherwise keep the computed value.
+    if (
+      endDateInput &&
+      /^\d{4}-\d{2}-\d{2}$/.test(String(endDateInput)) &&
+      String(endDateInput) >= String(start_date)
+    ) {
+      end_date = String(endDateInput);
+    }
 
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
