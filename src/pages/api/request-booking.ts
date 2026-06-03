@@ -138,11 +138,11 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Notify the owner best-effort (WhatsApp + email) — never let messaging break the request.
-    const svc = service_type ? String(service_type) : (isCustom ? 'Su misura' : plan);
+    const svc = service_type ? String(service_type) : (isCustom ? 'Bespoke' : plan);
     try {
       const idea = event_details ? ` • Idea: ${String(event_details).slice(0, 220)}` : '';
       await notifyOrganizer(
-        `Nuova richiesta: ${customer_name} — ${svc} • ${guests} ospiti • ${city} • dal ${start_date}. Tel: ${customer_phone || 'n/d'} • Email: ${customer_email}${idea}`
+        `New request: ${customer_name} — ${svc} • ${guests} guests • ${city} • from ${start_date}. Tel: ${customer_phone || 'n/a'} • Email: ${customer_email}${idea}`
       );
     } catch (notifyError) {
       console.error('Owner WhatsApp notification failed:', notifyError);

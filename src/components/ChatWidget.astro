@@ -9,7 +9,7 @@ const WHATSAPP_NUMBER = '393285515590'; // Chef Nino — also reachable on Whats
   <!-- Launcher -->
   <button
     id="chat-launcher"
-    aria-label="Apri la chat"
+    aria-label="Open chat"
     class="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-gold-500 to-gold-700 text-white shadow-xl hover:scale-105 active:scale-95 transition-transform"
   >
     <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -27,32 +27,32 @@ const WHATSAPP_NUMBER = '393285515590'; // Chef Nino — also reachable on Whats
       <span class="flex items-center justify-center w-9 h-9 rounded-full bg-gold-600 text-white font-serif italic">N</span>
       <div class="flex-1">
         <p class="text-sm font-semibold leading-tight">Chef Nino</p>
-        <p class="text-[11px] text-gray-300 leading-tight">Di solito risponde in poche ore</p>
+        <p class="text-[11px] text-gray-300 leading-tight">Usually replies within a few hours</p>
       </div>
-      <button id="chat-close" aria-label="Chiudi" class="text-gray-300 hover:text-white text-xl leading-none">×</button>
+      <button id="chat-close" aria-label="Close" class="text-gray-300 hover:text-white text-xl leading-none">×</button>
     </div>
 
     <!-- WhatsApp is the primary channel: Nino replies from his phone. -->
     <div class="px-3 pt-3">
       <a
         id="chat-wa-primary"
-        href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Ciao Chef Nino! Vorrei informazioni / prenotare.")}`}
+        href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi Chef Nino! I'd like some information / to make a booking.")}`}
         target="_blank"
         rel="noopener"
         class="flex items-center justify-center gap-2 rounded-xl bg-[#25D366] text-white py-3 text-sm font-semibold shadow hover:bg-[#1ebe5b] active:scale-[0.99] transition-all"
       >
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zM6.597 20.13c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.512 5.26l-.999 3.648 3.875-.607zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-        Scrivici su WhatsApp
+        Message us on WhatsApp
       </a>
-      <p class="text-center text-[11px] text-gray-400 my-2">oppure scrivici qui sotto</p>
+      <p class="text-center text-[11px] text-gray-400 my-2">or write to us below</p>
     </div>
 
     <div id="chat-messages" class="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-[#faf7f1]"></div>
 
     <!-- Guest state: the in-app chat needs login; WhatsApp (above) works for everyone. -->
     <div id="chat-guest" class="hidden p-4 text-center border-t border-gray-100">
-      <p class="text-sm text-gray-600 mb-3">Per scrivere qui sul sito accedi al tuo account. Per parlare subito con Chef Nino usa WhatsApp qui sopra.</p>
-      <a href="/login?returnTo=%2F" class="block w-full rounded-lg bg-black text-white py-2.5 text-sm font-semibold">Accedi</a>
+      <p class="text-sm text-gray-600 mb-3">To chat here on the site, sign in to your account. To talk to Chef Nino right away, use WhatsApp above.</p>
+      <a href="/login?returnTo=%2F" class="block w-full rounded-lg bg-black text-white py-2.5 text-sm font-semibold">Sign in</a>
     </div>
 
     <!-- Composer -->
@@ -60,7 +60,7 @@ const WHATSAPP_NUMBER = '393285515590'; // Chef Nino — also reachable on Whats
       <textarea
         id="chat-input"
         rows="1"
-        placeholder="Scrivi un messaggio…"
+        placeholder="Type a message…"
         class="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 max-h-28"
       ></textarea>
       <button type="submit" class="shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-gold-500 to-gold-700 text-white flex items-center justify-center disabled:opacity-50">
@@ -96,7 +96,7 @@ const WHATSAPP_NUMBER = '393285515590'; // Chef Nino — also reachable on Whats
   function bubble(m: { sender: string; body: string; created_at?: string }) {
     const mine = m.sender === 'client';
     const time = m.created_at
-      ? new Date(m.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+      ? new Date(m.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
       : '';
     return `
       <div class="flex ${mine ? 'justify-end' : 'justify-start'}">
@@ -126,7 +126,7 @@ const WHATSAPP_NUMBER = '393285515590'; // Chef Nino — also reachable on Whats
       .order('created_at', { ascending: true });
     list.innerHTML = '';
     if (!data || data.length === 0) {
-      list.innerHTML = `<div class="text-center text-gray-400 text-sm py-6">Ciao! 👋 Scrivi a Chef Nino per qualsiasi domanda sulla tua prenotazione o sul menù.</div>`;
+      list.innerHTML = `<div class="text-center text-gray-400 text-sm py-6">Hi there! 👋 Message Chef Nino with any questions about your booking or the menu.</div>`;
     } else {
       for (const m of data) append(m);
     }
@@ -159,7 +159,7 @@ const WHATSAPP_NUMBER = '393285515590'; // Chef Nino — also reachable on Whats
     const waBtn = document.getElementById('chat-wa-primary') as HTMLAnchorElement | null;
     if (!waBtn) return;
     const n = (name || '').trim();
-    const text = n ? `Ciao Chef Nino! Sono ${n}.` : 'Ciao Chef Nino! Vorrei informazioni / prenotare.';
+    const text = n ? `Hi Chef Nino! This is ${n}.` : "Hi Chef Nino! I'd like some information / to make a booking.";
     waBtn.href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
   }
 
@@ -208,7 +208,7 @@ const WHATSAPP_NUMBER = '393285515590'; // Chef Nino — also reachable on Whats
     const { error } = await supabase.from('messages').insert({ client_id: clientId, sender: 'client', body });
     if (error) {
       append({ sender: 'client', body, created_at: new Date().toISOString() });
-      alert('Messaggio non inviato, riprova.');
+      alert('Message not sent, please try again.');
     }
     // On success the realtime INSERT handler appends it.
   });

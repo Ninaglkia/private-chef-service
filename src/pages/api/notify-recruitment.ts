@@ -13,40 +13,40 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const fullName = `${firstName} ${lastName}`;
-    const subject = `Candidatura Ricevuta: ${role} - ${fullName}`;
-    
+    const subject = `Application Received: ${role} - ${fullName}`;
+
     // 1. Email to Candidate
     const candidateHtml = `
-      <h2>Grazie per la tua candidatura, ${firstName}!</h2>
-      <p>Abbiamo ricevuto la tua richiesta per la posizione di <strong>${role}</strong> su ${city}.</p>
-      <p>Il nostro team valuterà il tuo profilo e ti contatterà presto se ci saranno opportunità in linea con le tue competenze.</p>
+      <h2>Thank you for your application, ${firstName}!</h2>
+      <p>We have received your application for the position of <strong>${role}</strong> in ${city}.</p>
+      <p>Our team will review your profile and get in touch with you soon if there are opportunities matching your skills.</p>
       <br>
-      <p>Cordiali saluti,<br>Il Team di Private Chef</p>
+      <p>Kind regards,<br>The Private Chef Team</p>
     `;
 
     await sendEmail({
       to: email,
-      subject: 'Candidatura ricevuta - Private Chef',
+      subject: 'Application received - Private Chef',
       html: candidateHtml
     });
 
     // 2. WhatsApp to Candidate (if phone provided)
     if (phone) {
-      const waMsg = `Ciao ${firstName}, grazie per esserti candidato come ${role}. Abbiamo ricevuto i tuoi dati e ti faremo sapere presto!`;
+      const waMsg = `Hi ${firstName}, thank you for applying as ${role}. We have received your details and will be in touch soon!`;
       await sendMessage({ to: phone, body: waMsg, channel: 'whatsapp' });
     }
 
     // 3. Email to Admin
     const adminHtml = `
-      <h2>Nuova Candidatura Ricevuta</h2>
-      <p><strong>Nome:</strong> ${fullName}</p>
-      <p><strong>Ruolo:</strong> ${role}</p>
-      <p><strong>Città:</strong> ${city}</p>
+      <h2>New Application Received</h2>
+      <p><strong>Name:</strong> ${fullName}</p>
+      <p><strong>Role:</strong> ${role}</p>
+      <p><strong>City:</strong> ${city}</p>
       <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Telefono:</strong> ${phone || 'N/A'}</p>
+      <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
       <br>
-      <p>Accedi al pannello di controllo per visualizzare CV e Foto.</p>
-      <a href="https://ninos-privatechefs.com/admin/control-panel" style="background:#000;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;">Vai al Pannello Admin</a>
+      <p>Log in to the control panel to view CV and Photo.</p>
+      <a href="https://ninos-privatechefs.com/admin/control-panel" style="background:#000;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;">Go to Admin Panel</a>
     `;
 
     // Send to Admin (Organizer Email)
@@ -58,12 +58,12 @@ export const POST: APIRoute = async ({ request }) => {
     
     await sendEmail({
       to: 'ninaglia089@gmail.com', 
-      subject: `Nuova Candidatura: ${fullName} (${role})`,
+      subject: `New Application: ${fullName} (${role})`,
       html: adminHtml
     });
 
     // 4. WhatsApp to Admin
-    const adminWaMsg = `🔔 Nuova Candidatura!\n${fullName} si è candidato come ${role} su ${city}.\nControlla il pannello admin.`;
+    const adminWaMsg = `🔔 New Application!\n${fullName} applied as ${role} in ${city}.\nCheck the admin panel.`;
     await notifyOrganizer(adminWaMsg);
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });

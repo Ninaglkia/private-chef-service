@@ -119,7 +119,7 @@ export async function sendEmail(data: EmailData): Promise<boolean> {
 function getHtmlTemplate(title: string, content: string): string {
   return `
     <!DOCTYPE html>
-    <html lang="it">
+    <html lang="en">
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -177,9 +177,9 @@ function getHtmlTemplate(title: string, content: string): string {
           </div>
           <div class="footer">
             <p class="fbrand">Nino's Private Chef</p>
-            <p>Cucina d'autore a domicilio · Lombardia &amp; oltre</p>
+            <p>Signature dining at home · Lombardy &amp; beyond</p>
             <p><a href="https://ninos-privatechefs.com">ninos-privatechefs.com</a> &nbsp;·&nbsp; <a href="mailto:info@ninos-privatechefs.com">info@ninos-privatechefs.com</a></p>
-            <p>&copy; ${new Date().getFullYear()} Nino's Private Chef · Questa è un'email automatica</p>
+            <p>&copy; ${new Date().getFullYear()} Nino's Private Chef · This is an automated email</p>
           </div>
         </div>
       </div>
@@ -302,47 +302,47 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
   const customerHtml = getHtmlTemplate(
     "Welcome to Nino's Private Chef",
     `
-      <img src="https://ninos-privatechefs.com/images/dish1.jpg" alt="Un piatto di Chef Nino" style="width:100%;border-radius:12px;display:block;margin:0 0 26px;" />
-      <h2>Benvenuto su Nino's Private Chef, ${escapeHtml(name)}!</h2>
-      <p>Grazie per esserti registrato a <strong>Nino's Private Chef</strong>.</p>
-      <p>Da oggi puoi prenotare Chef Nino a domicilio: colazione, pranzo e cena preparati freschi a casa tua, o come preferisci.</p>
+      <img src="https://ninos-privatechefs.com/images/dish1.jpg" alt="A dish by Chef Nino" style="width:100%;border-radius:12px;display:block;margin:0 0 26px;" />
+      <h2>Welcome to Nino's Private Chef, ${escapeHtml(name)}!</h2>
+      <p>Thank you for signing up to <strong>Nino's Private Chef</strong>.</p>
+      <p>From today you can book Chef Nino to cook at your home: breakfast, lunch and dinner prepared fresh in your kitchen, however you prefer.</p>
 
       <div class="promo-box">
-        <p class="promo-label">Il tuo regalo di benvenuto</p>
+        <p class="promo-label">Your welcome gift</p>
         <span class="promo-code">BENVENUTO10</span>
-        <p class="promo-note">10% di sconto sulla tua prima prenotazione</p>
+        <p class="promo-note">10% off your first booking</p>
       </div>
 
       <div class="details-box">
-        <p style="margin:0;"><strong>Cosa puoi fare ora:</strong></p>
+        <p style="margin:0;"><strong>What you can do now:</strong></p>
         <ul style="margin:10px 0 0 18px;padding:0;">
-          <li>Prenota in pochi click con pagamento sicuro</li>
-          <li>Personalizza il menù con il tuo chef</li>
-          <li>La spesa è fatturata a parte, al costo</li>
+          <li>Book in just a few clicks with secure payment</li>
+          <li>Personalise the menu with your chef</li>
+          <li>Groceries are billed separately, at cost</li>
         </ul>
       </div>
 
-      ${emailButton('https://ninos-privatechefs.com/#booking', 'Prenota ora')}
-      <p style="font-size:13px;color:#6b7280;">Per usare il codice, indicalo quando richiedi la prenotazione: applicheremo il 10% sul tuo Payment Link.</p>
+      ${emailButton('https://ninos-privatechefs.com/#booking', 'Book now')}
+      <p style="font-size:13px;color:#6b7280;">To use the code, mention it when you submit your booking request: we will apply the 10% to your Payment Link.</p>
 
-      <p>Se hai domande, rispondi pure a questa email — il nostro team è a tua disposizione.</p>
-      <p>Buon appetito,<br>Chef Nino &amp; il Team</p>
+      <p>If you have any questions, feel free to reply to this email — our team is here to help.</p>
+      <p>Enjoy your meal,<br>Chef Nino &amp; the Team</p>
     `
   );
 
   const organizerHtml = getHtmlTemplate(
     'New user registered',
     `
-      <h2>Nuovo utente registrato</h2>
+      <h2>New user registered</h2>
       <div class="details-box">
-        <div class="details-row"><span class="label">Nome:</span> <span class="value">${escapeHtml(name)}</span></div>
+        <div class="details-row"><span class="label">Name:</span> <span class="value">${escapeHtml(name)}</span></div>
         <div class="details-row"><span class="label">Email:</span> <span class="value">${escapeHtml(user.email)}</span></div>
       </div>
     `
   );
 
   await Promise.all([
-    sendEmail({ to: user.email, subject: "Benvenuto su Nino's Private Chef — 10% sulla prima prenotazione", html: customerHtml, from: FROM_EMAIL_CUSTOMER }),
+    sendEmail({ to: user.email, subject: "Welcome to Nino's Private Chef — 10% off your first booking", html: customerHtml, from: FROM_EMAIL_CUSTOMER }),
     sendEmail({ to: ORGANIZER_EMAIL, subject: `[NEW USER] ${user.email}`, html: organizerHtml, from: FROM_EMAIL_SYSTEM }),
   ]);
 }
@@ -354,28 +354,28 @@ export async function sendBirthdayEmail(user: { email: string; full_name?: strin
   const name = user.full_name?.trim() || user.email.split('@')[0];
 
   const customerHtml = getHtmlTemplate(
-    'Buon compleanno!',
+    'Happy birthday!',
     `
-      <img src="https://ninos-privatechefs.com/images/dish2.jpg" alt="Un piatto di Chef Nino" style="width:100%;border-radius:12px;display:block;margin:0 0 26px;" />
-      <h2>Buon compleanno, ${escapeHtml(name)}! 🎉</h2>
-      <p>Tutto il team di <strong>Nino's Private Chef</strong> ti augura una giornata speciale.</p>
-      <p>Per festeggiare, Chef Nino ha pensato a un regalo per te:</p>
+      <img src="https://ninos-privatechefs.com/images/dish2.jpg" alt="A dish by Chef Nino" style="width:100%;border-radius:12px;display:block;margin:0 0 26px;" />
+      <h2>Happy birthday, ${escapeHtml(name)}! 🎉</h2>
+      <p>The whole team at <strong>Nino's Private Chef</strong> wishes you a wonderful day.</p>
+      <p>To celebrate, Chef Nino has prepared a gift for you:</p>
 
       <div class="promo-box">
-        <p class="promo-label">Il tuo regalo di compleanno</p>
+        <p class="promo-label">Your birthday gift</p>
         <span class="promo-code">COMPLEANNO10</span>
-        <p class="promo-note">10% di sconto sulla tua prossima prenotazione</p>
+        <p class="promo-note">10% off your next booking</p>
       </div>
 
-      ${emailButton('https://ninos-privatechefs.com/#booking', 'Festeggia con Chef Nino')}
-      <p style="font-size:13px;color:#6b7280;">Indica il codice quando richiedi la prenotazione: applicheremo il 10% sul tuo Payment Link.</p>
-      <p>Buon appetito e tanti auguri,<br>Chef Nino &amp; il Team</p>
+      ${emailButton('https://ninos-privatechefs.com/#booking', 'Celebrate with Chef Nino')}
+      <p style="font-size:13px;color:#6b7280;">Mention the code when you submit your booking request: we will apply the 10% to your Payment Link.</p>
+      <p>Enjoy your meal and best wishes,<br>Chef Nino &amp; the Team</p>
     `
   );
 
   await sendEmail({
     to: user.email,
-    subject: `Buon compleanno ${name}! 🎉 Un regalo da Nino's Private Chef`,
+    subject: `Happy birthday ${name}! 🎉 A gift from Nino's Private Chef`,
     html: customerHtml,
     from: FROM_EMAIL_CUSTOMER,
   });
@@ -397,26 +397,26 @@ export async function sendRequestNotificationEmail(data: {
       ? `<div class="details-row"><span class="label">${escapeHtml(label)}:</span> <span class="value">${escapeHtml(String(value))}</span></div>`
       : '';
   const html = getHtmlTemplate(
-    'Nuova richiesta',
+    'New request',
     `
-      <h2>Nuova richiesta di prenotazione</h2>
-      <p>Un cliente ha inviato una richiesta dal sito:</p>
+      <h2>New booking request</h2>
+      <p>A client has submitted a request from the website:</p>
       <div class="details-box">
-        ${row('Nome', data.customer_name)}
+        ${row('Name', data.customer_name)}
         ${row('Email', data.customer_email)}
-        ${row('Telefono', data.customer_phone)}
-        ${row('Servizio', data.service_type)}
-        ${row('Persone', data.num_guests)}
-        ${row('Dove', data.city)}
-        ${row('Quando', data.start_date)}
+        ${row('Phone', data.customer_phone)}
+        ${row('Service', data.service_type)}
+        ${row('Guests', data.num_guests)}
+        ${row('Where', data.city)}
+        ${row('When', data.start_date)}
       </div>
-      ${data.event_details ? `<p style="margin-top:16px;"><strong>La sua idea:</strong></p><div class="details-box"><p style="margin:0;">${escapeHtml(data.event_details)}</p></div>` : ''}
-      ${emailButton('https://ninos-privatechefs.com/admin/control-panel', 'Apri nel pannello')}
+      ${data.event_details ? `<p style="margin-top:16px;"><strong>Their idea:</strong></p><div class="details-box"><p style="margin:0;">${escapeHtml(data.event_details)}</p></div>` : ''}
+      ${emailButton('https://ninos-privatechefs.com/admin/control-panel', 'Open in panel')}
     `
   );
   await sendEmail({
     to: ORGANIZER_EMAIL,
-    subject: `[RICHIESTA] ${data.customer_name}${data.service_type ? ' — ' + data.service_type : ''}`,
+    subject: `[REQUEST] ${data.customer_name}${data.service_type ? ' — ' + data.service_type : ''}`,
     html,
     from: FROM_EMAIL_SYSTEM,
   });
@@ -424,19 +424,19 @@ export async function sendRequestNotificationEmail(data: {
 
 // 3c. CHAT NOTIFICATION (owner alert when a client sends a chat message)
 export async function sendChatNotificationEmail(data: { clientName?: string | null; body: string }) {
-  const name = data.clientName?.trim() || 'Un cliente';
+  const name = data.clientName?.trim() || 'A client';
   const html = getHtmlTemplate(
-    'Nuovo messaggio',
+    'New message',
     `
-      <h2>Nuovo messaggio in chat</h2>
-      <p><strong>${escapeHtml(name)}</strong> ti ha scritto:</p>
+      <h2>New chat message</h2>
+      <p><strong>${escapeHtml(name)}</strong> has written to you:</p>
       <div class="details-box"><p style="margin:0;">${escapeHtml(data.body)}</p></div>
-      ${emailButton('https://ninos-privatechefs.com/admin/control-panel', 'Apri la chat')}
+      ${emailButton('https://ninos-privatechefs.com/admin/control-panel', 'Open chat')}
     `
   );
   await sendEmail({
     to: ORGANIZER_EMAIL,
-    subject: `[CHAT] Nuovo messaggio da ${name}`,
+    subject: `[CHAT] New message from ${name}`,
     html,
     from: FROM_EMAIL_SYSTEM,
   });
@@ -447,41 +447,41 @@ export async function sendPaymentLinkEmail(booking: any, paymentUrl: string): Pr
   const { customer_name, customer_email, total_price, chef_payout, grocery_budget, plan } = booking;
   const fmt = (c: number | null | undefined) =>
     c === null || c === undefined
-      ? 'Da confermare'
-      : new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(c / 100);
+      ? 'To be confirmed'
+      : new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(c / 100);
   const planName = PRODUCTS[plan as keyof typeof PRODUCTS]?.name ?? plan;
   const hasBreakdown = typeof chef_payout === 'number' && typeof grocery_budget === 'number' && grocery_budget > 0;
 
   const breakdownRows = hasBreakdown
     ? `
-        <div class="details-row"><span class="label">Compenso chef:</span> <span class="value">${escapeHtml(fmt(chef_payout))}</span></div>
-        <div class="details-row"><span class="label">Spesa (stima):</span> <span class="value">${escapeHtml(fmt(grocery_budget))}</span></div>`
+        <div class="details-row"><span class="label">Chef fee:</span> <span class="value">${escapeHtml(fmt(chef_payout))}</span></div>
+        <div class="details-row"><span class="label">Groceries (estimate):</span> <span class="value">${escapeHtml(fmt(grocery_budget))}</span></div>`
     : '';
 
   const customerHtml = getHtmlTemplate(
-    'Il tuo link di pagamento',
+    'Your payment link',
     `
-      <h2>Il tuo link di pagamento è pronto</h2>
-      <p>Gentile ${escapeHtml(customer_name)},</p>
-      <p>Grazie per aver pianificato il menù con Chef Nino. Il tuo servizio è pronto per essere confermato: completa il pagamento dal link sicuro qui sotto.</p>
+      <h2>Your payment link is ready</h2>
+      <p>Dear ${escapeHtml(customer_name)},</p>
+      <p>Thank you for planning the menu with Chef Nino. Your service is ready to be confirmed: complete the payment using the secure link below.</p>
 
       <div class="details-box">
-        <div class="details-row"><span class="label">Pacchetto:</span> <span class="value">${escapeHtml(planName)}</span></div>${breakdownRows}
-        <div class="details-row"><span class="label">Totale da pagare:</span> <span class="value">${escapeHtml(fmt(total_price))}</span></div>
+        <div class="details-row"><span class="label">Package:</span> <span class="value">${escapeHtml(planName)}</span></div>${breakdownRows}
+        <div class="details-row"><span class="label">Total to pay:</span> <span class="value">${escapeHtml(fmt(total_price))}</span></div>
       </div>
 
-      ${emailButton(paymentUrl, 'Paga ora')}
+      ${emailButton(paymentUrl, 'Pay now')}
 
       ${hasBreakdown
-        ? `<p class="fine"><strong>Nota sulla spesa:</strong> l'importo include una <strong>stima della spesa</strong>. Dopo il servizio conguagliamo sugli scontrini reali: se la spesa effettiva è inferiore, ti rimborsiamo la differenza.</p>`
-        : `<p class="fine"><strong>Nota:</strong> la spesa è fatturata a parte, al costo, e non è inclusa nell'importo qui sopra.</p>`}
-      <p class="fine">Se il pulsante non funziona, copia questo link nel browser:<br><a href="${escapeHtml(paymentUrl)}">${escapeHtml(paymentUrl)}</a></p>
+        ? `<p class="fine"><strong>Note on groceries:</strong> the amount includes an <strong>estimate of the groceries</strong>. After the service we settle against the actual receipts: if the real grocery cost is lower, we refund you the difference.</p>`
+        : `<p class="fine"><strong>Note:</strong> groceries are billed separately, at cost, and are not included in the amount above.</p>`}
+      <p class="fine">If the button doesn't work, copy this link into your browser:<br><a href="${escapeHtml(paymentUrl)}">${escapeHtml(paymentUrl)}</a></p>
     `
   );
 
   await sendEmail({
     to: customer_email,
-    subject: "Il tuo link di pagamento — Nino's Private Chef",
+    subject: "Your payment link — Nino's Private Chef",
     html: customerHtml,
     from: FROM_EMAIL_CUSTOMER,
   });

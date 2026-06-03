@@ -20,36 +20,36 @@ function json(body: unknown, status = 200): Response {
 }
 
 // Chef Nino's assistant persona + rules. Cached across turns (prompt caching).
-const SYSTEM_PROMPT = `Sei l'assistente personale di Chef Nino — "Nino's Private Chef", private chef di alto livello. Parli in italiano con tono caldo, elegante e professionale, mai robotico. Frasi brevi.
+const SYSTEM_PROMPT = `You are the personal assistant of Chef Nino — "Nino's Private Chef", a high-end private chef. You speak in English with a warm, elegant and professional tone, never robotic. Keep sentences short.
 
-IL SERVIZIO
-- Chef Nino cucina a domicilio: colazione, pranzo, cena, eventi, anche più giorni. Menù su misura.
-- Opera in Lombardia e, su richiesta, all'estero (con eventuale alloggio).
-- La spesa degli ingredienti è fatturata a parte, al costo.
-- NON dai mai un prezzo: il preventivo lo prepara Chef Nino in base all'evento e lo invia dopo con un link di pagamento. Se chiedono il prezzo, spiega gentilmente che Nino prepara un preventivo su misura dopo aver capito l'evento.
+THE SERVICE
+- Chef Nino cooks at clients' homes: breakfast, lunch, dinner, events, even over several days. Bespoke menus.
+- He operates in Lombardy and, on request, abroad (with accommodation if needed).
+- The cost of ingredients is invoiced separately, at cost.
+- NEVER give a price: Chef Nino prepares the quote based on the event and sends it afterwards with a payment link. If they ask about the price, kindly explain that Nino prepares a bespoke quote once he understands the event.
 
-IL TUO COMPITO
-- Capire l'evento del cliente e raccogliere: tipo di evento/occasione, data (o periodo), numero di ospiti, luogo (città e, se possibile, indirizzo), preferenze di menù/allergie, e i contatti (nome, email, telefono) se non già presenti nel contesto.
-- Fai poche domande alla volta, in modo naturale e accogliente. Non interrogare: conversa.
-- Usa il CONTESTO già fornito dal form e NON richiedere ciò che è già presente.
+YOUR TASK
+- Understand the client's event and gather: type of event/occasion, date (or period), number of guests, location (city and, if possible, address), menu preferences/allergies, and contact details (name, email, phone) if not already present in the context.
+- Ask a few questions at a time, in a natural and welcoming way. Don't interrogate: converse.
+- Use the CONTEXT already provided by the form and DO NOT ask for anything already present.
 
-QUANDO HAI ABBASTANZA (almeno: tipo evento, data/periodo, numero ospiti, luogo, un'idea di menù/occasione, e i contatti) — conferma brevemente al cliente cosa stai per inviare, poi CHIAMA lo strumento "invia_richiesta" con un riepilogo completo. Dopo l'invio, rassicura: Chef Nino lo ricontatterà a breve con la proposta e il prezzo. Non chiamare lo strumento più di una volta.`;
+WHEN YOU HAVE ENOUGH (at least: type of event, date/period, number of guests, location, an idea of the menu/occasion, and the contact details) — briefly confirm to the client what you are about to send, then CALL the "invia_richiesta" tool with a complete summary. After sending, reassure them: Chef Nino will get back to them shortly with the proposal and the price. Do not call the tool more than once. Always reply in English.`;
 
 const TOOLS = [
   {
     name: 'invia_richiesta',
-    description: "Invia la richiesta di evento a Chef Nino quando hai raccolto abbastanza dettagli. Usa il contesto del form per i campi già noti.",
+    description: "Send the event request to Chef Nino once you have gathered enough details. Use the form context for fields already known.",
     input_schema: {
       type: 'object',
       properties: {
         customer_name: { type: 'string' },
         customer_email: { type: 'string' },
         customer_phone: { type: 'string' },
-        service_type: { type: 'string', description: "tipo di evento, es. 'Cena in villa', 'Evento'" },
+        service_type: { type: 'string', description: "type of event, e.g. 'Villa dinner', 'Event'" },
         num_guests: { type: 'integer' },
-        start_date: { type: 'string', description: 'data in formato YYYY-MM-DD se nota' },
-        city: { type: 'string', description: 'città e indirizzo se forniti' },
-        event_details: { type: 'string', description: "riepilogo completo dell'evento: occasione, menù/preferenze, allergie, periodo, note" },
+        start_date: { type: 'string', description: 'date in YYYY-MM-DD format if known' },
+        city: { type: 'string', description: 'city and address if provided' },
+        event_details: { type: 'string', description: "complete summary of the event: occasion, menu/preferences, allergies, period, notes" },
       },
       required: ['event_details'],
     },
@@ -61,10 +61,10 @@ function clean(s: unknown, max = 4000): string {
 }
 
 async function submitRequest(input: Record<string, any>, ctx: Record<string, any>) {
-  const customer_name = clean(input.customer_name || ctx.customer_name || 'Cliente', 200);
+  const customer_name = clean(input.customer_name || ctx.customer_name || 'Customer', 200);
   const customer_email = clean(input.customer_email || ctx.customer_email, 200);
   const customer_phone = clean(input.customer_phone || ctx.customer_phone || '', 60) || null;
-  const service_type = clean(input.service_type || ctx.service_type || 'Su misura', 120);
+  const service_type = clean(input.service_type || ctx.service_type || 'Bespoke', 120);
   const city = clean(input.city || ctx.city || '—', 300);
   const event_details = clean(input.event_details || '', 4000);
 
@@ -106,7 +106,7 @@ async function submitRequest(input: Record<string, any>, ctx: Record<string, any
   // Notify the owner (WhatsApp + email), best-effort.
   try {
     await notifyOrganizer(
-      `Nuova richiesta (assistente): ${customer_name} — ${service_type} • ${guests} ospiti • ${city} • ${start_date}. Tel: ${customer_phone || 'n/d'} • Email: ${customer_email || 'n/d'} • ${event_details.slice(0, 220)}`
+      `New request (assistant): ${customer_name} — ${service_type} • ${guests} guests • ${city} • ${start_date}. Tel: ${customer_phone || 'n/a'} • Email: ${customer_email || 'n/a'} • ${event_details.slice(0, 220)}`
     );
   } catch (e) { console.error('assistant whatsapp notify failed', e); }
   try {
@@ -121,12 +121,12 @@ async function submitRequest(input: Record<string, any>, ctx: Record<string, any
 
 export const POST: APIRoute = async ({ request }) => {
   if (!ANTHROPIC_API_KEY) {
-    return json({ error: 'Assistant non configurato.' }, 503);
+    return json({ error: 'Assistant not configured.' }, 503);
   }
 
   const ip = getClientIp(request);
   const limit = rateLimit(`assistant:${ip}`, { limit: 20, windowMs: 60_000 });
-  if (!limit.ok) return json({ error: 'Troppi messaggi, riprova tra poco.' }, 429);
+  if (!limit.ok) return json({ error: 'Too many messages, please try again shortly.' }, 429);
 
   let body: any;
   try { body = await request.json(); } catch { return json({ error: 'Bad JSON' }, 400); }
@@ -138,16 +138,16 @@ export const POST: APIRoute = async ({ request }) => {
     .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
     .slice(-20)
     .map((m) => ({ role: m.role, content: clean(m.content, 4000) }));
-  if (messages.length === 0) return json({ error: 'Nessun messaggio' }, 400);
+  if (messages.length === 0) return json({ error: 'No message' }, 400);
 
-  const contextLine = `CONTESTO DAL FORM (usalo, non richiederlo se presente): ${JSON.stringify({
-    nome: ctx.customer_name || null,
+  const contextLine = `CONTEXT FROM THE FORM (use it, do not ask for it if present): ${JSON.stringify({
+    name: ctx.customer_name || null,
     email: ctx.customer_email || null,
-    telefono: ctx.customer_phone || null,
-    esperienza: ctx.service_type || null,
-    ospiti: ctx.num_guests || null,
-    data: ctx.start_date || null,
-    luogo: ctx.city || null,
+    phone: ctx.customer_phone || null,
+    experience: ctx.service_type || null,
+    guests: ctx.num_guests || null,
+    date: ctx.start_date || null,
+    location: ctx.city || null,
   })}`;
 
   async function callClaude(msgs: any[]) {
@@ -186,12 +186,12 @@ export const POST: APIRoute = async ({ request }) => {
     if (toolUse) {
       const bookingId = await submitRequest(toolUse.input || {}, { ...ctx, today_iso: ctx.today_iso });
       const confirm = textOut ||
-        'Perfetto, ho inviato la tua richiesta a Chef Nino. Ti ricontatterà a brevissimo con la proposta e il prezzo su misura. Grazie!';
+        'Perfect, I have sent your request to Chef Nino. He will get back to you very shortly with the proposal and your bespoke price. Thank you!';
       return json({ reply: confirm, submitted: true, booking_id: bookingId });
     }
 
-    return json({ reply: textOut || 'Raccontami pure il tuo evento: occasione, data, quante persone e dove.' });
+    return json({ reply: textOut || 'Tell me all about your event: the occasion, the date, how many people and where.' });
   } catch (e) {
-    return json({ error: 'Assistente non disponibile al momento, riprova.' }, 502);
+    return json({ error: 'The assistant is unavailable at the moment, please try again.' }, 502);
   }
 };
