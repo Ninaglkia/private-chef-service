@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { sendThankYouEmail } from '../../../lib/email';
 
@@ -7,6 +8,34 @@ export const prerender = false;
 const CRON_SECRET = import.meta.env.CRON_SECRET;
 const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2025-12-15.clover',
+});
+
+// Best-effort: fetch the Stripe invoice PDF for a paid booking so we can attach
+// it to the thank-you email. Returns undefined if there's no invoice yet (older
+// links created before invoice_creation was enabled) or anything fails — the
+// thank-you email still goes out, just without the attachment.
+async function fetchInvoicePdf(booking: any): Promise<{ filename: string; content: string } | undefined> {
+  try {
+    let invoiceId: string | undefined;
+    if (booking.stripe_session_id) {
+      const session = await stripe.checkout.sessions.retrieve(booking.stripe_session_id);
+      invoiceId = typeof session.invoice === 'string' ? session.invoice : session.invoice?.id;
+    }
+    if (!invoiceId) return undefined;
+    const invoice = await stripe.invoices.retrieve(invoiceId);
+    if (!invoice.invoice_pdf) return undefined;
+    const res = await fetch(invoice.invoice_pdf);
+    if (!res.ok) return undefined;
+    const content = Buffer.from(await res.arrayBuffer()).toString('base64');
+    return { filename: `invoice-${invoice.number || invoice.id}.pdf`, content };
+  } catch (e) {
+    console.error('invoice pdf fetch failed for booking', booking.id, e);
+    return undefined;
+  }
+}
 
 // Daily thank-you job. Wired via vercel.json crons. Sends a thank-you email
 // (with the optional tip link) the day AFTER the event ends — i.e. once the
@@ -41,7 +70,7 @@ export const GET: APIRoute = async ({ request }) => {
     // the event date in JS (event ends at end_date, or start_date if single day).
     const { data: bookings, error } = await admin
       .from('bookings')
-      .select('id, customer_name, customer_email, start_date, end_date, thankyou_sent_at, status')
+      .select('id, customer_name, customer_email, start_date, end_date, thankyou_sent_at, status, stripe_session_id')
       .in('status', ['confirmed', 'completed'])
       .is('thankyou_sent_at', null);
 
@@ -55,7 +84,8 @@ export const GET: APIRoute = async ({ request }) => {
     let sent = 0;
     for (const b of dueYesterday) {
       try {
-        await sendThankYouEmail(b);
+        const invoicePdf = await fetchInvoicePdf(b);
+        await sendThankYouEmail(b, invoicePdf);
         await admin
           .from('bookings')
           .update({ thankyou_sent_at: new Date().toISOString() })

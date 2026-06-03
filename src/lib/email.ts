@@ -41,11 +41,17 @@ const FROM_EMAIL_SYSTEM = enforceSenderDomain(import.meta.env.EMAIL_SYSTEM, 'sis
 // enter any amount. Shared in the booking confirmation (thank-you) email.
 const TIP_PAYMENT_LINK = 'https://buy.stripe.com/4gM6oH72G13X1WQ8DF9fW05';
 
+interface EmailAttachment {
+  filename: string;
+  content: string; // base64-encoded file content
+}
+
 interface EmailData {
   to: string;
   subject: string;
   html: string;
   from?: string;
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -101,6 +107,7 @@ export async function sendEmail(data: EmailData): Promise<boolean> {
         to: data.to,
         subject: data.subject,
         html: data.html,
+        ...(data.attachments?.length ? { attachments: data.attachments } : {}),
       }),
     });
 
@@ -301,7 +308,10 @@ export async function sendBookingConfirmationEmails(booking: any) {
 
 // 2b. THANK-YOU EMAIL (sent the day AFTER the event by the thank-you cron, once
 // the guest has actually experienced the service). Carries the optional tip link.
-export async function sendThankYouEmail(booking: any): Promise<void> {
+export async function sendThankYouEmail(
+  booking: any,
+  invoicePdf?: { filename: string; content: string }
+): Promise<void> {
   const { customer_name, customer_email } = booking;
   const firstName = String(customer_name || '').trim().split(/\s+/)[0] || 'there';
 
@@ -313,6 +323,7 @@ export async function sendThankYouEmail(booking: any): Promise<void> {
       <p>It was a true pleasure to cook for you. We hope every dish lived up to the occasion and that you and your guests enjoyed the experience as much as Chef Nino enjoyed creating it.</p>
       <p>If you'd like to share your appreciation, you can leave Chef Nino a tip below — any amount you wish. It's entirely optional and always warmly appreciated.</p>
       ${emailButton(TIP_PAYMENT_LINK, 'Leave a tip')}
+      ${invoicePdf ? `<p style="text-align:center;" class="fine">Your invoice for the service is attached to this email.</p>` : ''}
       <p style="text-align:center;" class="fine">Thank you again for welcoming us to your table. We would be honoured to cook for you again.</p>
     `
   );
@@ -322,6 +333,7 @@ export async function sendThankYouEmail(booking: any): Promise<void> {
     subject: "Thank you for choosing Nino's Private Chef",
     html: customerHtml,
     from: FROM_EMAIL_CUSTOMER,
+    attachments: invoicePdf ? [invoicePdf] : undefined,
   });
 }
 

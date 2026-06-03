@@ -94,6 +94,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
       line_items: lineItems,
       metadata: { booking_id },
       payment_intent_data: { metadata: { booking_id } },
+      // Generate a Stripe invoice (with PDF) for every payment, so the day-after
+      // thank-you email can attach it. NOTE: this is a Stripe invoice/receipt,
+      // not an Italian SDI electronic invoice.
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          footer: "Nino's Private Chef — ninos-privatechefs.com",
+          metadata: { booking_id },
+        },
+      },
     });
 
     // Persist link + id + total so the webhook matches the payment and the
