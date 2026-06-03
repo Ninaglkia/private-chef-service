@@ -114,6 +114,13 @@ const fmtDate = (s: string | null) =>
               <option value="25" data-name="Buffet">Buffet · €25/guest</option>
             </select>
           </label>
+          <label class="block">
+            <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Tier</span>
+            <select id="f_tier" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0">
+              <option value="1" selected>Standard</option>
+              <option value="2">Premium · ×2</option>
+            </select>
+          </label>
           <label class="block sm:col-span-2">
             <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Price (€) * <span class="font-normal normal-case text-gray-400">— auto, editable</span></span>
             <input id="f_price" type="number" min="1" step="1" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0" placeholder="600" />
@@ -174,7 +181,8 @@ const fmtDate = (s: string | null) =>
   const fmtEur = (n: number) => '€' + n.toLocaleString('it-IT');
   function recomputePrice() {
     const chef = Number(val('f_chef')) || 0;
-    const rate = Number(val('f_meal')) || 0;
+    const tier = Number(val('f_tier')) || 1;
+    const rate = (Number(val('f_meal')) || 0) * tier;
     const guests = Number(val('f_guests')) || 0;
     const bd = document.getElementById('price-breakdown');
     if (!chef && !rate) { if (bd) bd.textContent = ''; return; }
@@ -182,11 +190,11 @@ const fmtDate = (s: string | null) =>
     const total = chef + food;
     set('f_price', String(total));
     const mealSel = $('f_meal') as unknown as HTMLSelectElement | null;
-    const mealName = mealSel && mealSel.selectedIndex > 0 ? (mealSel.options[mealSel.selectedIndex].dataset.name || 'Meal') : '';
+    const mealName = (mealSel && mealSel.selectedIndex > 0 ? (mealSel.options[mealSel.selectedIndex].dataset.name || 'Meal') : '') + (tier === 2 ? ' Premium' : '');
     if (bd) bd.textContent =
       'Chef ' + fmtEur(chef) + (rate && guests ? ' + ' + mealName + ' ' + fmtEur(rate) + '×' + guests + ' = ' + fmtEur(food) : '') + '  →  Total ' + fmtEur(total);
   }
-  ['f_chef', 'f_meal', 'f_guests'].forEach((id) => {
+  ['f_chef', 'f_meal', 'f_tier', 'f_guests'].forEach((id) => {
     const el = $(id);
     el?.addEventListener('change', recomputePrice);
     el?.addEventListener('input', recomputePrice);
