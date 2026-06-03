@@ -423,6 +423,53 @@ export async function sendRequestNotificationEmail(data: {
   });
 }
 
+// 3a. REQUEST CONFIRMATION TO THE GUEST (auto-reply after a website request).
+// The owner gets the [REQUEST] alert; this reassures the guest that their
+// request actually arrived and sets the "Chef Nino will reply shortly"
+// expectation. Sent from the customer-facing address, branded like the rest.
+export async function sendRequestConfirmationToGuest(data: {
+  customer_name: string;
+  customer_email: string;
+  num_guests?: number | string | null;
+  city?: string | null;
+  event_address?: string | null;
+  start_date?: string | null;
+  event_details?: string | null;
+}) {
+  const name = (data.customer_name || '').trim() || 'there';
+  const row = (label: string, value: unknown) =>
+    value
+      ? `<div class="details-row"><span class="label">${escapeHtml(label)}:</span> <span class="value">${escapeHtml(String(value))}</span></div>`
+      : '';
+  const html = getHtmlTemplate(
+    'Request received',
+    `
+      <h2>Thank you, ${escapeHtml(name)} — we've received your request</h2>
+      <p>Chef Nino will personally look over the evening you have in mind and get back to you <strong>very shortly</strong> with a bespoke proposal and a price. There is <strong>no payment now</strong>.</p>
+
+      <div class="details-box">
+        ${row('Guests', data.num_guests)}
+        ${row('Where', data.city)}
+        ${row('Address', data.event_address)}
+        ${row('When', data.start_date)}
+      </div>
+      ${data.event_details ? `<p style="margin-top:4px;"><strong>What you told us:</strong></p><div class="details-box"><p style="margin:0;">${escapeHtml(data.event_details)}</p></div>` : ''}
+
+      <p>Prefer to talk it through? You can reach Chef Nino directly on WhatsApp.</p>
+      ${emailButton('https://wa.me/393285515590', 'Message Chef Nino')}
+
+      <p class="fine">Groceries are billed separately, at cost. If anything changes, just reply to this email.</p>
+      <p>À bientôt,<br>Chef Nino</p>
+    `
+  );
+  await sendEmail({
+    to: data.customer_email,
+    subject: "We've received your request — Nino's Private Chef",
+    html,
+    from: FROM_EMAIL_CUSTOMER,
+  });
+}
+
 // 3c. CHAT NOTIFICATION (owner alert when a client sends a chat message)
 export async function sendChatNotificationEmail(data: { clientName?: string | null; body: string }) {
   const name = data.clientName?.trim() || 'A client';

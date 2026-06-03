@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getProductPrice, getProductDays, isValidProduct, MAX_GUESTS, type Product } from '../../lib/pricing';
 import { rateLimit, getClientIp } from '../../lib/rate-limit';
 import { notifyOrganizer } from '../../lib/sms';
-import { sendRequestNotificationEmail } from '../../lib/email';
+import { sendRequestNotificationEmail, sendRequestConfirmationToGuest } from '../../lib/email';
 
 const supabaseAdmin = createClient(
   import.meta.env.PUBLIC_SUPABASE_URL,
@@ -160,8 +160,10 @@ export const POST: APIRoute = async ({ request }) => {
     } catch (notifyError) {
       console.error('Owner WhatsApp notification failed:', notifyError);
     }
-    try {
-      await sendRequestNotificationEmail({
+    // Owner notification + guest auto-confirmation in parallel — best-effort:
+    // an email failure must never break the request the guest just submitted.
+    const emailResults = await Promise.allSettled([
+      sendRequestNotificationEmail({
         customer_name,
         customer_email,
         customer_phone: customer_phone || null,
@@ -171,10 +173,20 @@ export const POST: APIRoute = async ({ request }) => {
         event_address: event_address || null,
         start_date,
         event_details: event_details || null,
-      });
-    } catch (emailError) {
-      console.error('Owner request email failed:', emailError);
-    }
+      }),
+      sendRequestConfirmationToGuest({
+        customer_name,
+        customer_email,
+        num_guests: guests,
+        city,
+        event_address: event_address || null,
+        start_date,
+        event_details: event_details || null,
+      }),
+    ]);
+    emailResults.forEach((r) => {
+      if (r.status === 'rejected') console.error('Request email failed:', r.reason);
+    });
 
     return json({ ok: true, booking_id: booking.id }, 200);
   } catch (error: any) {
