@@ -59,6 +59,23 @@ function escapeHtml(value: unknown): string {
 }
 
 /**
+ * Bulletproof email button. Mobile mail clients (notably the Gmail iOS/Android
+ * apps) frequently strip the <head><style> block, which would leave a class-only
+ * <a class="btn"> as an unstyled — sometimes invisible or hard-to-tap — link.
+ * Inlining every style on a table-wrapped anchor guarantees the button renders
+ * and is tappable even with zero <head> CSS. Use this for EVERY actionable
+ * button in transactional emails.
+ */
+function emailButton(href: string, label: string): string {
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:26px auto 8px;border-collapse:separate;">
+      <tr><td align="center" style="border-radius:999px;background-color:#17130d;">
+        <a href="${escapeHtml(href)}" target="_blank" style="display:inline-block;padding:15px 36px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;line-height:1;letter-spacing:0.4px;color:#ffffff;text-decoration:none;border-radius:999px;">${escapeHtml(label)}</a>
+      </td></tr>
+    </table>`;
+}
+
+/**
  * Generic function to send email via Resend
  */
 export async function sendEmail(data: EmailData): Promise<boolean> {
@@ -305,9 +322,7 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
         </ul>
       </div>
 
-      <p style="text-align:center;">
-        <a class="btn" href="https://ninos-privatechefs.com/#booking">Prenota ora</a>
-      </p>
+      ${emailButton('https://ninos-privatechefs.com/#booking', 'Prenota ora')}
       <p style="font-size:13px;color:#6b7280;">Per usare il codice, indicalo quando richiedi la prenotazione: applicheremo il 10% sul tuo Payment Link.</p>
 
       <p>Se hai domande, rispondi pure a questa email — il nostro team è a tua disposizione.</p>
@@ -352,9 +367,7 @@ export async function sendBirthdayEmail(user: { email: string; full_name?: strin
         <p class="promo-note">10% di sconto sulla tua prossima prenotazione</p>
       </div>
 
-      <p style="text-align:center;">
-        <a class="btn" href="https://ninos-privatechefs.com/#booking">Festeggia con Chef Nino</a>
-      </p>
+      ${emailButton('https://ninos-privatechefs.com/#booking', 'Festeggia con Chef Nino')}
       <p style="font-size:13px;color:#6b7280;">Indica il codice quando richiedi la prenotazione: applicheremo il 10% sul tuo Payment Link.</p>
       <p>Buon appetito e tanti auguri,<br>Chef Nino &amp; il Team</p>
     `
@@ -398,7 +411,7 @@ export async function sendRequestNotificationEmail(data: {
         ${row('Quando', data.start_date)}
       </div>
       ${data.event_details ? `<p style="margin-top:16px;"><strong>La sua idea:</strong></p><div class="details-box"><p style="margin:0;">${escapeHtml(data.event_details)}</p></div>` : ''}
-      <div class="btn-wrap"><a class="btn" href="https://ninos-privatechefs.com/admin/control-panel">Apri nel pannello</a></div>
+      ${emailButton('https://ninos-privatechefs.com/admin/control-panel', 'Apri nel pannello')}
     `
   );
   await sendEmail({
@@ -418,7 +431,7 @@ export async function sendChatNotificationEmail(data: { clientName?: string | nu
       <h2>Nuovo messaggio in chat</h2>
       <p><strong>${escapeHtml(name)}</strong> ti ha scritto:</p>
       <div class="details-box"><p style="margin:0;">${escapeHtml(data.body)}</p></div>
-      <div class="btn-wrap"><a class="btn" href="https://ninos-privatechefs.com/admin/control-panel">Apri la chat</a></div>
+      ${emailButton('https://ninos-privatechefs.com/admin/control-panel', 'Apri la chat')}
     `
   );
   await sendEmail({
@@ -457,7 +470,7 @@ export async function sendPaymentLinkEmail(booking: any, paymentUrl: string): Pr
         <div class="details-row"><span class="label">Totale da pagare:</span> <span class="value">${escapeHtml(fmt(total_price))}</span></div>
       </div>
 
-      <div class="btn-wrap"><a class="btn" href="${escapeHtml(paymentUrl)}">Paga ora</a></div>
+      ${emailButton(paymentUrl, 'Paga ora')}
 
       ${hasBreakdown
         ? `<p class="fine"><strong>Nota sulla spesa:</strong> l'importo include una <strong>stima della spesa</strong>. Dopo il servizio conguagliamo sugli scontrini reali: se la spesa effettiva è inferiore, ti rimborsiamo la differenza.</p>`
