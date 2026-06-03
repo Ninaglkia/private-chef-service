@@ -1,0 +1,38 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+
+// Branded landing after a confirmed signup (the /auth/confirm flow redirects here).
+// Public on purpose: it is a celebratory welcome, not a gated area — so it renders
+// instantly with no auth-timing flicker. CTAs lead into the real product.
+export const prerender = false;
+---
+
+<Layout title="Welcome — Nino's Private Chef" bodyClass="bg-[#faf7f1] text-[#17130d]">
+  <Header transparent={false} />
+
+  <main class="min-h-[82dvh] flex items-center justify-center px-5 py-24">
+    <div class="max-w-xl text-center">
+      <span class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#c6a15b]/15 text-[#c6a15b] text-2xl font-serif">✦</span>
+
+      <p class="mt-6 text-[11px] uppercase tracking-[0.25em] text-[#c6a15b]">Welcome</p>
+      <h1 class="mt-2 font-serif text-4xl sm:text-5xl font-semibold leading-tight">Welcome to Nino's Private Chef</h1>
+      <p class="mt-4 text-gray-500 max-w-md mx-auto">
+        Your email is confirmed and your account is ready. Chef Nino cooks breakfast,
+        lunch and dinner in your own home — choose your evening and send a request.
+        No payment now.
+      </p>
+
+      <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="/richiesta" class="rounded-2xl bg-[#17130d] text-[#fdf8ef] px-7 py-3.5 text-sm font-serif tracking-wide hover:bg-black active:scale-[0.99] transition-all">Design your evening</a>
+        <a href="/dashboard" class="rounded-2xl border border-[#c6a15b]/40 px-7 py-3.5 text-sm font-semibold hover:bg-white transition-colors">Go to my account</a>
+      </div>
+
+      <div class="mt-8 inline-block rounded-2xl bg-white border border-[#e6d4ac] px-6 py-4">
+        <p class="text-[11px] uppercase tracking-[0.2em] text-[#a07b35]">Your welcome gift</p>
+        <p class="mt-1 font-serif text-2xl tracking-[0.15em] text-[#17130d]">BENVENUTO10</p>
+        <p class="mt-1 text-xs text-[#a07b35]">10% off your first booking</p>
+      </div>
+    </div>
+  </main>
+</Layout>

@@ -40,11 +40,11 @@
         <!-- Bulletproof button (inline styles survive Gmail stripping <head><style>) -->
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:26px auto 8px;border-collapse:separate;">
           <tr><td align="center" style="border-radius:999px;background-color:#17130d;">
-            <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:15px 36px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;line-height:1;letter-spacing:0.4px;color:#ffffff;text-decoration:none;border-radius:999px;">Confirm my email</a>
+            <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup" target="_blank" style="display:inline-block;padding:15px 36px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;line-height:1;letter-spacing:0.4px;color:#ffffff;text-decoration:none;border-radius:999px;">Confirm my email</a>
           </td></tr>
         </table>
 
-        <p class="fine">If the button doesn't work, copy this link into your browser:<br><a href="{{ .ConfirmationURL }}" style="color:#a07b35;">{{ .ConfirmationURL }}</a></p>
+        <p class="fine">If the button doesn't work, copy this link into your browser:<br><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup" style="color:#a07b35;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup</a></p>
         <p class="fine">If you didn't create an account, you can safely ignore this email.</p>
       </div>
       <div class="footer">

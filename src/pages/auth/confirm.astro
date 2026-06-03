@@ -1,0 +1,74 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+
+// Email-confirmation landing. The branded Supabase auth emails point their button
+// here: /auth/confirm?token_hash=...&type=signup (or type=recovery). We verify the
+// OTP client-side (token_hash flow works cross-device, unlike PKCE ?code which
+// needs the code_verifier from the signing-up browser), let lib/supabase mirror
+// the session into cookies, then send the user to a real Welcome page — never a 404.
+export const prerender = false;
+---
+
+<Layout title="Confirming… — Nino's Private Chef" bodyClass="bg-[#faf7f1] text-[#17130d]">
+  <Header transparent={false} />
+  <main class="min-h-[80dvh] flex items-center justify-center px-5 py-24">
+    <div class="text-center max-w-md">
+      <div id="confirm-loading">
+        <span class="inline-block h-10 w-10 rounded-full border-2 border-[#c6a15b] border-t-transparent animate-spin"></span>
+        <p class="mt-6 font-serif text-2xl">Confirming your email…</p>
+        <p class="mt-2 text-sm text-gray-500">One moment — setting up your account.</p>
+      </div>
+      <div id="confirm-error" class="hidden">
+        <span class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#c6a15b]/15 text-[#c6a15b] text-xl font-serif">!</span>
+        <h1 class="mt-5 font-serif text-3xl">This link has expired</h1>
+        <p class="mt-2 text-sm text-gray-500">Confirmation links are valid for a short time. Please sign in to receive a fresh one.</p>
+        <a href="/login" class="mt-6 inline-block rounded-2xl bg-[#17130d] text-[#fdf8ef] px-7 py-3.5 text-sm font-semibold tracking-wide hover:bg-black">Back to login</a>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  const loading = document.getElementById('confirm-loading');
+  const errBox = document.getElementById('confirm-error');
+  function fail() {
+    loading?.classList.add('hidden');
+    errBox?.classList.remove('hidden');
+  }
+
+  (async () => {
+    try {
+      const url = new URL(window.location.href);
+      const token_hash = url.searchParams.get('token_hash');
+      const type = (url.searchParams.get('type') || 'signup') as any;
+      const code = url.searchParams.get('code');
+
+      if (token_hash) {
+        const { error } = await supabase.auth.verifyOtp({ token_hash, type });
+        if (error) return fail();
+      } else if (code) {
+        // Fallback for a PKCE-style confirmation link.
+        const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        if (error) return fail();
+      } else {
+        return fail();
+      }
+
+      // lib/supabase's onAuthStateChange has now mirrored the session into the
+      // server-readable cookies, so the destination page is authenticated.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return fail();
+
+      if (type === 'recovery') {
+        window.location.replace('/reset-password');
+      } else {
+        window.location.replace('/welcome');
+      }
+    } catch {
+      fail();
+    }
+  })();
+</script>
