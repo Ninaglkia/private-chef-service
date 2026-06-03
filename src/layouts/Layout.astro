@@ -30,6 +30,22 @@ const ogImage = new URL('/og-image.jpg', Astro.site ?? Astro.url).href;
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content={description} />
+
+		<!-- PWA: installable as an app (one-tap access to the panel + persistent login) -->
+		<link rel="manifest" href="/manifest.webmanifest" />
+		<meta name="theme-color" content="#17130d" />
+		<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="apple-mobile-web-app-title" content="Chef Nino" />
+		<script is:inline>
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', () => {
+					navigator.serviceWorker.register('/sw.js').catch(() => {});
+				});
+			}
+		</script>
 		<title>{title}</title>
 
 		<link rel="canonical" href={canonicalURL} />
