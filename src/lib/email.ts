@@ -51,8 +51,14 @@ interface EmailData {
   subject: string;
   html: string;
   from?: string;
+  replyTo?: string;
   attachments?: EmailAttachment[];
 }
+
+// Default Reply-To so customer replies land in the monitored inbox. info@ is
+// forwarded to the owner's mailbox (ImprovMX catch-all), so a guest hitting
+// "Reply" on any site email reaches a real, monitored address.
+const DEFAULT_REPLY_TO = 'info@ninos-privatechefs.com';
 
 /**
  * Escape user-controlled values before interpolating them into HTML email
@@ -107,6 +113,7 @@ export async function sendEmail(data: EmailData): Promise<boolean> {
         to: data.to,
         subject: data.subject,
         html: data.html,
+        reply_to: data.replyTo || DEFAULT_REPLY_TO,
         ...(data.attachments?.length ? { attachments: data.attachments } : {}),
       }),
     });
