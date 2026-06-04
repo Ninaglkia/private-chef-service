@@ -1,5 +1,12 @@
 # Branded Supabase Auth emails (Confirm signup + Reset password)
 
+> ✅ **APPLIED & VERIFIED 2026-06-04** on project `zyptbqfldwvbxntwrfqq` via the
+> Management API (`PATCH /v1/projects/{ref}/config/auth`): Resend custom SMTP +
+> both branded templates + subjects are live. End-to-end test signup delivered a
+> branded *Confirm your email* from *Nino's Private Chef &lt;info@ninos-privatechefs.com&gt;*
+> (Resend status: delivered). The steps below remain the reference for the values
+> set / how to change them.
+
 Goal: replace the ugly default Supabase email ("Confirm Your Signup", sender
 *Mail App Supabase Noreply*) with our branded template, sent from
 **info@ninos-privatechefs.com** via Resend, and have the confirmation link land on
