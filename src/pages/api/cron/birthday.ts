@@ -36,34 +36,51 @@ export const GET: APIRoute = async ({ request }) => {
   const dd = parts.find((p) => p.type === 'day')?.value;
   const todayMmDd = `${mm}-${dd}`;
 
+  // Current year in the business timezone — the idempotency key, so a re-run on
+  // the same day (or a Vercel cron retry) never double-greets the same person.
+  const currentYear = Number(
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric' }).format(new Date())
+  );
+
   try {
     // Pull everyone with a birthday set, then match month+day in JS (PostgREST
     // can't filter on a to_char expression). The user base is small.
     const { data: profiles, error } = await admin
       .from('profiles')
-      .select('id, full_name, birthday')
+      .select('id, full_name, birthday, birthday_email_sent_year')
       .not('birthday', 'is', null);
 
     if (error) throw error;
 
     const birthdayToday = (profiles ?? []).filter((p: any) => {
       if (!p.birthday) return false;
+      // Already greeted this year? skip (idempotency).
+      if (p.birthday_email_sent_year === currentYear) return false;
       // birthday is a 'YYYY-MM-DD' date string; compare MM-DD.
       const mmdd = String(p.birthday).slice(5, 10);
       return mmdd === todayMmDd;
     });
 
     let sent = 0;
+    let failed = 0;
     for (const p of birthdayToday) {
-      // Email lives on auth.users, not profiles.
-      const { data: userRes } = await admin.auth.admin.getUserById(p.id);
-      const email = userRes?.user?.email;
-      if (!email) continue;
-      await sendBirthdayEmail({ email, full_name: p.full_name });
-      sent += 1;
+      // Per-recipient isolation: one failed send must not abort the whole batch.
+      try {
+        // Email lives on auth.users, not profiles.
+        const { data: userRes } = await admin.auth.admin.getUserById(p.id);
+        const email = userRes?.user?.email;
+        if (!email) continue;
+        await sendBirthdayEmail({ email, full_name: p.full_name });
+        // Mark as greeted this year only AFTER a successful send.
+        await admin.from('profiles').update({ birthday_email_sent_year: currentYear }).eq('id', p.id);
+        sent += 1;
+      } catch (e) {
+        failed += 1;
+        console.error('birthday send failed for', p.id, e);
+      }
     }
 
-    return new Response(JSON.stringify({ ok: true, date: todayMmDd, candidates: birthdayToday.length, sent }), {
+    return new Response(JSON.stringify({ ok: true, date: todayMmDd, candidates: birthdayToday.length, sent, failed }), {
       status: 200,
     });
   } catch (err) {

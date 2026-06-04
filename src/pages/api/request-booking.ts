@@ -114,6 +114,11 @@ export const POST: APIRoute = async ({ request }) => {
     const totalPrice = isCustom ? null : getProductPrice(plan as Product);
     const days = isCustom ? 1 : getProductDays(plan as Product);
 
+    // Require the canonical YYYY-MM-DD shape before storing it as a raw string —
+    // new Date() alone accepts looser formats, which could persist an inconsistent row.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(start_date))) {
+      return json({ error: 'Invalid start date' }, 400);
+    }
     const startDateObj = new Date(start_date);
     if (Number.isNaN(startDateObj.getTime())) {
       return json({ error: 'Invalid start date' }, 400);
