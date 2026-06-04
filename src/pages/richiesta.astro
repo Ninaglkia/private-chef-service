@@ -180,6 +180,27 @@ const EXPERIENCES = [
         </div>
 
         <div class="mt-6">
+          <label for="meal_type" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Type of meal</label>
+          <select id="meal_type" name="meal_type"
+            class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0">
+            <option value="40" data-name="Dinner" selected>Dinner</option>
+            <option value="30" data-name="Lunch">Lunch</option>
+            <option value="15" data-name="Breakfast">Breakfast</option>
+            <option value="25" data-name="Buffet">Buffet</option>
+          </select>
+        </div>
+
+        <div class="mt-5 rounded-2xl border border-[#c6a15b]/30 bg-[#fbf7ef] px-5 py-4">
+          <p class="text-[11px] uppercase tracking-[0.2em] text-[#a07b35]">Indicative price</p>
+          <p class="mt-1 leading-tight">
+            <span id="estimate-amount" class="font-serif text-2xl text-[#17130d]">—</span>
+            <span class="text-sm text-gray-500">· final quote by Chef Nino</span>
+          </p>
+          <p id="estimate-breakdown" class="mt-1 text-xs text-gray-400"></p>
+          <p class="mt-2 text-[11px] text-gray-400">Estimate only — no payment now. Groceries are billed separately, at cost.</p>
+        </div>
+
+        <div class="mt-6">
           <label for="city" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">City</label>
           <input id="city" name="city" type="text" required
             class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0 placeholder:text-gray-400" placeholder="City" />
@@ -332,6 +353,39 @@ const EXPERIENCES = [
     const clamp = (n: number) => Math.max(1, Math.min(200, n));
     document.getElementById('g-minus')?.addEventListener('click', () => { inp.value = String(clamp((parseInt(inp.value, 10) || 1) - 1)); });
     document.getElementById('g-plus')?.addEventListener('click', () => { inp.value = String(clamp((parseInt(inp.value, 10) || 1) + 1)); });
+  })();
+
+  // ===== INDICATIVE PRICE ESTIMATE =====
+  // Mirrors the /owner calculator: chef day fee + per-guest cover × guests.
+  // Purely informational on the request form — the customer doesn't pay here,
+  // it just sets expectations so they complete the request. Final quote is the
+  // owner's, sent later. Chef base uses the standard full-day rate.
+  (() => {
+    const CHEF_BASE = 600; // € — standard full day, matches /owner default
+    const guestsInp = document.getElementById('num_guests') as HTMLInputElement | null;
+    const mealSel = document.getElementById('meal_type') as HTMLSelectElement | null;
+    const amountEl = document.getElementById('estimate-amount');
+    const breakdownEl = document.getElementById('estimate-breakdown');
+    if (!guestsInp || !mealSel || !amountEl || !breakdownEl) return;
+
+    const fmtEur = (n: number) => '€' + n.toLocaleString('it-IT');
+    function recompute() {
+      const guests = Math.max(1, Math.min(200, parseInt(guestsInp!.value, 10) || 1));
+      const rate = Number(mealSel!.value) || 0;
+      const mealName = mealSel!.options[mealSel!.selectedIndex]?.dataset.name || 'Meal';
+      const food = rate * guests;
+      const total = CHEF_BASE + food;
+      amountEl!.textContent = fmtEur(total);
+      breakdownEl!.textContent = `Chef ${fmtEur(CHEF_BASE)} + ${mealName} ${fmtEur(rate)} × ${guests} guests`;
+    }
+    ['change', 'input'].forEach((ev) => {
+      guestsInp.addEventListener(ev, recompute);
+      mealSel.addEventListener(ev, recompute);
+    });
+    // The +/- steppers set the value directly without firing events, so recompute on their click too.
+    document.getElementById('g-minus')?.addEventListener('click', recompute);
+    document.getElementById('g-plus')?.addEventListener('click', recompute);
+    recompute();
   })();
 
   // ===== PHONE COUNTRY-CODE SELECTOR =====
