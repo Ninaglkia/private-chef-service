@@ -572,6 +572,36 @@ export async function sendBookingConfirmationLinkEmail(data: {
   });
 }
 
+// Owner -> client: a free-form BRANDED message. The owner types the text in
+// /owner; it goes out via Resend wrapped in the chef template (photo + colours),
+// from info@, so the client clearly sees it's from Nino's Private Chef.
+export async function sendClientMessage(data: {
+  to: string;
+  subject: string;
+  message: string;
+  customer_name?: string | null;
+}) {
+  const name = (data.customer_name || '').trim();
+  const bodyHtml = escapeHtml(data.message)
+    .split(/\n{2,}/)
+    .map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+    .join('');
+  const html = getHtmlTemplate(
+    data.subject || 'A message from Chef Nino',
+    `
+      ${name ? `<p>Dear ${escapeHtml(name)},</p>` : ''}
+      ${bodyHtml}
+      <p>Warm regards,<br>Chef Nino</p>
+    `
+  );
+  await sendEmail({
+    to: data.to,
+    subject: data.subject || "A message from Nino's Private Chef",
+    html,
+    from: FROM_EMAIL_CUSTOMER,
+  });
+}
+
 // 3c. CHAT NOTIFICATION (owner alert when a client sends a chat message)
 export async function sendChatNotificationEmail(data: { clientName?: string | null; body: string }) {
   const name = data.clientName?.trim() || 'A client';
