@@ -270,8 +270,16 @@ import Header from '../components/Header.astro';
       if (data.session && data.user) {
         // Session active (auto-confirm or existing), redirect
         handlePostAuthRedirect();
+      } else if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        // Supabase obfuscates a signup for an ALREADY-REGISTERED (confirmed) email as a
+        // userless response with an empty `identities` array and NO error (to deter email
+        // enumeration). Surface a clear message instead of the misleading "check your email".
+        if (errorBox) {
+          errorBox.innerHTML = 'This email is already registered. <a href="/login" class="font-semibold underline">Sign in</a> instead, or <a href="/forgot-password" class="font-semibold underline">reset your password</a>.';
+          errorBox.classList.remove('hidden');
+        }
       } else {
-        // Confirmation email sent
+        // Confirmation email sent (new account, or resent to an unconfirmed one)
         if (successBox) {
           successBox.textContent = 'Check your email to confirm your registration.';
           successBox.classList.remove('hidden');
