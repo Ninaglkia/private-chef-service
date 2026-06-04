@@ -235,6 +235,21 @@ const EXPERIENCES = [
         <!-- honeypot -->
         <input type="text" name="company_website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
 
+        <!-- Welcome gift — first-booking 10% (self-enforced by the Stripe promo code
+             BENVENUTO10 / first_time_transaction; applied later on the payment link). -->
+        <div class="mt-6 rounded-2xl border border-[#c6a15b]/40 bg-[#fbf7ef] px-5 py-4 flex items-start gap-3">
+          <span class="mt-0.5 shrink-0 text-[#c6a15b] font-serif text-lg leading-none">✦</span>
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.2em] text-[#a07b35]">Your welcome gift</p>
+            <p class="mt-1.5 text-sm leading-relaxed text-[#575147]">
+              <span class="font-serif text-[#17130d]">10% off your first booking.</span>
+              We'll apply code
+              <span class="inline-block font-mono text-[12px] font-semibold tracking-[2px] text-[#17130d] bg-white border border-dashed border-[#c6a15b] rounded-md px-2 py-0.5 align-middle">BENVENUTO10</span>
+              to your payment link — valid once.
+            </p>
+          </div>
+        </div>
+
         <label class="flex items-start gap-2 text-xs text-gray-500 mt-6">
           <input id="consent" type="checkbox" required class="mt-0.5 h-4 w-4 rounded border-gray-300 text-gold-600 focus:ring-gold-500" />
           <span>I consent to my data being processed so that I can be contacted about this request.</span>
