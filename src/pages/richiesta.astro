@@ -573,8 +573,8 @@ const EXPERIENCES = [
       const v = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value.trim() || '';
       const consent = (document.getElementById('consent') as HTMLInputElement | null)?.checked;
       if (!v('customer_name')) return showErr('Please enter your full name.');
-      if (!v('customer_email')) return showErr('Please enter your email.');
-      if (!v('customer_phone')) return showErr('Please enter your phone number.');
+      if (!/^\S+@\S+\.\S+$/.test(v('customer_email'))) return showErr('Please enter a valid email.');
+      if (v('customer_phone').replace(/\D/g, '').length < 6) return showErr('Please enter a valid phone number.');
       if (!v('num_guests')) return showErr('Please enter the number of guests.');
       if (!v('start_date')) return showErr('Please choose a date.');
       if (!v('city')) return showErr('Please enter the city.');

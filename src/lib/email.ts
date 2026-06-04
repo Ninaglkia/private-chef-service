@@ -273,7 +273,7 @@ export async function sendBookingConfirmationEmails(booking: any) {
 
       <div class="details-box">
         <div class="details-row"><span class="label">Booking Ref:</span> <span class="value">#${escapeHtml(booking.id.slice(0, 8))}</span></div>
-        <div class="details-row"><span class="label">Package:</span> <span class="value">${escapeHtml(planName)}</span></div>
+        <div class="details-row"><span class="label">Service:</span> <span class="value">Bespoke private chef dining</span></div>
         <div class="details-row"><span class="label">Location:</span> <span class="value">${escapeHtml(city)}</span></div>
         <div class="details-row"><span class="label">Start Date:</span> <span class="value">${escapeHtml(start_date)}</span></div>
         <div class="details-row"><span class="label">Guests:</span> <span class="value">${escapeHtml(num_guests)}</span></div>
@@ -296,7 +296,7 @@ export async function sendBookingConfirmationEmails(booking: any) {
         <div class="details-row"><span class="label">Customer:</span> <span class="value">${escapeHtml(customer_name)}</span></div>
         <div class="details-row"><span class="label">Email:</span> <span class="value">${escapeHtml(customer_email)}</span></div>
         <div class="details-row"><span class="label">Phone:</span> <span class="value">${escapeHtml(customer_phone || 'N/A')}</span></div>
-        <div class="details-row"><span class="label">Package:</span> <span class="value">${escapeHtml(planName)}</span></div>
+        <div class="details-row"><span class="label">Service:</span> <span class="value">Bespoke private chef dining</span></div>
         <div class="details-row"><span class="label">Amount:</span> <span class="value">${escapeHtml(formattedPrice)}</span></div>
         <div class="details-row"><span class="label">Location:</span> <span class="value">${escapeHtml(city)}</span></div>
         <div class="details-row"><span class="label">Start Date:</span> <span class="value">${escapeHtml(start_date)}</span></div>
@@ -365,7 +365,7 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
       <div class="details-box">
         <p style="margin:0;"><strong>What you can do now:</strong></p>
         <ul style="margin:10px 0 0 18px;padding:0;">
-          <li>Book in just a few clicks with secure payment</li>
+          <li>Send a quick request — no payment, no account needed</li>
           <li>Personalise the menu with your chef</li>
           <li>Groceries are billed separately, at cost</li>
         </ul>
@@ -416,7 +416,7 @@ export async function sendBirthdayEmail(user: { email: string; full_name?: strin
         <p class="promo-note">10% off your next booking</p>
       </div>
 
-      ${emailButton('https://ninos-privatechefs.com/#booking', 'Celebrate with Chef Nino')}
+      ${emailButton('https://ninos-privatechefs.com/richiesta', 'Celebrate with Chef Nino')}
       <p style="font-size:13px;color:#6b7280;">Mention the code when you submit your booking request: we will apply the 10% to your Payment Link.</p>
       <p>Enjoy your meal and best wishes,<br>Chef Nino &amp; the Team</p>
     `
@@ -645,7 +645,7 @@ export async function sendPaymentLinkEmail(booking: any, paymentUrl: string): Pr
       <p>Thank you for planning the menu with Chef Nino. Your service is ready to be confirmed: complete the payment using the secure link below.</p>
 
       <div class="details-box">
-        <div class="details-row"><span class="label">Package:</span> <span class="value">${escapeHtml(planName)}</span></div>${breakdownRows}
+        <div class="details-row"><span class="label">Service:</span> <span class="value">Bespoke private chef dining</span></div>${breakdownRows}
         <div class="details-row"><span class="label">Total to pay:</span> <span class="value">${escapeHtml(fmt(total_price))}</span></div>
       </div>
 

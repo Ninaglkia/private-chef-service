@@ -75,8 +75,12 @@ export const POST: APIRoute = async ({ request }) => {
     // --- Validation ---
     // The request form has no fixed packages: default to 'custom' (owner prices it later).
     const plan = product && String(product).trim() ? String(product) : 'custom';
-    if (!customer_name || !customer_email || !city || !start_date) {
-      return json({ error: 'Missing required fields' }, 400);
+    if (!customer_name || !customer_email || !customer_phone || !city || !start_date) {
+      return json({ error: 'Name, email, phone, city and date are required' }, 400);
+    }
+    // Phone must be a real number (6–15 digits, ignoring separators/prefix).
+    if (String(customer_phone).replace(/\D/g, '').length < 6) {
+      return json({ error: 'A valid phone number is required' }, 400);
     }
 
     const isCustom = plan === 'custom';

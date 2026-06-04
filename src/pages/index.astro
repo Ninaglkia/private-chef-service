@@ -3,13 +3,8 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Button from '../components/Button.astro';
-import PricingCard from '../components/PricingCard.astro';
 import HeroCarousel from '../components/HeroCarousel.astro';
 import ChefCarousel from '../components/ChefCarousel.astro';
-import { PRODUCT_LIST, CUSTOM_PLAN, MAX_GUESTS } from '../lib/pricing';
-
-const cadenceFor = (days: number) =>
-  days >= 7 ? 'per week' : days === 2 ? 'per weekend' : 'per day';
 ---
 
 <Layout>
@@ -23,11 +18,11 @@ const cadenceFor = (days: number) =>
           Premium Private Chef Service
         </h1>
         <p class="text-lg md:text-xl text-gray-100 mb-12 max-w-2xl mx-auto leading-relaxed">
-          Book Chef Nino for a day, a weekend or a full week — for up to 15 guests at the same price. Breakfast, lunch and dinner, or whatever you prefer, prepared fresh in your home.
+          Tell Chef Nino about your occasion and your guests, and he replies personally with a bespoke menu, a price and a secure payment link. Breakfast, lunch, dinner or a buffet, prepared fresh in your home. No payment now — no account needed.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <Button href="/richiesta" size="lg">
-            Book Now
+            Request a proposal
           </Button>
           <Button href="#how-it-works" variant="outline" size="lg">
             Learn More
@@ -36,12 +31,12 @@ const cadenceFor = (days: number) =>
 
         <div class="mt-12 sm:mt-20 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8 max-w-4xl mx-auto">
           <div class="text-center bg-white/5 backdrop-blur-md rounded-xl p-6 sm:p-8 border border-white/10">
-            <div class="text-3xl sm:text-4xl font-semibold text-white mb-2">Flexible</div>
-            <div class="text-gray-300 text-base">Day, weekend or week</div>
+            <div class="text-3xl sm:text-4xl font-semibold text-white mb-2">Bespoke</div>
+            <div class="text-gray-300 text-base">A menu designed for your event</div>
           </div>
           <div class="text-center bg-white/5 backdrop-blur-md rounded-xl p-6 sm:p-8 border border-white/10">
-            <div class="text-3xl sm:text-4xl font-semibold text-white mb-2">Up to 15</div>
-            <div class="text-gray-300 text-base">Guests, same price</div>
+            <div class="text-3xl sm:text-4xl font-semibold text-white mb-2">Any size</div>
+            <div class="text-gray-300 text-base">From an intimate dinner to a party</div>
           </div>
           <div class="text-center bg-white/5 backdrop-blur-md rounded-xl p-6 sm:p-8 border border-white/10">
             <div class="text-3xl sm:text-4xl font-semibold text-white mb-2">100%</div>
@@ -67,9 +62,9 @@ const cadenceFor = (days: number) =>
             <div class="w-16 h-16 bg-gray-900 text-white rounded-full flex items-center justify-center text-2xl font-semibold mx-auto mb-6">
               1
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-3">Choose a Package</h3>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Send a Request</h3>
             <p class="text-gray-600 text-sm leading-relaxed">
-              Pick a single day, a weekend or a full week — for up to 15 guests at one flat price
+              Tell Chef Nino your occasion, guest count, meal and menu idea — no payment, no account needed
             </p>
           </div>
 
@@ -77,9 +72,9 @@ const cadenceFor = (days: number) =>
             <div class="w-16 h-16 bg-gray-900 text-white rounded-full flex items-center justify-center text-2xl font-semibold mx-auto mb-6">
               2
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-3">Plan & Confirm</h3>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Personalised Menu</h3>
             <p class="text-gray-600 text-sm leading-relaxed">
-              Tell Chef Nino your idea; he replies with a proposal and a secure payment link. No payment now.
+              Chef Nino designs a personalised menu around your tastes, occasion and dietary needs
             </p>
           </div>
 
@@ -87,9 +82,9 @@ const cadenceFor = (days: number) =>
             <div class="w-16 h-16 bg-gray-900 text-white rounded-full flex items-center justify-center text-2xl font-semibold mx-auto mb-6">
               3
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-3">Plan Your Menu</h3>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">Proposal &amp; Secure Payment</h3>
             <p class="text-gray-600 text-sm leading-relaxed">
-              Chef Nino creates a personalised menu around your tastes and dietary needs
+              He replies with a bespoke proposal and price, plus a secure payment link to confirm — no payment until you're happy
             </p>
           </div>
 
@@ -149,7 +144,7 @@ const cadenceFor = (days: number) =>
             What's Included
           </h2>
           <p class="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
-            Every plan includes premium service and attention to detail
+            Every booking includes premium service and attention to detail
           </p>
         </div>
 
@@ -196,9 +191,9 @@ const cadenceFor = (days: number) =>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 class="text-lg md:text-xl font-semibold text-gray-900 mb-2 md:mb-3">Daily Fresh Meals</h3>
+            <h3 class="text-lg md:text-xl font-semibold text-gray-900 mb-2 md:mb-3">Fresh Meals</h3>
             <p class="text-gray-600 text-sm">
-              Breakfast, lunch, and dinner prepared fresh daily in your home
+              Breakfast, lunch, dinner or a buffet — prepared fresh in your home, as your event needs
             </p>
           </div>
 
@@ -248,7 +243,7 @@ const cadenceFor = (days: number) =>
             <a href="/richiesta"
               class="mt-9 inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 text-white px-8 py-4 text-base font-semibold shadow-lg transition-all hover:bg-black active:scale-[0.99] group-hover:shadow-[0_12px_34px_-8px_rgba(255,179,71,0.6)]">
               <span class="text-gold-400">✦</span>
-              Book Your Event Now
+              Request a proposal
             </a>
             <p class="mt-4 text-sm text-gray-400">No payment now · reply within 24 hours</p>
           </div>
@@ -320,7 +315,7 @@ const cadenceFor = (days: number) =>
               <div>
                 <h3 class="text-lg font-semibold mb-2">Hassle-Free</h3>
                 <p class="text-gray-300 text-sm">
-                  No shopping, no cooking, no cleanup. Just enjoy exceptional meals every day
+                  No shopping, no cooking, no cleanup. Just enjoy exceptional meals at your event
                 </p>
               </div>
             </div>
@@ -406,19 +401,19 @@ const cadenceFor = (days: number) =>
               </svg>
             </summary>
             <p class="mt-4 text-gray-600 text-sm">
-              No — groceries and ingredients are billed separately, at cost, on top of the package price. Chef Nino handles the shopping and sources premium ingredients, and you simply cover what they cost.
+              No — groceries and ingredients are billed separately, at cost, on top of the price Chef Nino quotes you. Chef Nino handles the shopping and sources premium ingredients, and you simply cover what they cost.
             </p>
           </details>
 
           <details class="group bg-gray-50 rounded-xl p-6 cursor-pointer hover:shadow-soft transition-shadow border border-gray-200">
             <summary class="flex justify-between items-center gap-3 pr-2 font-semibold text-base sm:text-lg text-gray-900 list-none">
-              <span>How many guests are included, and where do you serve?</span>
+              <span>How many guests can you cater for, and where do you serve?</span>
               <svg class="w-6 h-6 text-gold-600 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </summary>
             <p class="mt-4 text-gray-600 text-sm">
-              Every package covers up to 15 guests at the same flat price — the cost never changes with headcount. Service is provided across Lombardy. For larger events, or for service anywhere outside Lombardy, request a bespoke quote: travel and accommodation are arranged per destination (or you can simply provide a room for the chef). You'll hear back within 24 hours.
+              There is no fixed package and no headcount cap — Chef Nino tailors the proposal to your event, so the price reflects your guest count and the meals you choose. Service is provided across Lombardy. For service anywhere outside Lombardy, travel and accommodation are arranged per destination (or you can simply provide a room for the chef). You'll hear back within 24 hours.
             </p>
           </details>
 
