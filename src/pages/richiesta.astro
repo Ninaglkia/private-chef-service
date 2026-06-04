@@ -597,8 +597,13 @@ const EXPERIENCES = [
       if (!v('event_details')) return showErr('Please describe the evening you have in mind.');
       if (!consent) return showErr('Please tick the consent box to send.');
 
-      // Their idea (free text).
-      const details = eventDetails?.value.trim() || '';
+      // Their idea (free text) — fold in the selected meal type so it actually
+      // reaches the owner (there is no dedicated meal_type column; it travels with
+      // the idea text in dietary_preferences). Previously the choice was discarded.
+      const mealSel = document.getElementById('meal_type') as HTMLSelectElement | null;
+      const mealName = mealSel?.options[mealSel.selectedIndex]?.dataset.name || '';
+      const idea = eventDetails?.value.trim() || '';
+      const details = mealName ? `Meal type: ${mealName}\n\n${idea}` : idea;
       if (submitBtn) submitBtn.disabled = true;
       spinner?.classList.remove('hidden');
       try {

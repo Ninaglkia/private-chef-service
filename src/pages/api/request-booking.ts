@@ -131,7 +131,10 @@ export const POST: APIRoute = async ({ request }) => {
       .from('bookings')
       .insert({
         customer_name,
-        customer_email,
+        // Store the email normalized (trim + lowercase) so the customer dashboard
+        // lookup and the bookings RLS (which compares lower(customer_email)) always
+        // match — otherwise a stray capital letter hides the booking + pay link.
+        customer_email: String(customer_email).trim().toLowerCase(),
         customer_phone: customer_phone || null,
         city,
         event_address: event_address || null,

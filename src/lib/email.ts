@@ -142,7 +142,7 @@ function getHtmlTemplate(title: string, content: string): string {
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <meta name="color-scheme" content="light only">
-      <title>${title}</title>
+      <title>${escapeHtml(title)}</title>
       <style>
         body { margin: 0; padding: 0; background-color: #efe9df; -webkit-font-smoothing: antialiased; }
         .wrap { width: 100%; background-color: #efe9df; padding: 32px 12px; }

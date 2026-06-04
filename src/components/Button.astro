@@ -12,7 +12,10 @@ const baseClasses = 'inline-flex items-center justify-center font-semibold round
 
 const variantClasses = {
   primary: 'bg-gray-900 text-white hover:bg-gray-800',
-  secondary: 'bg-gray-900 text-white hover:bg-gray-800',
+  // Light treatment so it stands out on dark sections (e.g. the final CTA on a
+  // bg-gray-900 band, the only place this variant is used). Was identical to
+  // `primary` (dark on dark) and therefore near-invisible.
+  secondary: 'bg-white text-gray-900 hover:bg-gray-100 shadow-lg',
   outline: 'border-2 border-white text-white hover:bg-white/10 backdrop-blur-sm'
 };
 

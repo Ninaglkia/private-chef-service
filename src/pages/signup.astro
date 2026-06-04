@@ -154,11 +154,21 @@ import Header from '../components/Header.astro';
       .maybeSingle();
 
     const onboardingCompleted = profile?.onboarding_completed === true;
-    const target = returnToParam || '/dashboard';
+    // Sanitize returnTo so it can never point off-site (open redirect) or back at
+    // an auth page — mirrors login.astro / auth/callback.astro.
+    let target = returnToParam || '/dashboard';
+    if (
+      !target.startsWith('/') ||
+      target.startsWith('//') ||
+      target.startsWith('/login') ||
+      target.startsWith('/signup') ||
+      target.startsWith('/complete-profile')
+    ) {
+      target = '/dashboard';
+    }
 
     if (!profile || !onboardingCompleted) {
-      const rt = returnToParam || '/dashboard';
-      window.location.href = `/complete-profile?returnTo=${encodeURIComponent(rt)}`;
+      window.location.href = `/complete-profile?returnTo=${encodeURIComponent(target)}`;
       return;
     }
 

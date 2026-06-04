@@ -269,8 +269,30 @@ import Header from '../components/Header.astro';
 
     if (error) {
       if (errorBox) {
-        errorBox.textContent = error.message;
-        errorBox.classList.remove('hidden');
+        const emailVal = emailInput.value.trim();
+        const code = (error as any).code;
+        if (code === 'email_not_confirmed' || /email not confirmed/i.test(error.message)) {
+          // Unconfirmed account: don't dump the raw error — explain + offer resend.
+          errorBox.innerHTML =
+            'You need to confirm your email first — we sent you a link when you signed up. ' +
+            '<a href="#" id="resend-confirm" class="font-semibold underline">Resend the confirmation email</a>.';
+          errorBox.classList.remove('hidden');
+          document.getElementById('resend-confirm')?.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            errorBox.textContent = 'Sending…';
+            const { error: resendErr } = await supabase.auth.resend({ type: 'signup', email: emailVal });
+            errorBox.textContent = resendErr
+              ? `Could not resend right now: ${resendErr.message}`
+              : 'Confirmation email sent — check your inbox (and spam).';
+            errorBox.classList.remove('hidden');
+          });
+        } else if (/invalid login credentials/i.test(error.message)) {
+          errorBox.textContent = 'Incorrect email or password.';
+          errorBox.classList.remove('hidden');
+        } else {
+          errorBox.textContent = error.message;
+          errorBox.classList.remove('hidden');
+        }
       }
     } else {
       handlePostAuthRedirect();

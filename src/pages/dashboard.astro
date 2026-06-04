@@ -158,19 +158,23 @@ if (!profileError) {
   async function init() {
     // Session is already verified server-side; load bookings by the signed-in email.
     if (userEmail) {
-      loadBookings(userEmail);
+      loadBookings();
     } else {
       window.location.href = '/login';
     }
   }
 
-  async function loadBookings(email) {
+  async function loadBookings() {
     if (!bookingSection) return;
 
+    // Scoping is enforced by RLS (bookings_select_own: lower(customer_email) =
+    // lower(jwt email)) — case-insensitive. The previous client-side
+    // .eq('customer_email', email) was case-SENSITIVE, so a booking stored with a
+    // different email case was hidden and the customer saw "no bookings" (losing
+    // the pay link). RLS already restricts the rows to the signed-in user.
     const { data: bookings, error } = await supabase
       .from('bookings')
       .select('*')
-      .eq('customer_email', email)
       .order('created_at', { ascending: false });
 
     if (error) {
