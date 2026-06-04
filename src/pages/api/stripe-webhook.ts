@@ -83,15 +83,26 @@ export const POST: APIRoute = async ({ request }) => {
 
     const booking = updatedRows[0];
 
-    // Sanity check the amount actually paid vs the price we stored.
-    if (
-      session.amount_total != null &&
-      booking.total_price != null &&
-      session.amount_total !== booking.total_price
-    ) {
-      console.error(
-        `Amount mismatch for booking ${booking.id}: paid ${session.amount_total}, expected ${booking.total_price}`
-      );
+    // Verify the amount actually paid. total_price is the GROSS price; the only
+    // sanctioned discount is BENVENUTO10 (10% off, first booking), so a legitimate
+    // payment lands in [90% of total_price, total_price]. Anything below that floor
+    // is a real underpayment -> raise an actual alert (not just a log). A payment in
+    // the discount band is normal and must NOT cry wolf — the old check fired on
+    // EVERY discounted order and desensitised the operator.
+    if (session.amount_total != null && booking.total_price != null) {
+      const expected = booking.total_price;
+      const floor = Math.round(expected * 0.9);
+      if (session.amount_total < floor) {
+        const alert = `[PAYMENT ALERT] Underpayment on booking ${booking.id}: paid ${session.amount_total}, expected ${expected} (min ${floor}). Investigate before fulfilling.`;
+        console.error(alert);
+        notifyOrganizer(alert).catch((err) =>
+          console.error('Underpayment alert failed:', err)
+        );
+      } else if (session.amount_total < expected) {
+        console.log(
+          `Booking ${booking.id}: discount applied (paid ${session.amount_total} of ${expected}).`
+        );
+      }
     }
 
     // Notifications are best-effort: a failure here must not 500 the webhook.

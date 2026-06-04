@@ -78,6 +78,22 @@ export const POST: APIRoute = async ({ request }) => {
     if (!customer_name || !customer_email || !customer_phone || !city || !start_date) {
       return json({ error: 'Name, email, phone, city and date are required' }, 400);
     }
+    // Email must look like an email. The public form checks this client-side, but a
+    // direct POST bypasses that — a typo'd address creates a booking we can never reach.
+    if (!/^\S+@\S+\.\S+$/.test(String(customer_email).trim())) {
+      return json({ error: 'A valid email is required' }, 400);
+    }
+    // Length caps so a direct POST can't store megabytes of junk in the row.
+    if (
+      String(customer_name).length > 120 ||
+      String(customer_email).length > 200 ||
+      String(customer_phone).length > 40 ||
+      String(city).length > 120 ||
+      String(event_address || '').length > 300 ||
+      String(event_details || dietary_preferences || '').length > 4000
+    ) {
+      return json({ error: 'One or more fields are too long' }, 400);
+    }
     // Phone must be a real number (6–15 digits, ignoring separators/prefix).
     if (String(customer_phone).replace(/\D/g, '').length < 6) {
       return json({ error: 'A valid phone number is required' }, 400);
