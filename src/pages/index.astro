@@ -224,8 +224,10 @@ import ChefCarousel from '../components/ChefCarousel.astro';
       </div>
     </section>
 
-    <section id="pricing" class="py-16 md:py-32 bg-white">
-      <div class="container mx-auto px-4 md:px-6">
+    <section id="pricing" class="relative py-16 md:py-32 overflow-hidden">
+      <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('/images/experiences/villa.jpg')"></div>
+      <div class="absolute inset-0 bg-gray-900/70"></div>
+      <div class="container mx-auto px-4 md:px-6 relative z-10">
         <div class="max-w-2xl mx-auto">
           <div class="group text-center rounded-3xl border border-gray-200 bg-white px-6 py-10 md:px-14 md:py-14 transition-all duration-300 hover:-translate-y-1 hover:border-gold-500 hover:shadow-[0_0_55px_-10px_rgba(255,179,71,0.55)]">
             <div class="flex items-center justify-center gap-3 mb-5">
