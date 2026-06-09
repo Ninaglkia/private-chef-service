@@ -90,6 +90,13 @@ const fmtDate = (s: string | null) =>
       <!-- RIGHT: confirmation form -->
       <section class="rounded-3xl border border-[#c6a15b]/25 bg-white p-6 sm:p-8 shadow-lg">
         <input type="hidden" id="f_booking_id" />
+        <div class="flex items-center justify-between gap-3 mb-5">
+          <span id="form-mode" class="text-[11px] uppercase tracking-[0.2em] text-[#c6a15b]">New manual client</span>
+          <button id="btn-new-manual" type="button"
+            class="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-[#c6a15b]/40 text-[#17130d] px-3 py-1.5 text-xs font-medium hover:bg-[#c6a15b]/10 transition-all">
+            + New manual client
+          </button>
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <label class="block">
             <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Customer name</span>
@@ -229,6 +236,11 @@ const fmtDate = (s: string | null) =>
   const val = (id: string) => ($(id)?.value ?? '').trim();
   const set = (id: string, v: string) => { const el = $(id); if (el) el.value = v; };
 
+  // Small mode indicator: tells the owner whether they're editing a selected
+  // request or creating a brand-new manual client.
+  const formModeEl = document.getElementById('form-mode');
+  function setMode(text: string) { if (formModeEl) formModeEl.textContent = text; }
+
   // ---- Auto price: chef day fee + per-guest meal coperto (override anytime) ----
   const fmtEur = (n: number) => '€' + n.toLocaleString('it-IT');
   function recomputePrice() {
@@ -271,8 +283,19 @@ const fmtDate = (s: string | null) =>
       set('f_address', d.address || '');
       // Seed the recap with the guest's original idea so the owner can edit it.
       if (!val('f_recap') && d.idea) set('f_recap', d.idea);
+      setMode('Editing request: ' + (d.name || '—'));
       ($('f_link') as HTMLInputElement | null)?.focus();
     });
+  });
+
+  // ---- New manual client: clear selection + fields so the owner can type a fresh booking ----
+  document.getElementById('btn-new-manual')?.addEventListener('click', () => {
+    document.querySelectorAll('.req-card').forEach((c) => c.classList.remove('ring-2', 'ring-[#c6a15b]'));
+    ['f_booking_id', 'f_name', 'f_email', 'f_phone', 'f_guests', 'f_date', 'f_city', 'f_address', 'f_recap', 'f_link', 'm_to', 'm_name'].forEach((id) => set(id, ''));
+    recomputePrice();
+    setMode('New manual client');
+    status('New manual client — fill name, email, city, date + price, then Generate link.', true);
+    ($('f_name') as HTMLInputElement | null)?.focus();
   });
 
   // ---- Status helper ----
@@ -359,9 +382,18 @@ const fmtDate = (s: string | null) =>
   const btnGen = document.getElementById('btn-genlink') as HTMLButtonElement | null;
   const btnGenLabel = document.getElementById('btn-genlink-label');
   btnGen?.addEventListener('click', async () => {
-    if (!val('f_booking_id')) return status('Select a pending request first.', false);
+    const bookingId = val('f_booking_id');
     const price = Number(val('f_price'));
     if (!Number.isFinite(price) || price <= 0) return status('Set a valid price before generating the link.', false);
+
+    // Manual client (no request selected): we need the booking basics so the
+    // server can create the pending booking before attaching the Stripe link.
+    if (!bookingId) {
+      if (!val('f_name')) return status('Add the customer name (or pick a request on the left).', false);
+      if (!/^\S+@\S+\.\S+$/.test(val('f_email'))) return status('Add a valid customer email.', false);
+      if (!val('f_city')) return status('Add the city.', false);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(val('f_date'))) return status('Add a valid date (YYYY-MM-DD).', false);
+    }
 
     const tier = Number(val('f_tier')) || 1;
     const mealSel = $('f_meal') as unknown as HTMLSelectElement | null;
@@ -375,9 +407,14 @@ const fmtDate = (s: string | null) =>
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          booking_id: val('f_booking_id'),
+          booking_id: bookingId || null,
           customer_name: val('f_name'),
           customer_email: val('f_email'),
+          customer_phone: val('f_phone'),
+          city: val('f_city'),
+          event_address: val('f_address'),
+          start_date: val('f_date'),
+          recap: val('f_recap'),
           chef_eur: Number(val('f_chef')) || 0,
           meal_unit_eur: mealBase * tier,
           meal_name: mealName.trim(),
@@ -390,7 +427,13 @@ const fmtDate = (s: string | null) =>
         status(data?.error || 'Could not generate the link.', false);
       } else {
         set('f_link', data.url);
-        status('✓ Stripe link generated' + (data.itemized ? ' (itemized)' : ' (single total)') + ' — now send it.', true);
+        // A manual booking was just created — keep its id so "Send confirmation
+        // email" / WhatsApp attach to it, and reflect it in the mode label.
+        if (data.created && data.booking_id) {
+          set('f_booking_id', String(data.booking_id));
+          setMode('New client created ✓ — now send it');
+        }
+        status('✓ Stripe link generated' + (data.itemized ? ' (itemized)' : ' (single total)') + (data.created ? ' — client created, now send it.' : ' — now send it.'), true);
       }
     } catch {
       status('Network error, please try again.', false);

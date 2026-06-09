@@ -40,17 +40,73 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     const data = await request.json();
-    const booking_id = data.booking_id ? String(data.booking_id) : null;
+    let booking_id = data.booking_id ? String(data.booking_id) : null;
     const chef_eur = Number(data.chef_eur) || 0;
     const meal_unit_eur = Number(data.meal_unit_eur) || 0; // per-guest rate (tier already applied)
     const meal_name = String(data.meal_name || '').trim(); // e.g. "Dinner" or "Dinner Premium"
     const guests = Math.max(0, Math.floor(Number(data.guests) || 0));
     const total_eur = Number(data.total_eur);
 
-    if (!booking_id) return json({ error: 'Select a pending request first.' }, 400);
     if (!Number.isFinite(total_eur) || total_eur <= 0) return json({ error: 'A valid price is required.' }, 400);
 
     const toCents = (eur: number) => Math.round(eur * 100);
+
+    // Manual client: no pending request was selected, so create the booking now
+    // from the owner-entered fields (mirrors the request-booking.ts insert shape),
+    // then attach the Stripe link to it exactly like a selected request would.
+    let createdBooking = false;
+    if (!booking_id) {
+      const customer_name = String(data.customer_name || '').trim();
+      const customer_email = String(data.customer_email || '').trim().toLowerCase();
+      const customer_phone = data.customer_phone ? String(data.customer_phone).trim() : null;
+      const city = String(data.city || '').trim();
+      const event_address = data.event_address ? String(data.event_address).trim() : null;
+      const start_date = String(data.start_date || '').trim();
+      const recap = data.recap ? String(data.recap).trim() : null;
+
+      if (!customer_name) return json({ error: 'Add the customer name for a manual client.' }, 400);
+      if (!/^\S+@\S+\.\S+$/.test(customer_email)) return json({ error: 'A valid customer email is required.' }, 400);
+      if (!city) return json({ error: 'Add the city for a manual client.' }, 400);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(start_date)) return json({ error: 'Add a valid date (YYYY-MM-DD).' }, 400);
+      if (
+        customer_name.length > 120 ||
+        customer_email.length > 200 ||
+        (customer_phone || '').length > 40 ||
+        city.length > 120 ||
+        (event_address || '').length > 300 ||
+        (recap || '').length > 4000
+      ) {
+        return json({ error: 'One or more fields are too long.' }, 400);
+      }
+
+      const { data: created, error: createErr } = await supabaseAdmin
+        .from('bookings')
+        .insert({
+          customer_name,
+          customer_email,
+          customer_phone,
+          city,
+          event_address,
+          start_date,
+          end_date: start_date, // single-day default; owner can extend in the dashboard
+          num_guests: guests > 0 ? guests : 1,
+          total_price: toCents(total_eur),
+          status: 'pending',
+          dietary_preferences: recap,
+          plan: 'custom',
+          marketing_consent: false,
+          add_saturday: false,
+          add_sunday: false,
+        })
+        .select('id')
+        .single();
+      if (createErr || !created) {
+        console.error('Manual booking create failed:', createErr);
+        return json({ error: 'Could not create the manual booking.' }, 500);
+      }
+      booking_id = String(created.id);
+      createdBooking = true;
+    }
 
     // Decide whether the calculator maps cleanly onto canonical prices. If the
     // owner overrode the total, or used a non-standard chef/meal, we fall back
@@ -126,7 +182,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return json({ error: 'Link created but could not be saved to the booking.' }, 500);
     }
 
-    return json({ ok: true, url: link.url, id: link.id, itemized }, 200);
+    return json({ ok: true, url: link.url, id: link.id, itemized, booking_id, created: createdBooking }, 200);
   } catch (error) {
     console.error('create-payment-link error:', error);
     return json({ error: 'Failed to create the payment link.' }, 500);
