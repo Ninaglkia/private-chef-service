@@ -146,7 +146,7 @@ const fmtDate = (s: string | null) =>
           </label>
           <label class="block">
             <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Date</span>
-            <input id="f_date" type="text" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0" placeholder="2026-07-12" />
+            <input id="f_date" type="date" class="w-full bg-transparent border-0 border-b border-gray-300 py-2 text-lg focus:border-[#c6a15b] focus:ring-0" />
           </label>
           <label class="block sm:col-span-2">
             <span class="block text-xs uppercase tracking-wider text-gray-500 mb-1">City</span>
@@ -392,7 +392,7 @@ const fmtDate = (s: string | null) =>
       if (!val('f_name')) return status('Add the customer name (or pick a request on the left).', false);
       if (!/^\S+@\S+\.\S+$/.test(val('f_email'))) return status('Add a valid customer email.', false);
       if (!val('f_city')) return status('Add the city.', false);
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(val('f_date'))) return status('Add a valid date (YYYY-MM-DD).', false);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(val('f_date'))) return status('Pick a date.', false);
     }
 
     const tier = Number(val('f_tier')) || 1;
