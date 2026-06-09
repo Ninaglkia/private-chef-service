@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { isOwnerEmail } from '../../../lib/admin';
 import { sendBookingConfirmationLinkEmail } from '../../../lib/email';
+import { generateBookingRecapPdf } from '../../../lib/booking-pdf';
 
 export const prerender = false;
 
@@ -34,6 +35,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!Number.isFinite(price_eur) || price_eur <= 0) return json({ error: 'A valid price is required.' }, 400);
     if (!recap) return json({ error: 'Please add the recap of what you agreed.' }, 400);
 
+    // Branded PDF recap of what the client booked, attached to the email.
+    // Best-effort: a PDF failure must never block sending the confirmation.
+    let attachments;
+    try {
+      const pdf = await generateBookingRecapPdf({
+        customer_name,
+        price_eur,
+        recap,
+        num_guests: data.num_guests ?? null,
+        city: data.city ?? null,
+        event_address: data.event_address ?? null,
+        start_date: data.start_date ?? null,
+        payment_url,
+      });
+      attachments = [pdf];
+    } catch (pdfErr) {
+      console.error('Booking recap PDF generation failed (sending email without it):', pdfErr);
+    }
+
     await sendBookingConfirmationLinkEmail({
       customer_name,
       customer_email,
@@ -44,6 +64,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       city: data.city ?? null,
       event_address: data.event_address ?? null,
       start_date: data.start_date ?? null,
+      attachments,
     });
 
     // Best-effort: record the link + price on the booking so it shows as "link sent".

@@ -532,6 +532,7 @@ export async function sendBookingConfirmationLinkEmail(data: {
   city?: string | null;
   event_address?: string | null;
   start_date?: string | null;
+  attachments?: EmailAttachment[];
 }) {
   const name = (data.customer_name || '').trim() || 'there';
   const priceFmt = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(
@@ -559,6 +560,7 @@ export async function sendBookingConfirmationLinkEmail(data: {
       ${data.recap ? `<p style="margin-top:4px;"><strong>What we agreed:</strong></p><div class="details-box"><p style="margin:0;">${recapHtml}</p></div>` : ''}
 
       ${emailButton(data.payment_url, 'Confirm & pay')}
+      ${data.attachments?.length ? '<p class="fine">📄 A printable PDF recap of your booking is attached to this email.</p>' : ''}
 
       <p class="fine">Groceries are billed separately, at cost, and are not included in the amount above. If the button doesn't work, copy this link into your browser:<br><a href="${escapeHtml(data.payment_url)}">${escapeHtml(data.payment_url)}</a></p>
       <p>À bientôt,<br>Chef Nino</p>
@@ -569,6 +571,7 @@ export async function sendBookingConfirmationLinkEmail(data: {
     subject: "Confirm your booking — Nino's Private Chef",
     html,
     from: FROM_EMAIL_CUSTOMER,
+    ...(data.attachments?.length ? { attachments: data.attachments } : {}),
   });
 }
 

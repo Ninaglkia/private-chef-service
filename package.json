@@ -18,6 +18,7 @@
     "astro": "^5.16.6",
     "dotenv": "^17.2.3",
     "mammoth": "^1.11.0",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.4.530",
     "stripe": "^20.1.1",
     "tailwindcss": "^3.4.19",
