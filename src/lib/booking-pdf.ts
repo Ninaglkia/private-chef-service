@@ -1,9 +1,23 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+  type PDFFont,
+  type PDFImage,
+  pushGraphicsState,
+  popGraphicsState,
+  moveTo,
+  appendBezierCurve,
+  clip,
+  endPath,
+} from 'pdf-lib';
 
 // A4 in PDF points.
 const PAGE_W = 595.28;
 const PAGE_H = 841.89;
 const MARGIN = 56;
+// Same chef photo used in the branded emails (header avatar).
+const CHEF_PHOTO_URL = 'https://ninos-privatechefs.com/images/chef.jpg';
 
 export interface BookingRecapData {
   customer_name?: string | null;
@@ -19,15 +33,13 @@ export interface BookingRecapData {
 // pdf-lib's StandardFonts use WinAnsi encoding and THROW on characters they
 // can't encode (emoji, exotic unicode — common when a recap is pasted from
 // WhatsApp). Map the usual "smart" punctuation to ASCII and drop anything
-// outside printable Latin-1 so generation never crashes on user text.
+// outside printable Latin-1 (keeping the euro sign) so generation never crashes.
 function pdfSafe(s: unknown): string {
   return String(s ?? '')
     .replace(/[‘’‚′]/g, "'")
     .replace(/[“”„″]/g, '"')
     .replace(/[–—]/g, '-')
     .replace(/…/g, '...')
-    // Keep printable ASCII + Latin-1, plus the euro sign (WinAnsi supports it);
-    // drop everything else (emoji, exotic unicode) so the font never throws.
     .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF€]/g, '');
 }
 
@@ -50,9 +62,26 @@ function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): 
   return out;
 }
 
+// Best-effort fetch + embed of the chef photo. Returns null on any failure so
+// the PDF still renders (with a text-only header) if the image is unreachable.
+async function loadChefPhoto(doc: PDFDocument): Promise<PDFImage | null> {
+  try {
+    const resp = await fetch(CHEF_PHOTO_URL, { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) return null;
+    const u8 = new Uint8Array(await resp.arrayBuffer());
+    if (u8[0] === 0xff && u8[1] === 0xd8) return await doc.embedJpg(u8); // JPEG
+    if (u8[0] === 0x89 && u8[1] === 0x50) return await doc.embedPng(u8); // PNG
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Build a branded one-(or-more)-page PDF recap of a booking, returned as a
- * base64 attachment ready for Resend ({ filename, content }).
+ * base64 attachment ready for Resend ({ filename, content }). The header mirrors
+ * the transactional emails: dark band, round chef photo with a gold ring, and
+ * the "Nino's Private Chef" wordmark.
  */
 export async function generateBookingRecapPdf(
   data: BookingRecapData
@@ -63,28 +92,68 @@ export async function generateBookingRecapPdf(
 
   const helv = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const serif = await doc.embedFont(StandardFonts.TimesRomanBold);
 
   const gold = rgb(0.776, 0.631, 0.357); // #c6a15b
   const ink = rgb(0.09, 0.075, 0.051);   // #17130d
+  const white = rgb(1, 1, 1);
   const grey = rgb(0.42, 0.42, 0.42);
   const body = rgb(0.2, 0.2, 0.2);
 
+  const chef = await loadChefPhoto(doc);
+
   let page = doc.addPage([PAGE_W, PAGE_H]);
-  let y = PAGE_H - 64;
+  const cx = PAGE_W / 2;
+  const center = (s: string, y: number, size: number, font: PDFFont, color = ink) => {
+    const t = pdfSafe(s);
+    page.drawText(t, { x: cx - font.widthOfTextAtSize(t, size) / 2, y, size, font, color });
+  };
+
+  // ---------- Branded dark header (mirrors the email) ----------
+  const HEADER_H = chef ? 184 : 132;
+  page.drawRectangle({ x: 0, y: PAGE_H - HEADER_H, width: PAGE_W, height: HEADER_H, color: ink });
+
+  let hy = PAGE_H - 56;
+  if (chef) {
+    const r = 30;
+    const pcy = PAGE_H - 30 - r; // photo centre
+    const k = 0.5523 * r;        // bezier circle constant
+    page.pushOperators(
+      pushGraphicsState(),
+      moveTo(cx - r, pcy),
+      appendBezierCurve(cx - r, pcy + k, cx - k, pcy + r, cx, pcy + r),
+      appendBezierCurve(cx + k, pcy + r, cx + r, pcy + k, cx + r, pcy),
+      appendBezierCurve(cx + r, pcy - k, cx + k, pcy - r, cx, pcy - r),
+      appendBezierCurve(cx - k, pcy - r, cx - r, pcy - k, cx - r, pcy),
+      clip(),
+      endPath()
+    );
+    // object-fit: cover — scale so the smaller side fills the circle, centred.
+    const scale = (2 * r) / Math.min(chef.width, chef.height);
+    const dW = chef.width * scale;
+    const dH = chef.height * scale;
+    page.drawImage(chef, { x: cx - dW / 2, y: pcy - dH / 2, width: dW, height: dH });
+    page.pushOperators(popGraphicsState());
+    page.drawCircle({ x: cx, y: pcy, size: r, borderColor: gold, borderWidth: 2 });
+    hy = pcy - r - 22;
+  }
+
+  center('PRIVATE CHEF AT HOME', hy, 9, helv, gold);
+  hy -= 25;
+  center("Nino's Private Chef", hy, 22, serif, white);
+  hy -= 14;
+  page.drawRectangle({ x: cx - 22, y: hy, width: 44, height: 1, color: gold });
+
+  // ---------- Body ----------
+  let y = PAGE_H - HEADER_H - 46;
   const ensure = (space: number) => {
     if (y - space < 80) { page = doc.addPage([PAGE_W, PAGE_H]); y = PAGE_H - 64; }
   };
   const line = (s: string, x: number, size: number, font: PDFFont, color = ink) =>
     page.drawText(pdfSafe(s), { x, y, size, font, color });
 
-  // Brand header + gold rule
-  line("NINO'S PRIVATE CHEF", MARGIN, 16, bold, ink);
-  y -= 12;
-  page.drawRectangle({ x: MARGIN, y, width: PAGE_W - MARGIN * 2, height: 2, color: gold });
-  y -= 42;
-
-  line('Your booking recap', MARGIN, 26, bold, ink);
-  y -= 30;
+  line('Your booking recap', MARGIN, 24, serif, ink);
+  y -= 28;
 
   const name = pdfSafe(data.customer_name).trim();
   if (name) { line(`Prepared for ${name}`, MARGIN, 12, helv, grey); y -= 30; }
@@ -136,8 +205,8 @@ export async function generateBookingRecapPdf(
   }
 
   // Footer (drawn on whichever page is current/last)
-  page.drawText('ninos-privatechefs.com', { x: MARGIN, y: 56, size: 9, font: helv, color: grey });
-  page.drawText('Groceries are billed separately, at cost, and are not included in the total above.', {
+  page.drawText("Nino's Private Chef  -  ninos-privatechefs.com", { x: MARGIN, y: 56, size: 9, font: helv, color: grey });
+  page.drawText('Signature dining at home, Lombardy & beyond. Groceries are billed separately, at cost.', {
     x: MARGIN, y: 42, size: 8, font: helv, color: grey,
   });
 

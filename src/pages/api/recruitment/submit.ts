@@ -170,8 +170,28 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // 7) Notify best-effort — never let messaging break a saved application.
+    // The owner email carries the CV as an attachment + 30-day signed links to
+    // the dish photos, so applications are fully reviewable from the inbox
+    // without opening the Supabase dashboard.
     try {
-      await sendRecruitmentEmails({ first_name: firstName, last_name: lastName, email, phone, role, availability, city, bio });
+      let cv_attachment = null;
+      try {
+        const cvBuf = Buffer.from(await cvFile.arrayBuffer());
+        cv_attachment = {
+          filename: `CV_${firstName}_${lastName}`.replace(/[^\w-]+/g, '_') + '.' + safeExt(cvFile.name, 'pdf'),
+          content: cvBuf.toString('base64'),
+        };
+      } catch (e) {
+        console.error('CV attachment build failed (sending email without it):', e);
+      }
+      let photo_links: string[] = [];
+      if (photoPaths.length) {
+        const { data: signed } = await supabaseAdmin.storage
+          .from(BUCKET)
+          .createSignedUrls(photoPaths, 30 * 24 * 60 * 60);
+        photo_links = (signed || []).map((s) => s.signedUrl).filter(Boolean);
+      }
+      await sendRecruitmentEmails({ first_name: firstName, last_name: lastName, email, phone, role, availability, city, bio, cv_attachment, photo_links });
     } catch (e) {
       console.error('Recruitment email failed:', e);
     }

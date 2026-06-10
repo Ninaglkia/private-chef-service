@@ -352,7 +352,10 @@ const fmtDate = (s: string | null) =>
   });
 
   // ---- Open WhatsApp with the message prefilled (link always included) ----
-  document.getElementById('btn-wa')?.addEventListener('click', () => {
+  // wa.me can only prefill TEXT (no attachments), so the branded recap PDF is
+  // hosted via /api/owner/recap-pdf and included as a tappable signed link.
+  const btnWa = document.getElementById('btn-wa') as HTMLButtonElement | null;
+  btnWa?.addEventListener('click', async () => {
     const err = validate();
     if (err) return status(err, false);
     const phone = val('f_phone').replace(/\D/g, '');
@@ -364,6 +367,31 @@ const fmtDate = (s: string | null) =>
     const city = val('f_city');
     const recap = val('f_recap');
     const link = val('f_link');
+
+    // Build the branded PDF link first (best-effort: WhatsApp still opens without it).
+    let pdfUrl = '';
+    btnWa.disabled = true;
+    status('Preparing the PDF recap…', true);
+    try {
+      const res = await fetch('/api/owner/recap-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: val('f_name'),
+          price_eur: Number(price),
+          recap,
+          num_guests: guests || null,
+          city: city || null,
+          event_address: val('f_address') || null,
+          start_date: date || null,
+          payment_url: link,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.url) pdfUrl = String(data.url);
+    } catch { /* fall through without the PDF */ }
+    btnWa.disabled = false;
+
     const lines = [
       `Ciao ${name}! Ecco la conferma della tua prenotazione con Chef Nino 👨‍🍳`,
       '',
@@ -371,10 +399,12 @@ const fmtDate = (s: string | null) =>
       '',
       [date && `📅 ${date}`, guests && `👥 ${guests} ospiti`, city && `📍 ${city}`].filter(Boolean).join('  •  '),
       `Totale: €${price}`,
+      ...(pdfUrl ? ['', '📄 Il tuo riepilogo (PDF):', pdfUrl] : []),
       '',
       'Conferma e paga in sicurezza qui:',
       link,
     ].filter((l) => l !== undefined).join('\n');
+    status(pdfUrl ? '✓ PDF ready — opening WhatsApp.' : 'PDF unavailable — opening WhatsApp without it.', !!pdfUrl);
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(lines)}`, '_blank');
   });
 

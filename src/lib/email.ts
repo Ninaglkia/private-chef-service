@@ -682,6 +682,10 @@ export async function sendRecruitmentEmails(data: {
   availability?: string | null;
   city?: string | null;
   bio?: string | null;
+  /** CV file attached to the owner notification (base64). */
+  cv_attachment?: EmailAttachment | null;
+  /** Signed URLs to the dish photos (private bucket), linked in the owner email. */
+  photo_links?: string[] | null;
 }): Promise<void> {
   const fullName = `${data.first_name}${data.last_name ? ' ' + data.last_name : ''}`.trim();
   const roleLabel =
@@ -718,11 +722,19 @@ export async function sendRecruitmentEmails(data: {
         ${row('Phone', data.phone)}
       </div>
       ${data.bio ? `<p style="margin-top:16px;"><strong>Introduction:</strong></p><div class="details-box"><p style="margin:0;">${escapeHtml(data.bio)}</p></div>` : ''}
+      ${data.cv_attachment ? '<p class="fine">📎 The candidate\'s CV is attached to this email.</p>' : ''}
+      ${data.photo_links?.length ? `<p style="margin-top:16px;"><strong>Dish photos</strong> (links valid 30 days):</p><ul>${data.photo_links.map((u, i) => `<li><a href="${escapeHtml(u)}">Photo ${i + 1}</a></li>`).join('')}</ul>` : ''}
     `
   );
 
   await Promise.all([
     sendEmail({ to: data.email, subject: "We received your application — Nino's Private Chef", html: candidateHtml, from: FROM_EMAIL_CUSTOMER }),
-    sendEmail({ to: ORGANIZER_EMAIL, subject: `[APPLICATION] ${fullName} — ${roleLabel}`, html: ownerHtml, from: FROM_EMAIL_SYSTEM }),
+    sendEmail({
+      to: ORGANIZER_EMAIL,
+      subject: `[APPLICATION] ${fullName} — ${roleLabel}`,
+      html: ownerHtml,
+      from: FROM_EMAIL_SYSTEM,
+      ...(data.cv_attachment ? { attachments: [data.cv_attachment] } : {}),
+    }),
   ]);
 }
