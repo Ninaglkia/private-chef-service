@@ -1,0 +1,233 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { COURSES, dishesByCourse, MAX_SELECTION } from '../lib/menu';
+
+// "La Carta" — fully static gallery; selection state is client-side only.
+export const prerender = true;
+
+const byCourse = dishesByCourse();
+---
+
+<Layout
+  title="La Carta — Nino's Private Chef"
+  description="Browse Chef Nino's signature dishes and compose the menu you dream of — every event is quoted personally."
+  bodyClass="bg-[#faf7f1] text-[#17130d]"
+>
+  <Header transparent={false} />
+
+  <main class="pb-28">
+    <!-- Masthead -->
+    <section class="max-w-3xl mx-auto px-5 pt-32 pb-8 text-center">
+      <div class="flex items-center justify-center gap-3 mb-4">
+        <span class="h-px w-8 bg-[#c6a15b]/60"></span>
+        <span class="text-[11px] uppercase tracking-[0.25em] text-[#c6a15b]">La Carta</span>
+        <span class="h-px w-8 bg-[#c6a15b]/60"></span>
+      </div>
+      <h1 class="font-serif text-5xl sm:text-6xl font-semibold leading-tight">Compose your menu</h1>
+      <p class="mt-4 text-gray-500 max-w-xl mx-auto">
+        Tap the dishes that tempt you — Chef Nino builds your menu around them.
+        Every event is quoted personally.
+      </p>
+    </section>
+
+    <!-- Sticky course nav -->
+    <nav id="course-nav" class="sticky top-[64px] z-30 bg-[#faf7f1]/90 backdrop-blur-md py-3 px-5">
+      <div class="max-w-5xl mx-auto flex gap-2 overflow-x-auto no-scrollbar justify-start sm:justify-center">
+        {COURSES.map((c) => (
+          <a
+            href={`#${c.id}`}
+            data-pill={c.id}
+            class="course-pill shrink-0 rounded-full border border-[#c6a15b]/30 px-4 py-1.5 text-xs uppercase tracking-[0.15em] text-[#17130d]/70 transition-colors hover:border-[#c6a15b]"
+          >{c.label}</a>
+        ))}
+      </div>
+    </nav>
+
+    <!-- Course sections -->
+    <div class="max-w-5xl mx-auto px-5">
+      {COURSES.map((c) => (
+        <section id={c.id} data-course-section class="scroll-mt-32 pt-10">
+          <div class="flex items-center gap-4 mb-6">
+            <span class="font-serif text-2xl text-[#c6a15b]">{c.numeral}</span>
+            <div>
+              <h2 class="font-serif text-3xl font-semibold leading-none">{c.label}</h2>
+              <p class="text-[11px] uppercase tracking-[0.2em] text-[#17130d]/50 mt-1">{c.subtitle}</p>
+            </div>
+            <span class="h-px flex-1 bg-[#c6a15b]/25"></span>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+            {(byCourse.get(c.id) || []).map((d) => (
+              <button
+                type="button"
+                class="dish-card group relative aspect-[4/5] rounded-3xl overflow-hidden text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c6a15b] transition-transform duration-300 active:scale-[0.98]"
+                data-id={d.id}
+                data-name={d.name}
+                aria-pressed="false"
+                aria-label={`Select ${d.name}`}
+              >
+                {d.img ? (
+                  <img
+                    src={d.img}
+                    alt={d.name}
+                    loading="lazy"
+                    class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                ) : (
+                  <span class="absolute inset-0 bg-gradient-to-br from-[#17130d] to-[#2a2115]">
+                    <span class="absolute inset-3 rounded-2xl border border-[#c6a15b]/30"></span>
+                    <span class="absolute inset-0 flex items-center justify-center p-6 text-center">
+                      <span class="font-serif italic text-lg text-[#fdf8ef]/90 leading-snug">{d.name}<br /><span class="not-italic text-[#c6a15b] text-base">✦</span></span>
+                    </span>
+                  </span>
+                )}
+                <span class="absolute inset-0 bg-gradient-to-t from-[#17130d]/85 via-[#17130d]/20 to-transparent"></span>
+                <span class="absolute inset-x-0 bottom-0 p-4">
+                  <span class="block font-serif text-lg leading-tight text-[#fdf8ef]">{d.name}</span>
+                  <span class="block mt-1 text-[11px] text-[#fdf8ef]/70 leading-snug">{d.desc}</span>
+                </span>
+                <!-- selected badge -->
+                <span aria-hidden="true" class="dish-check absolute top-3 right-3 w-7 h-7 rounded-full bg-[#c6a15b] text-[#17130d] hidden items-center justify-center text-sm font-bold shadow-lg">✓</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
+
+      <!-- Disclosure + zero-selection path -->
+      <p class="mt-12 text-center text-[11px] text-gray-400">
+        Images are illustrative renderings of Chef Nino's dishes — every menu is prepared fresh and bespoke for your event.
+      </p>
+      <div class="mt-10 text-center">
+        <p class="text-gray-500 mb-4">Prefer to leave it to the chef?</p>
+        <a href="/richiesta" class="inline-flex items-center gap-2 rounded-2xl bg-[#17130d] text-[#fdf8ef] px-8 py-3.5 text-sm font-serif tracking-wide hover:bg-black transition-all">
+          <span class="text-[#c6a15b]">✦</span> Request a proposal
+        </a>
+      </div>
+    </div>
+
+    <!-- spacer so the sticky bar never covers the footer CTA -->
+    <div class="h-24"></div>
+  </main>
+
+  <!-- Sticky selection bar -->
+  <div
+    id="selection-bar"
+    class="fixed inset-x-0 bottom-0 z-40 translate-y-full transition-transform duration-300 bg-[#17130d] text-[#fdf8ef] shadow-[0_-10px_30px_rgba(23,19,13,0.35)]"
+    style="padding-bottom: env(safe-area-inset-bottom);"
+  >
+    <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between gap-3">
+      <div>
+        <p id="selection-count" aria-live="polite" class="text-sm font-medium"></p>
+        <p id="selection-note" class="text-[11px] text-[#c6a15b] h-4"></p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="selection-clear" type="button" class="text-xs text-[#fdf8ef]/60 hover:text-[#fdf8ef] underline underline-offset-4">Clear</button>
+        <a id="selection-cta" href="/richiesta" class="inline-flex items-center gap-2 rounded-2xl bg-[#c6a15b] text-[#17130d] px-6 py-3 text-sm font-semibold hover:bg-[#d4b06a] active:scale-[0.99] transition-all">
+          Request this menu →
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>
+
+<style>
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .course-pill.active { background: #c6a15b; color: #17130d; border-color: #c6a15b; }
+  .dish-card[aria-pressed='true'] { box-shadow: 0 0 0 2px #faf7f1, 0 0 0 4px #c6a15b; }
+  .dish-card[aria-pressed='true'] .dish-check { display: flex; }
+  @media (prefers-reduced-motion: reduce) {
+    .dish-card, .dish-card img, #selection-bar { transition: none !important; }
+  }
+</style>
+
+<script>
+  import { MAX_SELECTION } from '../lib/menu';
+
+  const STORAGE_KEY = 'selectedDishes';
+  const selected = new Set<string>();
+
+  const cards = Array.from(document.querySelectorAll<HTMLButtonElement>('.dish-card'));
+  const bar = document.getElementById('selection-bar');
+  const countEl = document.getElementById('selection-count');
+  const noteEl = document.getElementById('selection-note');
+  const cta = document.getElementById('selection-cta') as HTMLAnchorElement | null;
+
+  function save() {
+    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(selected))); } catch { /* private mode */ }
+  }
+
+  function render() {
+    cards.forEach((c) => c.setAttribute('aria-pressed', selected.has(c.dataset.id || '') ? 'true' : 'false'));
+    const n = selected.size;
+    if (countEl) countEl.textContent = n === 1 ? '1 dish selected' : `${n} dishes selected`;
+    bar?.classList.toggle('translate-y-full', n === 0);
+    // Query-param fallback baked into the CTA: works even if sessionStorage is unavailable.
+    if (cta) cta.href = n ? `/richiesta?dishes=${encodeURIComponent(Array.from(selected).join(','))}` : '/richiesta';
+  }
+
+  let noteTimer: ReturnType<typeof setTimeout> | undefined;
+  function flashNote(msg: string) {
+    if (!noteEl) return;
+    noteEl.textContent = msg;
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => { noteEl.textContent = ''; }, 2600);
+  }
+
+  function restore() {
+    selected.clear();
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) JSON.parse(raw).forEach((id: string) => selected.add(id));
+    } catch { /* ignore */ }
+    render();
+  }
+
+  cards.forEach((card) => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.id || '';
+      if (selected.has(id)) {
+        selected.delete(id);
+      } else if (selected.size >= MAX_SELECTION) {
+        flashNote(`Up to ${MAX_SELECTION} dishes — remove one to add another.`);
+        return;
+      } else {
+        selected.add(id);
+      }
+      save();
+      render();
+    });
+  });
+
+  document.getElementById('selection-clear')?.addEventListener('click', () => {
+    selected.clear();
+    save();
+    render();
+  });
+
+  document.getElementById('selection-cta')?.addEventListener('click', save);
+
+  restore();
+  // bfcache: returning via back/forward restores the latest selection.
+  window.addEventListener('pageshow', restore);
+
+  // Scrollspy: highlight the pill of the section in view.
+  const pills = new Map<string, Element>();
+  document.querySelectorAll('[data-pill]').forEach((p) => pills.set((p as HTMLElement).dataset.pill || '', p));
+  const spy = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        pills.forEach((p) => p.classList.remove('active'));
+        pills.get(e.target.id)?.classList.add('active');
+      });
+    },
+    { rootMargin: '-30% 0px -60% 0px' }
+  );
+  document.querySelectorAll('[data-course-section]').forEach((s) => spy.observe(s));
+</script>

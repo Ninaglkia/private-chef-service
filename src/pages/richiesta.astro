@@ -573,6 +573,8 @@ const EXPERIENCES = [
 
     function showSuccess() {
       submitted = true;
+      // The /menu selection has served its purpose — don't re-prefill next time.
+      try { sessionStorage.removeItem('selectedDishes'); } catch { /* ignore */ }
       form!.querySelectorAll('input,textarea,button').forEach((el) => ((el as HTMLButtonElement).disabled = true));
       // hide everything except the success block
       Array.from((form as HTMLElement).children).forEach((c) => { if (c.id !== 'request-success') (c as HTMLElement).style.display = 'none'; });
@@ -621,5 +623,43 @@ const EXPERIENCES = [
         showSuccess();
       } catch { showErr('Network error, please try again.'); if (submitBtn) submitBtn.disabled = false; spinner?.classList.add('hidden'); }
     });
+  })();
+
+  // ===== DISH PRE-FILL (from /menu "La Carta") =====
+  // Selected dish ids travel via sessionStorage (primary) or ?dishes= (share
+  // links / storage-unavailable fallback). Resolve ids -> names and prepend a
+  // "Dishes I'd love:" line to the idea textarea, idempotently.
+  (() => {
+    const PREFIX_RE = /^Dishes I'd love:[^\n]*\n*/;
+
+    function selectedIds(): string[] {
+      try {
+        const raw = sessionStorage.getItem('selectedDishes');
+        if (raw) {
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr) && arr.length) return arr;
+        }
+      } catch { /* ignore */ }
+      const fromUrl = new URLSearchParams(location.search).get('dishes');
+      return fromUrl ? fromUrl.split(',').filter(Boolean) : [];
+    }
+
+    async function apply() {
+      const ta = document.getElementById('event_details') as HTMLTextAreaElement | null;
+      if (!ta || ta.disabled) return;
+      const ids = selectedIds();
+      if (!ids.length) return;
+      const { DISHES } = await import('../lib/menu');
+      const names = ids
+        .map((id) => DISHES.find((d) => d.id === id)?.name)
+        .filter((n): n is string => !!n);
+      if (!names.length) return;
+      const rest = ta.value.replace(PREFIX_RE, '');
+      ta.value = `Dishes I'd love: ${names.join(', ')}\n\n${rest}`;
+    }
+
+    apply();
+    // bfcache: coming back from /menu with a changed selection updates the line.
+    window.addEventListener('pageshow', (e) => { if ((e as PageTransitionEvent).persisted) apply(); });
   })();
 </script>

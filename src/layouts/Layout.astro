@@ -8,8 +8,8 @@ interface Props {
 }
 
 const {
-	title = 'Private Chef - Premium Personal Chef Service in Lombardy',
-	description = 'Chef Nino, your personal private chef. Send a request and receive a bespoke menu and price, then a secure payment link — no fixed packages, no payment upfront. Breakfast, lunch, dinner or a buffet, crafted in your home. Available across Lombardy, and abroad on request.',
+	title = 'Private Chef on Lake Como & Milan — Nino\'s Private Chef',
+	description = 'Chef Nino, your personal private chef on Lake Como, in Milan and across Lombardy. Send a request and receive a bespoke menu and price, then a secure payment link — no fixed packages, no payment upfront. Breakfast, lunch, dinner or a buffet, crafted in your villa or home. Also available abroad on request.',
 	bodyClass = 'bg-white text-gray-900'
 } = Astro.props;
 
@@ -56,6 +56,26 @@ const ogImage = new URL('/og-image.jpg', Astro.site ?? Astro.url).href;
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content={canonicalURL} />
 		<meta property="og:image" content={ogImage} />
+
+		<!-- Local SEO: structured data for "private chef lake como / milan" queries -->
+		<script type="application/ld+json" is:inline set:html={JSON.stringify({
+			'@context': 'https://schema.org',
+			'@type': 'FoodService',
+			name: "Nino's Private Chef",
+			url: 'https://ninos-privatechefs.com',
+			image: 'https://ninos-privatechefs.com/images/chef.jpg',
+			description: 'Premium private chef service: bespoke menus cooked in your villa or home on Lake Como, in Milan and across Lombardy.',
+			email: 'info@ninos-privatechefs.com',
+			priceRange: '€€€',
+			areaServed: [
+				{ '@type': 'Place', name: 'Lake Como' },
+				{ '@type': 'City', name: 'Milan' },
+				{ '@type': 'City', name: 'Como' },
+				{ '@type': 'City', name: 'Bergamo' },
+				{ '@type': 'AdministrativeArea', name: 'Lombardy' },
+			],
+			founder: { '@type': 'Person', name: 'Chef Nino', jobTitle: 'Private Chef' },
+		})} />
 
 		<!-- Twitter -->
 		<meta name="twitter:card" content="summary_large_image" />
