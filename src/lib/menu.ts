@@ -49,7 +49,7 @@ export const DISHES: Dish[] = [
   // I — Antipasti
   { id: 'crudo-ricciola', name: 'Amberjack crudo, citrus & basil oil', course: 'antipasti', desc: 'Raw amberjack, seasonal citrus, cold-pressed basil oil' },
   { id: 'tartare-fassona', name: 'Fassona beef tartare', course: 'antipasti', desc: 'Hand-cut Piedmontese beef, egg yolk cream, capers' },
-  { id: 'carpaccio-capesante', name: 'Scallop carpaccio', course: 'antipasti', desc: 'Lake-thin scallops, lemon zest, wild fennel' },
+  { id: 'vitello-tonnato', name: 'Vitello tonnato', course: 'antipasti', desc: 'Rosé-cooked veal, silky tuna emulsion, crispy capers' },
   { id: 'burrata-pomodorini', name: 'Burrata & confit tomatoes', course: 'antipasti', desc: 'Creamy burrata, slow-roasted datterini, basil', img: '/images/dish2.jpg' },
   { id: 'polpo-arrosto', name: 'Roasted octopus, potato cream', course: 'antipasti', desc: 'Charred octopus, smoked potato velvet, olive crumble' },
   // II — Primi
