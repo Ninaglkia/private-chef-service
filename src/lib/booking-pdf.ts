@@ -206,7 +206,7 @@ export async function generateBookingRecapPdf(
 
   // Footer (drawn on whichever page is current/last)
   page.drawText("Nino's Private Chef  -  ninos-privatechefs.com", { x: MARGIN, y: 56, size: 9, font: helv, color: grey });
-  page.drawText('Signature dining at home, Lombardy & beyond. Groceries are billed separately, at cost.', {
+  page.drawText('Signature dining at home, Lombardy & beyond. All inclusive, as agreed in your proposal.', {
     x: MARGIN, y: 42, size: 8, font: helv, color: grey,
   });
 

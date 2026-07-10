@@ -507,7 +507,7 @@ export async function sendRequestConfirmationToGuest(data: {
       <p>Prefer to talk it through? You can reach Chef Nino directly on WhatsApp.</p>
       ${emailButton('https://wa.me/393285515590', 'Message Chef Nino')}
 
-      <p class="fine">Groceries are billed separately, at cost. If anything changes, just reply to this email.</p>
+      <p class="fine">Everything in your proposal is included — menu, shopping, cooking and service. If anything changes, just reply to this email.</p>
       <p>À bientôt,<br>Chef Nino</p>
     `
   );
@@ -562,7 +562,7 @@ export async function sendBookingConfirmationLinkEmail(data: {
       ${emailButton(data.payment_url, 'Confirm & pay')}
       ${data.attachments?.length ? '<p class="fine">📄 A printable PDF recap of your booking is attached to this email.</p>' : ''}
 
-      <p class="fine">Groceries are billed separately, at cost, and are not included in the amount above. If the button doesn't work, copy this link into your browser:<br><a href="${escapeHtml(data.payment_url)}">${escapeHtml(data.payment_url)}</a></p>
+      <p class="fine">The amount reflects what was agreed in your proposal. If the button doesn't work, copy this link into your browser:<br><a href="${escapeHtml(data.payment_url)}">${escapeHtml(data.payment_url)}</a></p>
       <p>À bientôt,<br>Chef Nino</p>
     `
   );
