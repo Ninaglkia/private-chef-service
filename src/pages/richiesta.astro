@@ -91,7 +91,7 @@ const EXPERIENCES = [
     <!-- In-page menus modal (opened from the experience gallery chips) -->
     <div id="menus-modal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4">
       <div id="menus-backdrop" class="absolute inset-0 bg-[#17130d]/70 backdrop-blur-sm"></div>
-      <div class="relative max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-[#fdfbf7] p-6 sm:p-8 shadow-2xl">
+      <div id="menus-panel" class="relative max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-[#fdfbf7] p-6 sm:p-8 shadow-2xl">
         <div class="flex items-center justify-between mb-5">
           <h3 class="font-serif text-2xl text-[#17130d]">The menus</h3>
           <button type="button" id="menus-close" aria-label="Close" class="w-9 h-9 rounded-full bg-[#17130d] text-[#fdf8ef] hover:bg-black transition-colors">✕</button>
@@ -485,10 +485,20 @@ ${rest}`;
           ? TASTING_MENUS.filter((m) => byName.includes(m.name))
           : TASTING_MENUS.filter((m) => (m.meal || 'dinner') === filter);
       trackEl.innerHTML = '';
+      const single = menus.length === 1;
+      const panel = document.getElementById('menus-panel');
+      panel?.classList.toggle('max-w-3xl', !single);
+      panel?.classList.toggle('max-w-xl', single);
+      ['mm-prev', 'mm-next'].forEach((id) => {
+        const b = document.getElementById(id);
+        if (b) b.style.display = single ? 'none' : '';
+      });
       const safe = (s: string) => s.replace(/[<>&]/g, '');
       menus.forEach((m) => {
         const card = document.createElement('article');
-        card.className = 'snap-center shrink-0 w-[86%] sm:w-[400px] rounded-3xl border border-[#e0cfa6] bg-white px-6 py-7 text-center';
+        card.className = single
+          ? 'shrink-0 w-full rounded-3xl border border-[#e0cfa6] bg-white px-6 py-7 text-center'
+          : 'snap-center shrink-0 w-[86%] sm:w-[400px] rounded-3xl border border-[#e0cfa6] bg-white px-6 py-7 text-center';
         const courses = m.courses.map((c) =>
           `<li class="mb-3"><p class="text-[10px] uppercase tracking-[0.25em] text-[#a07b35]">${safe(c.course)}</p><p class="font-serif text-[16px] leading-snug text-[#17130d]">${safe(c.it)}</p><p class="text-[11px] italic text-[#8a8174]">${safe(c.en)}</p></li>`
         ).join('');
