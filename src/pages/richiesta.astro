@@ -70,7 +70,7 @@ const EXPERIENCES = [
               <p class="mt-2 font-serif italic text-lg text-[#fdf8ef]/80">{ex.desc}</p>
               <div class="mt-4 flex flex-wrap items-center gap-3">
                 <button type="button" data-filter={ex.filter} class="exp-menus-open inline-block rounded-full bg-[#fdf8ef]/10 backdrop-blur-sm border border-[#c6a15b]/50 px-4 py-1.5 text-[13px] text-[#fdf8ef] hover:bg-[#fdf8ef]/20 transition-colors cursor-pointer">{ex.price}</button>
-                <a href={ex.link} class="inline-flex items-center gap-1.5 rounded-full bg-[#c6a15b] px-4 py-1.5 text-[13px] font-semibold text-[#17130d] hover:bg-[#d4b06a] transition-colors">{ex.linkLabel} →</a>
+                <a href={ex.link} data-meal={ex.filter} class="exp-request inline-flex items-center gap-1.5 rounded-full bg-[#c6a15b] px-4 py-1.5 text-[13px] font-semibold text-[#17130d] hover:bg-[#d4b06a] transition-colors">{ex.linkLabel} →</a>
               </div>
             </div>
           </article>
@@ -483,6 +483,14 @@ ${rest}`;
       syncPills(); recompute();
     }));
     syncPills();
+    document.querySelectorAll<HTMLAnchorElement>('a.exp-request').forEach((a) => a.addEventListener('click', () => {
+      const k = a.dataset.meal || '';
+      if (RATES[k] !== undefined) {
+        selectedMeals.clear(); selectedMeals.add(k);
+        if (chosenMenu && chosenMenu.mealKind !== k) chosenMenu = null;
+        syncPills(); recompute();
+      }
+    }));
     // The +/- steppers set the value directly without firing events, so recompute on their click too.
     document.getElementById('g-minus')?.addEventListener('click', recompute);
     document.getElementById('g-plus')?.addEventListener('click', recompute);
