@@ -7,11 +7,11 @@ export const prerender = false;
 
 // Experience slideshow. Dedicated photography under /images/experiences/.
 const EXPERIENCES = [
-  { label: 'Dinner at your villa', img: '/images/experiences/villa.jpg', kicker: 'The evening', desc: 'A table under the stars, by your poolside' },
-  { label: 'Romantic dinner', img: '/images/experiences/romantic.jpg', kicker: 'For two', desc: 'An intimate menu, by candlelight' },
-  { label: 'Event / party', img: '/images/experiences/event.jpg', kicker: 'With everyone', desc: 'A signature buffet for your guests' },
-  { label: 'Seafood menu', img: '/images/experiences/seafood.jpg', kicker: 'From the sea', desc: 'Raw and cooked, perfectly fresh' },
-  { label: 'Chef for several days', img: '/images/experiences/multiday.jpg', kicker: 'At your home', desc: 'A week of fine dining' },
+  { label: 'Dinner at your villa', img: '/images/experiences/villa.jpg', kicker: 'The evening', desc: 'A table under the stars, by your poolside', price: 'Menus from €50 per person', link: '/menu', linkLabel: 'Browse the dinner menus' },
+  { label: 'Romantic dinner', img: '/images/experiences/romantic.jpg', kicker: 'For two', desc: 'An intimate menu, by candlelight', price: 'La Romantica — €110 per person', link: '/richiesta?menu=La%20Romantica', linkLabel: 'Request this evening' },
+  { label: 'Aperitivo & events', img: '/images/experiences/event.jpg', kicker: 'With everyone', desc: 'Spritz, bites and golden hour for your party', price: 'From €28 per person · waiter included', link: '/richiesta?menu=L%27Aperitivo%20Italiano', linkLabel: 'Request an aperitivo' },
+  { label: 'From the sea', img: '/images/experiences/seafood.jpg', kicker: 'Raw & cooked', desc: 'Crudi, risotto and the salt-crust theatre', price: 'Il Mare — €95 per person', link: '/richiesta?menu=Il%20Mare', linkLabel: 'Request Il Mare' },
+  { label: 'Chef for several days', img: '/images/experiences/multiday.jpg', kicker: 'At your home', desc: 'Breakfast to dinner, for your whole stay', price: 'Personal weekly quote', link: '#details', linkLabel: 'Tell Chef Nino your dates' },
 ];
 
 // NOTE: availability is intentionally NOT managed in the website. The guest only
@@ -68,6 +68,10 @@ const EXPERIENCES = [
               <p class="text-[11px] uppercase tracking-[0.2em] text-[#c6a15b] mb-1">{String(i + 1).padStart(2, '0')} · {ex.kicker}</p>
               <h3 class="exp-title font-serif text-4xl sm:text-5xl text-[#fdf8ef] leading-none">{ex.label}</h3>
               <p class="mt-2 font-serif italic text-lg text-[#fdf8ef]/80">{ex.desc}</p>
+              <div class="mt-4 flex flex-wrap items-center gap-3">
+                <span class="inline-block rounded-full bg-[#fdf8ef]/10 backdrop-blur-sm border border-[#c6a15b]/50 px-4 py-1.5 text-[13px] text-[#fdf8ef]">{ex.price}</span>
+                <a href={ex.link} class="inline-flex items-center gap-1.5 rounded-full bg-[#c6a15b] px-4 py-1.5 text-[13px] font-semibold text-[#17130d] hover:bg-[#d4b06a] transition-colors">{ex.linkLabel} →</a>
+              </div>
             </div>
           </article>
         ))}
