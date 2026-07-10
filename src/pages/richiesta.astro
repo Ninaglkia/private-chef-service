@@ -437,6 +437,12 @@ const EXPERIENCES = [
           total += chosenMenu.extra + chosenMenu.price * effGuests;
           parts.push(`Menu ${chosenMenu.name} ${fmtEur(chosenMenu.price)} × ${effGuests}${chosenMenu.extra ? ` + ${chosenMenu.extraLabel} ${fmtEur(chosenMenu.extra)}` : ''}`);
           if (chosenMenu.minGuests && guests < chosenMenu.minGuests) minNote = ` (minimum ${chosenMenu.minGuests} guests)`;
+        } else if (k === 'buffet') {
+          hasFrom = true;
+          const effB = Math.max(guests, 8);
+          total += 150 + (RATES[k] || 0) * effB;
+          parts.push(`${MEAL_LABEL[k]} from ${fmtEur(RATES[k] || 0)} × ${effB} + waiter ${fmtEur(150)}`);
+          if (guests < 8) minNote = ' (aperitivo: minimum 8 guests)';
         } else {
           hasFrom = true;
           total += (RATES[k] || 0) * guests;
