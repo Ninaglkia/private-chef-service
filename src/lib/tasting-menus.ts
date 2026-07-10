@@ -1,5 +1,7 @@
 // Chef's tasting menus — single source of truth for /menu (la carta) and the
-// /richiesta indicative-price estimate. price = indicative EUR per person.
+// /richiesta indicative-price estimate. price = indicative EUR per person for
+// the MENU; the chef's service fee is a fixed amount per event, on top.
+export const CHEF_SERVICE_EUR = 600;
 export interface TastingCourse { course: string; it: string; en: string }
 export interface TastingMenu { name: string; tag: string; price: number; courses: TastingCourse[] }
 
