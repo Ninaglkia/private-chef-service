@@ -358,8 +358,8 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
 
       <div class="promo-box">
         <p class="promo-label">Your welcome gift</p>
-        <span class="promo-code">BENVENUTO10</span>
-        <p class="promo-note">10% off your first booking</p>
+        <span class="promo-code">10% OFF</span>
+        <p class="promo-note">your first dinner — applied by Chef Nino directly in your proposal</p>
       </div>
 
       <div class="details-box">
@@ -367,12 +367,12 @@ export async function sendWelcomeEmail(user: { email: string; full_name?: string
         <ul style="margin:10px 0 0 18px;padding:0;">
           <li>Send a quick request — no payment, no account needed</li>
           <li>Personalise the menu with your chef</li>
-          <li>Groceries are billed separately, at cost</li>
+          <li>All-inclusive proposals: menu, shopping, cooking and service</li>
         </ul>
       </div>
 
       ${emailButton('https://ninos-privatechefs.com/richiesta', 'Book now')}
-      <p style="font-size:13px;color:#6b7280;">Enter <strong>BENVENUTO10</strong> in the promo-code box on the secure payment page to get 10% off. It's valid once — on your first booking.</p>
+      <p style="font-size:13px;color:#6b7280;">No codes needed: send your request and Chef Nino will apply your 10% welcome discount directly in the personal proposal. Valid once, on your first booking.</p>
 
       <p>If you have any questions, feel free to reply to this email — our team is here to help.</p>
       <p>Enjoy your meal,<br>Chef Nino &amp; the Team</p>
@@ -412,12 +412,12 @@ export async function sendBirthdayEmail(user: { email: string; full_name?: strin
 
       <div class="promo-box">
         <p class="promo-label">Your birthday gift</p>
-        <span class="promo-code">COMPLEANNO10</span>
-        <p class="promo-note">10% off your next booking</p>
+        <span class="promo-code">10% OFF</span>
+        <p class="promo-note">your next dinner — applied directly in your proposal</p>
       </div>
 
       ${emailButton('https://ninos-privatechefs.com/richiesta', 'Celebrate with Chef Nino')}
-      <p style="font-size:13px;color:#6b7280;">Mention the code when you submit your booking request: we will apply the 10% to your Payment Link.</p>
+      <p style="font-size:13px;color:#6b7280;">No codes needed: mention this email in your booking request and Chef Nino will apply the 10% to your proposal.</p>
       <p>Enjoy your meal and best wishes,<br>Chef Nino &amp; the Team</p>
     `
   );
