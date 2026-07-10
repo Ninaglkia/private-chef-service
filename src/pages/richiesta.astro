@@ -91,12 +91,17 @@ const EXPERIENCES = [
     <!-- In-page menus modal (opened from the experience gallery chips) -->
     <div id="menus-modal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4">
       <div id="menus-backdrop" class="absolute inset-0 bg-[#17130d]/70 backdrop-blur-sm"></div>
-      <div class="relative max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-[#fdfbf7] p-6 sm:p-8 shadow-2xl">
+      <div class="relative max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-[#fdfbf7] p-6 sm:p-8 shadow-2xl">
         <div class="flex items-center justify-between mb-5">
           <h3 class="font-serif text-2xl text-[#17130d]">The menus</h3>
           <button type="button" id="menus-close" aria-label="Close" class="w-9 h-9 rounded-full bg-[#17130d] text-[#fdf8ef] hover:bg-black transition-colors">✕</button>
         </div>
-        <div id="menus-list" class="space-y-3"></div>
+        <div class="relative">
+          <div id="menus-track" class="flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-2 scroll-smooth"></div>
+          <button type="button" id="mm-prev" aria-label="Previous menu" class="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 w-9 h-9 items-center justify-center rounded-full bg-[#17130d] text-[#fdf8ef] shadow-lg hover:bg-black transition-colors">←</button>
+          <button type="button" id="mm-next" aria-label="Next menu" class="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 w-9 h-9 items-center justify-center rounded-full bg-[#17130d] text-[#fdf8ef] shadow-lg hover:bg-black transition-colors">→</button>
+        </div>
+        <p class="mt-3 text-center text-[11px] text-gray-400 sm:hidden">Swipe to browse</p>
         <p class="mt-5 text-center text-[11px] text-gray-400">+ chef service €600 per event · prices are indicative</p>
       </div>
     </div>
@@ -468,10 +473,10 @@ ${rest}`;
 
     // In-page menus modal: gallery chips open it, "Request" rows fill the form.
     const modal = document.getElementById('menus-modal');
-    const listEl = document.getElementById('menus-list');
+    const trackEl = document.getElementById('menus-track');
     function closeModal() { modal?.classList.add('hidden'); modal?.classList.remove('flex'); }
     function openModal(filter: string) {
-      if (!modal || !listEl) return;
+      if (!modal || !trackEl) return;
       const byName = filter.split(',').map((s) => s.trim());
       const isNameFilter = TASTING_MENUS.some((m) => byName.includes(m.name));
       const menus = filter === 'all'
@@ -479,27 +484,41 @@ ${rest}`;
         : isNameFilter
           ? TASTING_MENUS.filter((m) => byName.includes(m.name))
           : TASTING_MENUS.filter((m) => (m.meal || 'dinner') === filter);
-      listEl.innerHTML = '';
+      trackEl.innerHTML = '';
+      const safe = (s: string) => s.replace(/[<>&]/g, '');
       menus.forEach((m) => {
-        const row = document.createElement('div');
-        row.className = 'flex items-center justify-between gap-3 rounded-2xl border border-[#e0cfa6] bg-white px-4 py-3';
-        const info = document.createElement('div');
-        const safe = (s: string) => s.replace(/[<>&]/g, '');
-        info.innerHTML = `<p class="font-serif text-lg text-[#17130d]">${safe(m.name)} <span class="text-[#a07b35]">€${m.price}</span> <span class="text-xs text-[#8a8174]">pp</span></p><p class="text-xs italic text-[#8a8174]">${safe(m.tag)}</p>`;
+        const card = document.createElement('article');
+        card.className = 'snap-center shrink-0 w-[86%] sm:w-[400px] rounded-3xl border border-[#e0cfa6] bg-white px-6 py-7 text-center';
+        const courses = m.courses.map((c) =>
+          `<li class="mb-3"><p class="text-[10px] uppercase tracking-[0.25em] text-[#a07b35]">${safe(c.course)}</p><p class="font-serif text-[16px] leading-snug text-[#17130d]">${safe(c.it)}</p><p class="text-[11px] italic text-[#8a8174]">${safe(c.en)}</p></li>`
+        ).join('');
+        const extra = m.serviceExtraEur ? ` · ${safe(m.serviceExtraLabel || 'service')} €${m.serviceExtraEur}` : '';
+        const minG = m.minGuests ? ` · min ${m.minGuests} guests` : '';
+        card.innerHTML = `
+          <h4 class="font-serif text-2xl text-[#17130d]">${safe(m.name)}</h4>
+          <p class="font-serif italic text-sm text-[#8a6c2f]">${safe(m.tag)}</p>
+          <p class="mt-2 font-serif text-xl text-[#17130d]"><span class="text-[#a07b35] font-semibold">€${m.price}</span> <span class="text-sm text-[#8a8174]">per person</span></p>
+          <p class="text-[11px] text-[#8a8174]">+ chef service €600${extra}${minG}</p>
+          <div class="mx-auto my-4 h-px w-10 bg-[#c6a15b]"></div>
+          <ul>${courses}</ul>`;
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'shrink-0 rounded-full bg-[#c6a15b] px-4 py-2 text-[13px] font-semibold text-[#17130d] hover:bg-[#d4b06a] transition-colors';
-        btn.textContent = 'Request →';
+        btn.className = 'mt-4 inline-flex items-center gap-2 rounded-full bg-[#c6a15b] px-6 py-2.5 text-[14px] font-semibold text-[#17130d] hover:bg-[#d4b06a] transition-colors';
+        btn.textContent = 'Request this menu →';
         btn.addEventListener('click', () => { closeModal(); applyMenu(m.name, true); });
-        row.append(info, btn);
-        listEl.appendChild(row);
+        card.appendChild(btn);
+        trackEl.appendChild(card);
       });
+      trackEl.scrollLeft = 0;
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     }
     document.querySelectorAll<HTMLButtonElement>('.exp-menus-open').forEach((b) =>
       b.addEventListener('click', () => openModal(b.dataset.filter || 'all')));
     document.getElementById('menus-close')?.addEventListener('click', closeModal);
+    const mmStep = () => (trackEl?.firstElementChild ? (trackEl.firstElementChild as HTMLElement).offsetWidth + 16 : 400);
+    document.getElementById('mm-prev')?.addEventListener('click', () => trackEl?.scrollBy({ left: -mmStep(), behavior: 'smooth' }));
+    document.getElementById('mm-next')?.addEventListener('click', () => trackEl?.scrollBy({ left: mmStep(), behavior: 'smooth' }));
     document.getElementById('menus-backdrop')?.addEventListener('click', closeModal);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
