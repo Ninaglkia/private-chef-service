@@ -3,15 +3,17 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 
-// "La Carta" — chef's tasting menus, fully static. Dish photos will be added
-// over time as real dishes are photographed at events (no stock, no AI).
+// "La Carta" — chef's tasting menus in a swipeable carousel, one menu at a time.
+// Dish photos will be added over time as real dishes are photographed at events.
 export const prerender = true;
 
 // Chef's tasting menus — sample compositions, refreshed with the seasons.
+// price = indicative per-person price shown on the card.
 const TASTING_MENUS = [
   {
     name: 'La Firma',
     tag: "The chef's signature",
+    price: 95,
     courses: [
       { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
       { course: 'Antipasto', it: 'Tartare di Angus battuta al coltello, pesca marinata, gel di pomodoro e cialda di grana', en: 'Hand-cut Angus tartare, marinated peach, tomato gel, parmesan wafer' },
@@ -21,8 +23,21 @@ const TASTING_MENUS = [
     ],
   },
   {
+    name: 'Il Lago',
+    tag: 'A love letter to Lake Como',
+    price: 85,
+    courses: [
+      { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
+      { course: 'Antipasto', it: 'Lavarello in carpione, cipolla rossa in agrodolce e crostone', en: 'Marinated lake whitefish, sweet-and-sour red onion, toasted bread' },
+      { course: 'Primo', it: 'Risotto al pesce persico, burro e salvia', en: 'The historic Lake Como risotto — lake perch, butter & sage' },
+      { course: 'Secondo', it: 'Filetto di trota, beurre blanc al limone e spinacino', en: 'Lake trout fillet, lemon beurre blanc, baby spinach' },
+      { course: 'Dolce', it: 'Miascia comasca e gelato fior di latte', en: "Como's traditional bread-and-fruit cake, fior di latte gelato" },
+    ],
+  },
+  {
     name: "L'Orto",
     tag: 'Summer from the market',
+    price: 80,
     courses: [
       { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
       { course: 'Antipasto', it: 'Fiore di zucca ripieno di ricotta al limone, datterino giallo arrosto e basilico fritto', en: 'Courgette flower, lemon ricotta, roasted yellow datterino, fried basil' },
@@ -34,6 +49,7 @@ const TASTING_MENUS = [
   {
     name: 'Il Mare',
     tag: 'Raw cuts, fragrance and salt',
+    price: 95,
     courses: [
       { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
       { course: 'Antipasto', it: 'Crudo di ricciola, gazpacho di datterino giallo e Tropea in agrodolce', en: 'Amberjack crudo, yellow-tomato gazpacho, sweet-and-sour Tropea onion' },
@@ -45,6 +61,7 @@ const TASTING_MENUS = [
   {
     name: 'Le Lunghe Cotture',
     tag: 'Time as an ingredient',
+    price: 90,
     courses: [
       { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
       { course: 'Antipasto', it: 'Uovo a bassa temperatura, crema di patate affumicata, guanciale e tartufo estivo', en: 'Slow-cooked egg, smoked potato cream, crisp guanciale, summer truffle' },
@@ -54,8 +71,33 @@ const TASTING_MENUS = [
     ],
   },
   {
+    name: "La Griglia d'Estate",
+    tag: 'Fire and smoke, villa garden style',
+    price: 80,
+    courses: [
+      { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
+      { course: 'Antipasto', it: 'Verdure di stagione alla brace e burrata affumicata', en: 'Flame-grilled seasonal vegetables, smoked burrata' },
+      { course: 'Primo', it: 'Paccheri al pomodoro arrosto e basilico', en: 'Paccheri with roasted tomato & basil' },
+      { course: 'Secondo', it: 'Costata di manzo alla brace, patate al rosmarino e salse dello chef', en: "Flame-grilled ribeye, rosemary potatoes, chef's sauces" },
+      { course: 'Dolce', it: 'Pesca grigliata, gelato e amaretti', en: 'Grilled peach, gelato & amaretti' },
+    ],
+  },
+  {
+    name: 'La Romantica',
+    tag: 'A table for two',
+    price: 110,
+    courses: [
+      { course: 'Aperitivo', it: 'Franciacorta rosé e sfizi di benvenuto', en: 'Franciacorta rosé & welcome bites' },
+      { course: 'Antipasto', it: 'Crudo di gambero rosso, stracciatella e limone', en: 'Raw red prawn, stracciatella cheese & lemon' },
+      { course: 'Primo', it: 'Tagliolino al tartufo estivo', en: 'Hand-pulled tagliolini with summer truffle' },
+      { course: 'Secondo', it: 'Filetto di manzo, demi-glace al vino rosso', en: 'Beef fillet, red-wine demi-glace' },
+      { course: 'Dolce', it: 'Cuore fondente al cioccolato e lamponi', en: 'Molten chocolate heart & raspberries' },
+    ],
+  },
+  {
     name: 'La Grande Sera',
     tag: 'The grand tasting — six acts',
+    price: 120,
     courses: [
       { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
       { course: 'Antipasto', it: 'Tartare di Angus battuta al coltello, pesca marinata e gel di pomodoro', en: 'Hand-cut Angus tartare, marinated peach, tomato gel' },
@@ -70,14 +112,14 @@ const TASTING_MENUS = [
 
 <Layout
   title="La Carta — Tasting Menus | Nino's Private Chef"
-  description="Tasting menus from €80 per person, all inclusive — five sample menus by Chef Nino, cooked fresh in your villa or home on Lake Como, in Milan and across Lombardy."
+  description="Eight tasting menus from €80 per person, all inclusive — swipe through Chef Nino's menus, cooked fresh in your villa or home on Lake Como, in Milan and across Lombardy."
   bodyClass="bg-[#faf7f1] text-[#17130d]"
 >
   <Header transparent={false} />
 
   <main class="pb-28">
     <!-- Masthead -->
-    <section class="max-w-3xl mx-auto px-5 pt-32 pb-10 text-center">
+    <section class="max-w-3xl mx-auto px-5 pt-32 pb-8 text-center">
       <div class="flex items-center justify-center gap-3 mb-4">
         <span class="h-px w-8 bg-[#c6a15b]/60"></span>
         <span class="text-[11px] uppercase tracking-[0.25em] text-[#c6a15b]">La Carta</span>
@@ -85,23 +127,27 @@ const TASTING_MENUS = [
       </div>
       <h1 class="font-serif text-5xl sm:text-6xl font-semibold leading-tight">Menus by Chef Nino</h1>
       <p class="mt-4 text-gray-500 max-w-xl mx-auto">
-        Five sample menus, refreshed with the seasons — pick one as it is, or use it as a
-        starting point: the final menu is always designed around you.
+        Eight menus, refreshed with the seasons — swipe through and find yours,
+        or use one as a starting point: the final menu is always designed around you.
       </p>
-      <p class="mt-6 font-serif text-2xl text-[#17130d]">
-        From <span class="text-[#a07b35] font-semibold">€80 per person</span>, all inclusive
-      </p>
-      <p class="mt-2 text-[12px] text-gray-400">Menu design · shopping &amp; ingredients · cooking at your villa or home · service · kitchen left spotless</p>
+      <p class="mt-3 text-[12px] text-gray-400">All inclusive: menu design · shopping &amp; ingredients · cooking at your villa or home · service · kitchen left spotless</p>
     </section>
 
-    <!-- Tasting menus -->
-    <section id="tasting-menus" class="max-w-5xl mx-auto px-5">
-      <div class="grid md:grid-cols-2 gap-6">
+    <!-- Menu carousel: one menu per view, scroll-snap -->
+    <section class="relative max-w-5xl mx-auto">
+      <div id="menu-track" class="flex gap-5 overflow-x-auto snap-x snap-mandatory no-scrollbar px-[6vw] md:px-[18%] pb-4 scroll-smooth">
         {TASTING_MENUS.map((m, i) => (
-          <article class={`rounded-3xl border border-[#e0cfa6] bg-[#fdfbf7] px-7 py-8 shadow-[0_10px_30px_rgba(31,26,18,0.06)] ${i === TASTING_MENUS.length - 1 ? 'md:col-span-2 md:max-w-2xl md:mx-auto md:w-full' : ''}`}>
-            <p class="text-center text-[10px] uppercase tracking-[0.3em] text-[#8a8174]">Menu {['I','II','III','IV','V'][i]}</p>
+          <article
+            data-slide={i}
+            class="menu-slide snap-center shrink-0 w-[88vw] max-w-[560px] rounded-3xl border border-[#e0cfa6] bg-[#fdfbf7] px-7 py-9 shadow-[0_10px_30px_rgba(31,26,18,0.07)]"
+          >
+            <p class="text-center text-[10px] uppercase tracking-[0.3em] text-[#8a8174]">Menu {['I','II','III','IV','V','VI','VII','VIII'][i]}</p>
             <h2 class="mt-1 text-center font-serif text-3xl text-[#17130d]">{m.name}</h2>
             <p class="text-center font-serif italic text-sm text-[#8a6c2f]">{m.tag}</p>
+            <p class="mt-3 text-center font-serif text-xl text-[#17130d]">
+              <span class="text-[#a07b35] font-semibold">€{m.price}</span>
+              <span class="text-sm text-[#8a8174]"> per person</span>
+            </p>
             <div class="mx-auto my-5 h-px w-12 bg-[#c6a15b]"></div>
             <ul class="space-y-4">
               {m.courses.map((c) => (
@@ -112,21 +158,73 @@ const TASTING_MENUS = [
                 </li>
               ))}
             </ul>
+            <div class="mt-7 text-center">
+              <a href={`/richiesta?menu=${encodeURIComponent(m.name)}`} class="inline-flex items-center gap-2 rounded-2xl bg-[#17130d] text-[#fdf8ef] px-6 py-3 text-sm font-serif tracking-wide hover:bg-black transition-all">
+                <span class="text-[#c6a15b]">✦</span> Request this menu
+              </a>
+            </div>
           </article>
         ))}
       </div>
 
-      <div class="mt-12 text-center">
-        <a href="/richiesta" class="inline-flex items-center gap-2 rounded-2xl bg-[#17130d] text-[#fdf8ef] px-8 py-3.5 text-sm font-serif tracking-wide hover:bg-black transition-all">
-          <span class="text-[#c6a15b]">✦</span> Request one of these menus
-        </a>
-        <p class="mt-5 text-gray-500 text-sm">
-          Something different in mind? Tell Chef Nino what you love —
-          <a href="/richiesta" class="underline underline-offset-4 hover:text-[#a07b35]">every menu is bespoke</a>.
-        </p>
+      <!-- Arrows (desktop) -->
+      <button id="menu-prev" type="button" aria-label="Previous menu"
+        class="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 items-center justify-center rounded-full bg-[#17130d] text-[#fdf8ef] shadow-lg hover:bg-black transition-colors">←</button>
+      <button id="menu-next" type="button" aria-label="Next menu"
+        class="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 items-center justify-center rounded-full bg-[#17130d] text-[#fdf8ef] shadow-lg hover:bg-black transition-colors">→</button>
+
+      <!-- Dots -->
+      <div id="menu-dots" class="mt-5 flex justify-center gap-2">
+        {TASTING_MENUS.map((_, i) => (
+          <button type="button" data-dot={i} aria-label={`Go to menu ${i + 1}`}
+            class="menu-dot w-2.5 h-2.5 rounded-full bg-[#c6a15b]/30 transition-all"></button>
+        ))}
       </div>
+      <p class="mt-3 text-center text-[11px] text-gray-400 md:hidden">Swipe to browse the menus</p>
     </section>
+
+    <div class="mt-12 text-center px-5">
+      <p class="text-gray-500 text-sm">
+        Prices are indicative per person. Something different in mind?
+        <a href="/richiesta" class="underline underline-offset-4 hover:text-[#a07b35]">Every menu is bespoke</a> — tell Chef Nino what you love.
+      </p>
+    </div>
   </main>
 
   <Footer />
 </Layout>
+
+<style>
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .menu-dot.active { background: #a07b35; transform: scale(1.35); }
+</style>
+
+<script>
+  const track = document.getElementById('menu-track');
+  const slides = Array.from(document.querySelectorAll<HTMLElement>('.menu-slide'));
+  const dots = Array.from(document.querySelectorAll<HTMLElement>('.menu-dot'));
+  let current = 0;
+
+  function goTo(i: number) {
+    const clamped = Math.max(0, Math.min(slides.length - 1, i));
+    slides[clamped]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
+
+  document.getElementById('menu-prev')?.addEventListener('click', () => goTo(current - 1));
+  document.getElementById('menu-next')?.addEventListener('click', () => goTo(current + 1));
+  dots.forEach((d, i) => d.addEventListener('click', () => goTo(i)));
+
+  // Track the centered slide to light the matching dot.
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        current = Number((e.target as HTMLElement).dataset.slide || 0);
+        dots.forEach((d, i) => d.classList.toggle('active', i === current));
+      });
+    },
+    { root: track, threshold: 0.6 }
+  );
+  slides.forEach((s) => observer.observe(s));
+</script>
