@@ -8,11 +8,71 @@ import { COURSES, dishesByCourse, MAX_SELECTION } from '../lib/menu';
 export const prerender = true;
 
 const byCourse = dishesByCourse();
+
+// Chef's tasting menus — sample compositions, refreshed with the seasons.
+const TASTING_MENUS = [
+  {
+    name: 'La Firma',
+    tag: "The chef's signature",
+    courses: [
+      { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
+      { course: 'Antipasto', it: 'Tartare di Angus battuta al coltello, pesca marinata, gel di pomodoro e cialda di grana', en: 'Hand-cut Angus tartare, marinated peach, tomato gel, parmesan wafer' },
+      { course: 'Primo', it: 'Tagliolino tirato a mano, vongole veraci, limone e olio al prezzemolo', en: 'Hand-pulled tagliolini, verace clams, lemon & parsley oil' },
+      { course: 'Secondo', it: 'Filetto di manzo al burro nocciola, demi-glace e cicoria al forno', en: 'Butter-basted beef fillet, demi-glace, oven-roasted chicory' },
+      { course: 'Dolce', it: 'Tiramisù classico e frutta di stagione', en: 'Classic tiramisù & seasonal fruit' },
+    ],
+  },
+  {
+    name: "L'Orto",
+    tag: 'Summer from the market',
+    courses: [
+      { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
+      { course: 'Antipasto', it: 'Fiore di zucca ripieno di ricotta al limone, datterino giallo arrosto e basilico fritto', en: 'Courgette flower, lemon ricotta, roasted yellow datterino, fried basil' },
+      { course: 'Primo', it: 'Risotto alle zucchine trombetta, menta e limone candito', en: 'Trombetta courgette risotto, mint & candied lemon' },
+      { course: 'Secondo', it: 'Triglia in crosta di pane alle erbe, peperonata dolce', en: 'Red mullet in a herb-bread crust, sweet pepper stew' },
+      { course: 'Dolce', it: 'Pesche al Moscato, crumble di mandorle e fior di latte', en: 'Moscato-poached peaches, almond crumble, fior di latte gelato' },
+    ],
+  },
+  {
+    name: 'Il Mare',
+    tag: 'Raw cuts, fragrance and salt',
+    courses: [
+      { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
+      { course: 'Antipasto', it: 'Crudo di ricciola, gazpacho di datterino giallo e Tropea in agrodolce', en: 'Amberjack crudo, yellow-tomato gazpacho, sweet-and-sour Tropea onion' },
+      { course: 'Primo', it: "Risotto all'acqua di pomodoro, gambero rosso e basilico", en: 'Tomato-water risotto, raw red prawn & basil' },
+      { course: 'Secondo', it: 'Triglia farcita alle olive taggiasche, panzanella croccante', en: 'Red mullet filled with Taggiasca olives, crisp panzanella' },
+      { course: 'Dolce', it: 'Sorbetto al limone, meringa e basilico', en: 'Lemon sorbet, meringue & basil' },
+    ],
+  },
+  {
+    name: 'Le Lunghe Cotture',
+    tag: 'Time as an ingredient',
+    courses: [
+      { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
+      { course: 'Antipasto', it: 'Uovo a bassa temperatura, crema di patate affumicata, guanciale e tartufo estivo', en: 'Slow-cooked egg, smoked potato cream, crisp guanciale, summer truffle' },
+      { course: 'Primo', it: 'Raviolo ripieno di brasato nel suo fondo ristretto', en: 'Raviolo of slow-braised beef in its own reduced jus' },
+      { course: 'Secondo', it: 'Maialino cotto dodici ore, purè al limone e cicoria ripassata', en: 'Twelve-hour suckling pig, lemon potato purée, sautéed chicory' },
+      { course: 'Dolce', it: 'Tiramisù classico', en: 'Classic tiramisù — the signature' },
+    ],
+  },
+  {
+    name: 'La Grande Sera',
+    tag: 'The grand tasting — six acts',
+    courses: [
+      { course: 'Aperitivo', it: 'Franciacorta e sfizi di benvenuto', en: 'Franciacorta & welcome bites' },
+      { course: 'Antipasto', it: 'Tartare di Angus battuta al coltello, pesca marinata e gel di pomodoro', en: 'Hand-cut Angus tartare, marinated peach, tomato gel' },
+      { course: 'Primo', it: "Risotto all'acqua di pomodoro, gambero rosso e basilico", en: 'Tomato-water risotto, raw red prawn & basil' },
+      { course: 'Intermezzo', it: 'Sorbetto al limone e basilico', en: 'Lemon & basil sorbet, to cleanse the palate' },
+      { course: 'Secondo', it: 'Filetto di manzo al burro nocciola, demi-glace e cicoria al forno', en: 'Butter-basted beef fillet, demi-glace, oven-roasted chicory' },
+      { course: 'Dolce', it: 'Tiramisù classico e frutta di stagione', en: 'Classic tiramisù & seasonal fruit' },
+    ],
+  },
+];
 ---
 
 <Layout
   title="La Carta — Nino's Private Chef"
-  description="Browse Chef Nino's signature dishes and compose the menu you dream of — every event is quoted personally."
+  description="Tasting menus from €80 per person, all inclusive — five sample menus by Chef Nino plus a gallery of signature dishes to compose your own. Lake Como, Milan and Lombardy."
   bodyClass="bg-[#faf7f1] text-[#17130d]"
 >
   <Header transparent={false} />
@@ -30,6 +90,52 @@ const byCourse = dishesByCourse();
         Tap the dishes that tempt you — Chef Nino builds your menu around them.
         Every event is quoted personally.
       </p>
+    </section>
+
+    <!-- Chef's tasting menus -->
+    <section id="tasting-menus" class="max-w-5xl mx-auto px-5 pb-16">
+      <div class="text-center mb-10">
+        <div class="flex items-center justify-center gap-3 mb-3">
+          <span class="h-px w-8 bg-[#c6a15b]/60"></span>
+          <span class="text-[11px] uppercase tracking-[0.25em] text-[#c6a15b]">Tasting Menus</span>
+          <span class="h-px w-8 bg-[#c6a15b]/60"></span>
+        </div>
+        <h2 class="font-serif text-4xl font-semibold">Menus by Chef Nino</h2>
+        <p class="mt-3 text-gray-500 max-w-xl mx-auto">
+          Five sample menus, refreshed with the seasons — pick one as it is, or use it as a starting point.
+        </p>
+        <p class="mt-4 font-serif text-xl text-[#17130d]">
+          From <span class="text-[#a07b35] font-semibold">€80 per person</span>, all inclusive
+        </p>
+        <p class="mt-1 text-[12px] text-gray-400">Menu design · shopping &amp; ingredients · cooking at your villa or home · service · kitchen left spotless</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        {TASTING_MENUS.map((m, i) => (
+          <article class={`rounded-3xl border border-[#e0cfa6] bg-[#fdfbf7] px-7 py-8 shadow-[0_10px_30px_rgba(31,26,18,0.06)] ${i === TASTING_MENUS.length - 1 ? 'md:col-span-2 md:max-w-2xl md:mx-auto md:w-full' : ''}`}>
+            <p class="text-center text-[10px] uppercase tracking-[0.3em] text-[#8a8174]">Menu {['I','II','III','IV','V'][i]}</p>
+            <h3 class="mt-1 text-center font-serif text-3xl text-[#17130d]">{m.name}</h3>
+            <p class="text-center font-serif italic text-sm text-[#8a6c2f]">{m.tag}</p>
+            <div class="mx-auto my-5 h-px w-12 bg-[#c6a15b]"></div>
+            <ul class="space-y-4">
+              {m.courses.map((c) => (
+                <li class="text-center">
+                  <p class="text-[10px] uppercase tracking-[0.25em] text-[#a07b35]">{c.course}</p>
+                  <p class="mt-0.5 font-serif text-[17px] leading-snug text-[#17130d]">{c.it}</p>
+                  <p class="mt-0.5 text-[12px] italic text-[#8a8174]">{c.en}</p>
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+
+      <div class="mt-10 text-center">
+        <a href="/richiesta" class="inline-flex items-center gap-2 rounded-2xl bg-[#17130d] text-[#fdf8ef] px-8 py-3.5 text-sm font-serif tracking-wide hover:bg-black transition-all">
+          <span class="text-[#c6a15b]">✦</span> Request one of these menus
+        </a>
+        <p class="mt-6 text-gray-500 text-sm">Prefer to build your own? Browse the dishes below and tap what tempts you.</p>
+      </div>
     </section>
 
     <!-- Sticky course nav -->
