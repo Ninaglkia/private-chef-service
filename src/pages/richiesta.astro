@@ -206,14 +206,14 @@ const EXPERIENCES = [
         </div>
 
         <div class="mt-6">
-          <label for="meal_type" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Type of meal</label>
-          <select id="meal_type" name="meal_type"
-            class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0">
-            <option value="50" data-name="Dinner" selected>Dinner</option>
-            <option value="40" data-name="Lunch">Lunch</option>
-            <option value="25" data-name="Breakfast">Breakfast</option>
-            <option value="45" data-name="Buffet">Buffet</option>
-          </select>
+          <label class="block text-xs uppercase tracking-wider text-gray-500 mb-2">Type of meal — pick one or more</label>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" data-meal="breakfast" class="meal-pill" aria-pressed="false">Breakfast</button>
+            <button type="button" data-meal="lunch" class="meal-pill" aria-pressed="false">Lunch</button>
+            <button type="button" data-meal="buffet" class="meal-pill" aria-pressed="false">Aperitivo / Buffet</button>
+            <button type="button" data-meal="dinner" class="meal-pill" aria-pressed="true">Dinner</button>
+          </div>
+          <input type="hidden" id="meal_type" name="meal_type" value="Dinner" />
         </div>
 
         <div class="mt-5 rounded-2xl border border-[#c6a15b]/30 bg-[#fbf7ef] px-5 py-4">
@@ -309,6 +309,8 @@ const EXPERIENCES = [
 
 <style>
   .no-scrollbar { scrollbar-width: none; }
+  .meal-pill { border: 1px solid rgba(198,161,91,.45); border-radius: 9999px; padding: .5rem 1.1rem; font-size: .875rem; color: #575147; transition: all .2s; }
+  .meal-pill[aria-pressed='true'] { background: #c6a15b; border-color: #c6a15b; color: #17130d; font-weight: 600; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
 
   /* On phones, render the calendar and country-code popovers as full-width
@@ -404,32 +406,45 @@ const EXPERIENCES = [
   // owner's, sent later. Chef base uses the standard full-day rate.
   (async () => {
     const guestsInp = document.getElementById('num_guests') as HTMLInputElement | null;
-    const mealSel = document.getElementById('meal_type') as HTMLSelectElement | null;
     const amountEl = document.getElementById('estimate-amount');
     const breakdownEl = document.getElementById('estimate-breakdown');
     const ta = document.getElementById('event_details') as HTMLTextAreaElement | null;
-    if (!guestsInp || !mealSel || !amountEl || !breakdownEl) return;
+    if (!guestsInp || !amountEl || !breakdownEl) return;
 
     const { TASTING_MENUS, CHEF_SERVICE_EUR } = await import('../lib/tasting-menus');
     const MENU_RE = new RegExp("^Menu I'd love:[^\\n]*\\n*");
-    const MEAL_VALUE: Record<string, string> = { breakfast: '25', lunch: '40', dinner: '50', buffet: '45' };
-    let chosenMenu: { name: string; price: number; extra: number; extraLabel: string; minGuests: number } | null = null;
+    const RATES: Record<string, number> = { breakfast: 25, lunch: 40, buffet: 45, dinner: 50 };
+    const MEAL_LABEL: Record<string, string> = { breakfast: 'Breakfast', lunch: 'Lunch', buffet: 'Aperitivo / Buffet', dinner: 'Dinner' };
+    const selectedMeals = new Set<string>(['dinner']);
+    const pills = Array.from(document.querySelectorAll<HTMLButtonElement>('.meal-pill'));
+    const mealInp = document.getElementById('meal_type') as HTMLInputElement | null;
+    function syncPills() {
+      pills.forEach((b) => b.setAttribute('aria-pressed', selectedMeals.has(b.dataset.meal || '') ? 'true' : 'false'));
+      if (mealInp) mealInp.value = Array.from(selectedMeals).map((k) => MEAL_LABEL[k]).join(' + ');
+    }
+    let chosenMenu: { name: string; price: number; extra: number; extraLabel: string; minGuests: number; mealKind: string } | null = null;
 
     const fmtEur = (n: number) => '€' + n.toLocaleString('it-IT');
     function recompute() {
       const guests = Math.max(1, Math.min(200, parseInt(guestsInp!.value, 10) || 1));
-      if (chosenMenu) {
-        const effGuests = Math.max(guests, chosenMenu.minGuests || 1);
-        amountEl!.textContent = fmtEur(CHEF_SERVICE_EUR + chosenMenu.extra + chosenMenu.price * effGuests);
-        const extraTxt = chosenMenu.extra ? ` + ${chosenMenu.extraLabel} ${fmtEur(chosenMenu.extra)}` : '';
-        const minTxt = chosenMenu.minGuests && guests < chosenMenu.minGuests ? ` (minimum ${chosenMenu.minGuests} guests)` : '';
-        breakdownEl!.textContent = `Chef service ${fmtEur(CHEF_SERVICE_EUR)}${extraTxt} + Menu ${chosenMenu.name} ${fmtEur(chosenMenu.price)} × ${effGuests} guests${minTxt}`;
-        return;
-      }
-      const rate = Number(mealSel!.value) || 0;
-      const mealName = mealSel!.options[mealSel!.selectedIndex]?.dataset.name || 'Meal';
-      amountEl!.textContent = `from ${fmtEur(CHEF_SERVICE_EUR + rate * guests)}`;
-      breakdownEl!.textContent = `Chef service ${fmtEur(CHEF_SERVICE_EUR)} + ${mealName} from ${fmtEur(rate)} per person × ${guests} guests`;
+      let total = CHEF_SERVICE_EUR;
+      const parts: string[] = [`Chef service ${fmtEur(CHEF_SERVICE_EUR)}`];
+      let hasFrom = false;
+      let minNote = '';
+      selectedMeals.forEach((k) => {
+        if (chosenMenu && chosenMenu.mealKind === k) {
+          const effGuests = Math.max(guests, chosenMenu.minGuests || 1);
+          total += chosenMenu.extra + chosenMenu.price * effGuests;
+          parts.push(`Menu ${chosenMenu.name} ${fmtEur(chosenMenu.price)} × ${effGuests}${chosenMenu.extra ? ` + ${chosenMenu.extraLabel} ${fmtEur(chosenMenu.extra)}` : ''}`);
+          if (chosenMenu.minGuests && guests < chosenMenu.minGuests) minNote = ` (minimum ${chosenMenu.minGuests} guests)`;
+        } else {
+          hasFrom = true;
+          total += (RATES[k] || 0) * guests;
+          parts.push(`${MEAL_LABEL[k]} from ${fmtEur(RATES[k] || 0)} × ${guests}`);
+        }
+      });
+      amountEl!.textContent = `${hasFrom ? 'from ' : ''}${fmtEur(total)}`;
+      breakdownEl!.textContent = parts.join(' + ') + minNote;
     }
 
     // Select a tasting menu: prefill the idea, sync meal type, recompute — no reload.
@@ -437,8 +452,8 @@ const EXPERIENCES = [
       const name = rawName.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60);
       const hit = TASTING_MENUS.find((m) => m.name.toLowerCase() === name.toLowerCase());
       if (!hit) return;
-      chosenMenu = { name: hit.name, price: hit.price, extra: hit.serviceExtraEur || 0, extraLabel: hit.serviceExtraLabel || '', minGuests: hit.minGuests || 0 };
-      mealSel!.value = MEAL_VALUE[hit.meal || 'dinner'] || '50';
+      chosenMenu = { name: hit.name, price: hit.price, extra: hit.serviceExtraEur || 0, extraLabel: hit.serviceExtraLabel || '', minGuests: hit.minGuests || 0, mealKind: hit.meal || 'dinner' };
+      selectedMeals.clear(); selectedMeals.add(hit.meal || 'dinner'); syncPills();
       if (ta && !ta.disabled) {
         const rest = ta.value.replace(MENU_RE, '');
         ta.value = `Menu I'd love: ${hit.name}
@@ -449,10 +464,19 @@ ${rest}`;
       if (scroll) document.getElementById('details')?.scrollIntoView({ behavior: 'smooth' });
     }
 
-    ['change', 'input'].forEach((ev) => {
-      guestsInp.addEventListener(ev, recompute);
-      mealSel.addEventListener(ev, () => { chosenMenu = null; recompute(); });
-    });
+    ['change', 'input'].forEach((ev) => guestsInp.addEventListener(ev, recompute));
+    pills.forEach((b) => b.addEventListener('click', () => {
+      const k = b.dataset.meal || '';
+      if (selectedMeals.has(k)) {
+        if (selectedMeals.size === 1) return; // keep at least one meal
+        selectedMeals.delete(k);
+        if (chosenMenu && chosenMenu.mealKind === k) chosenMenu = null;
+      } else {
+        selectedMeals.add(k);
+      }
+      syncPills(); recompute();
+    }));
+    syncPills();
     // The +/- steppers set the value directly without firing events, so recompute on their click too.
     document.getElementById('g-minus')?.addEventListener('click', recompute);
     document.getElementById('g-plus')?.addEventListener('click', recompute);
@@ -734,8 +758,8 @@ ${rest}`;
       // Their idea (free text) — fold in the selected meal type so it actually
       // reaches the owner (there is no dedicated meal_type column; it travels with
       // the idea text in dietary_preferences). Previously the choice was discarded.
-      const mealSel = document.getElementById('meal_type') as HTMLSelectElement | null;
-      const mealName = mealSel?.options[mealSel.selectedIndex]?.dataset.name || '';
+      const mealInpS = document.getElementById('meal_type') as HTMLInputElement | null;
+      const mealName = mealInpS?.value || '';
       const idea = eventDetails?.value.trim() || '';
       const details = mealName ? `Meal type: ${mealName}\n\n${idea}` : idea;
       if (submitBtn) submitBtn.disabled = true;
