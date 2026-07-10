@@ -9,7 +9,7 @@ export const prerender = false;
 const EXPERIENCES = [
   { label: 'Dinner at your villa', img: '/images/experiences/villa.jpg', kicker: 'The evening', desc: 'A table under the stars, by your poolside', price: 'Menus from €50 per person', link: '/menu', linkLabel: 'Browse the dinner menus' },
   { label: 'Romantic dinner', img: '/images/experiences/romantic.jpg', kicker: 'For two', desc: 'An intimate menu, by candlelight', price: 'La Romantica — €110 per person', link: '/richiesta?menu=La%20Romantica', linkLabel: 'Request this evening' },
-  { label: 'Aperitivo & events', img: '/images/experiences/event.jpg', kicker: 'With everyone', desc: 'Spritz, bites and golden hour for your party', price: 'From €28 per person · waiter included', link: '/richiesta?menu=L%27Aperitivo%20Italiano', linkLabel: 'Request an aperitivo' },
+  { label: 'Aperitivo & events', img: '/images/experiences/event.jpg', kicker: 'With everyone', desc: 'Spritz, bites and golden hour for your party', price: 'From €28 pp · min 8 guests · waiter included', link: '/richiesta?menu=L%27Aperitivo%20Italiano', linkLabel: 'Request an aperitivo' },
   { label: 'From the sea', img: '/images/experiences/seafood.jpg', kicker: 'Raw & cooked', desc: 'Crudi, risotto and the salt-crust theatre', price: 'Il Mare — €95 per person', link: '/richiesta?menu=Il%20Mare', linkLabel: 'Request Il Mare' },
   { label: 'Chef for several days', img: '/images/experiences/multiday.jpg', kicker: 'At your home', desc: 'Breakfast to dinner, for your whole stay', price: 'Personal weekly quote', link: '#details', linkLabel: 'Tell Chef Nino your dates' },
 ];
@@ -393,13 +393,13 @@ const EXPERIENCES = [
 
     // If the guest arrived from La Carta, the estimate follows that menu's
     // published per-person price (single source of truth: lib/tasting-menus).
-    let chosenMenu: { name: string; price: number; extra: number; extraLabel: string } | null = null;
+    let chosenMenu: { name: string; price: number; extra: number; extraLabel: string; minGuests: number } | null = null;
     const rawMenu = new URLSearchParams(location.search).get('menu');
     const { TASTING_MENUS, CHEF_SERVICE_EUR } = await import('../lib/tasting-menus');
     if (rawMenu) {
       const hit = TASTING_MENUS.find((m) => m.name.toLowerCase() === rawMenu.trim().toLowerCase());
       if (hit) {
-        chosenMenu = { name: hit.name, price: hit.price, extra: hit.serviceExtraEur || 0, extraLabel: hit.serviceExtraLabel || '' };
+        chosenMenu = { name: hit.name, price: hit.price, extra: hit.serviceExtraEur || 0, extraLabel: hit.serviceExtraLabel || '', minGuests: hit.minGuests || 0 };
         const MEAL_VALUE: Record<string, string> = { breakfast: '25', lunch: '40', dinner: '50', buffet: '45' };
         mealSel.value = MEAL_VALUE[hit.meal || 'dinner'] || '50';
       }
@@ -409,9 +409,11 @@ const EXPERIENCES = [
     function recompute() {
       const guests = Math.max(1, Math.min(200, parseInt(guestsInp!.value, 10) || 1));
       if (chosenMenu) {
-        amountEl!.textContent = fmtEur(CHEF_SERVICE_EUR + chosenMenu.extra + chosenMenu.price * guests);
+        const effGuests = Math.max(guests, chosenMenu.minGuests || 1);
+        amountEl!.textContent = fmtEur(CHEF_SERVICE_EUR + chosenMenu.extra + chosenMenu.price * effGuests);
         const extraTxt = chosenMenu.extra ? ` + ${chosenMenu.extraLabel} ${fmtEur(chosenMenu.extra)}` : '';
-        breakdownEl!.textContent = `Chef service ${fmtEur(CHEF_SERVICE_EUR)}${extraTxt} + Menu ${chosenMenu.name} ${fmtEur(chosenMenu.price)} × ${guests} guests`;
+        const minTxt = chosenMenu.minGuests && guests < chosenMenu.minGuests ? ` (minimum ${chosenMenu.minGuests} guests)` : '';
+        breakdownEl!.textContent = `Chef service ${fmtEur(CHEF_SERVICE_EUR)}${extraTxt} + Menu ${chosenMenu.name} ${fmtEur(chosenMenu.price)} × ${effGuests} guests${minTxt}`;
         return;
       }
       const rate = Number(mealSel!.value) || 0;
