@@ -389,21 +389,15 @@ const EXPERIENCES = [
     const mealSel = document.getElementById('meal_type') as HTMLSelectElement | null;
     const amountEl = document.getElementById('estimate-amount');
     const breakdownEl = document.getElementById('estimate-breakdown');
+    const ta = document.getElementById('event_details') as HTMLTextAreaElement | null;
     if (!guestsInp || !mealSel || !amountEl || !breakdownEl) return;
 
-    // If the guest arrived from La Carta, the estimate follows that menu's
-    // published per-person price (single source of truth: lib/tasting-menus).
-    let chosenMenu: { name: string; price: number; extra: number; extraLabel: string; minGuests: number } | null = null;
-    const rawMenu = new URLSearchParams(location.search).get('menu');
     const { TASTING_MENUS, CHEF_SERVICE_EUR } = await import('../lib/tasting-menus');
-    if (rawMenu) {
-      const hit = TASTING_MENUS.find((m) => m.name.toLowerCase() === rawMenu.trim().toLowerCase());
-      if (hit) {
-        chosenMenu = { name: hit.name, price: hit.price, extra: hit.serviceExtraEur || 0, extraLabel: hit.serviceExtraLabel || '', minGuests: hit.minGuests || 0 };
-        const MEAL_VALUE: Record<string, string> = { breakfast: '25', lunch: '40', dinner: '50', buffet: '45' };
-        mealSel.value = MEAL_VALUE[hit.meal || 'dinner'] || '50';
-      }
-    }
+    const MENU_RE = /^Menu I'd love:[^
+]*
+*/;
+    const MEAL_VALUE: Record<string, string> = { breakfast: '25', lunch: '40', dinner: '50', buffet: '45' };
+    let chosenMenu: { name: string; price: number; extra: number; extraLabel: string; minGuests: number } | null = null;
 
     const fmtEur = (n: number) => '€' + n.toLocaleString('it-IT');
     function recompute() {
@@ -421,6 +415,25 @@ const EXPERIENCES = [
       amountEl!.textContent = `from ${fmtEur(CHEF_SERVICE_EUR + rate * guests)}`;
       breakdownEl!.textContent = `Chef service ${fmtEur(CHEF_SERVICE_EUR)} + ${mealName} from ${fmtEur(rate)} per person × ${guests} guests`;
     }
+
+    // Select a tasting menu: prefill the idea, sync meal type, recompute — no reload.
+    function applyMenu(rawName: string, scroll: boolean) {
+      const name = rawName.replace(/[
+<>]/g, '').trim().slice(0, 60);
+      const hit = TASTING_MENUS.find((m) => m.name.toLowerCase() === name.toLowerCase());
+      if (!hit) return;
+      chosenMenu = { name: hit.name, price: hit.price, extra: hit.serviceExtraEur || 0, extraLabel: hit.serviceExtraLabel || '', minGuests: hit.minGuests || 0 };
+      mealSel!.value = MEAL_VALUE[hit.meal || 'dinner'] || '50';
+      if (ta && !ta.disabled) {
+        const rest = ta.value.replace(MENU_RE, '');
+        ta.value = `Menu I'd love: ${hit.name}
+
+${rest}`;
+      }
+      recompute();
+      if (scroll) document.getElementById('details')?.scrollIntoView({ behavior: 'smooth' });
+    }
+
     ['change', 'input'].forEach((ev) => {
       guestsInp.addEventListener(ev, recompute);
       mealSel.addEventListener(ev, () => { chosenMenu = null; recompute(); });
@@ -428,6 +441,21 @@ const EXPERIENCES = [
     // The +/- steppers set the value directly without firing events, so recompute on their click too.
     document.getElementById('g-minus')?.addEventListener('click', recompute);
     document.getElementById('g-plus')?.addEventListener('click', recompute);
+
+    // Arriving with ?menu= (e.g. from La Carta): prefill without scrolling.
+    const rawMenu = new URLSearchParams(location.search).get('menu');
+    if (rawMenu) applyMenu(rawMenu, false);
+
+    // Same-page menu links (experience gallery): fill + scroll, no reload.
+    document.querySelectorAll<HTMLAnchorElement>('a[href^="/richiesta?menu="]').forEach((a) => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const url = new URL(a.getAttribute('href')!, location.origin);
+        history.replaceState(null, '', url.pathname + url.search);
+        applyMenu(url.searchParams.get('menu') || '', true);
+      });
+    });
+
     recompute();
   })();
 
@@ -691,18 +719,4 @@ const EXPERIENCES = [
     window.addEventListener('pageshow', (e) => { if ((e as PageTransitionEvent).persisted) apply(); });
   })();
 
-  // ===== MENU PRE-FILL (from /menu carousel "Request this menu") =====
-  // The chosen tasting menu travels via ?menu=<name>; prepend it to the idea
-  // textarea, idempotently and sanitised.
-  (() => {
-    const MENU_RE = /^Menu I'd love:[^\n]*\n*/;
-    const raw = new URLSearchParams(location.search).get('menu');
-    if (!raw) return;
-    const menu = raw.replace(/[\n\r<>]/g, '').trim().slice(0, 60);
-    if (!menu) return;
-    const ta = document.getElementById('event_details') as HTMLTextAreaElement | null;
-    if (!ta || ta.disabled) return;
-    const rest = ta.value.replace(MENU_RE, '');
-    ta.value = `Menu I'd love: ${menu}\n\n${rest}`;
-  })();
 </script>
