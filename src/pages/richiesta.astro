@@ -389,13 +389,13 @@ const EXPERIENCES = [
 
     // If the guest arrived from La Carta, the estimate follows that menu's
     // published per-person price (single source of truth: lib/tasting-menus).
-    let chosenMenu: { name: string; price: number } | null = null;
+    let chosenMenu: { name: string; price: number; extra: number; extraLabel: string } | null = null;
     const rawMenu = new URLSearchParams(location.search).get('menu');
     const { TASTING_MENUS, CHEF_SERVICE_EUR } = await import('../lib/tasting-menus');
     if (rawMenu) {
       const hit = TASTING_MENUS.find((m) => m.name.toLowerCase() === rawMenu.trim().toLowerCase());
       if (hit) {
-        chosenMenu = { name: hit.name, price: hit.price };
+        chosenMenu = { name: hit.name, price: hit.price, extra: hit.serviceExtraEur || 0, extraLabel: hit.serviceExtraLabel || '' };
         const MEAL_VALUE: Record<string, string> = { breakfast: '25', lunch: '40', dinner: '50', buffet: '45' };
         mealSel.value = MEAL_VALUE[hit.meal || 'dinner'] || '50';
       }
@@ -405,8 +405,9 @@ const EXPERIENCES = [
     function recompute() {
       const guests = Math.max(1, Math.min(200, parseInt(guestsInp!.value, 10) || 1));
       if (chosenMenu) {
-        amountEl!.textContent = fmtEur(CHEF_SERVICE_EUR + chosenMenu.price * guests);
-        breakdownEl!.textContent = `Chef service ${fmtEur(CHEF_SERVICE_EUR)} + Menu ${chosenMenu.name} ${fmtEur(chosenMenu.price)} × ${guests} guests`;
+        amountEl!.textContent = fmtEur(CHEF_SERVICE_EUR + chosenMenu.extra + chosenMenu.price * guests);
+        const extraTxt = chosenMenu.extra ? ` + ${chosenMenu.extraLabel} ${fmtEur(chosenMenu.extra)}` : '';
+        breakdownEl!.textContent = `Chef service ${fmtEur(CHEF_SERVICE_EUR)}${extraTxt} + Menu ${chosenMenu.name} ${fmtEur(chosenMenu.price)} × ${guests} guests`;
         return;
       }
       const rate = Number(mealSel!.value) || 0;

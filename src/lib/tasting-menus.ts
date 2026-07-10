@@ -4,7 +4,7 @@
 export const CHEF_SERVICE_EUR = 600;
 export interface TastingCourse { course: string; it: string; en: string }
 export type MealKind = 'breakfast' | 'lunch' | 'dinner' | 'buffet';
-export interface TastingMenu { name: string; tag: string; price: number; meal?: MealKind; courses: TastingCourse[] }
+export interface TastingMenu { name: string; tag: string; price: number; meal?: MealKind; serviceExtraEur?: number; serviceExtraLabel?: string; courses: TastingCourse[] }
 
 export const TASTING_MENUS = [
   {
@@ -37,6 +37,8 @@ export const TASTING_MENUS = [
     tag: 'Spritz, bites and golden hour — drinks shape the final price',
     price: 28,
     meal: 'buffet' as const,
+    serviceExtraEur: 150,
+    serviceExtraLabel: 'waiter service',
     courses: [
       { course: 'Nel bicchiere', it: 'Spritz, Franciacorta e analcolici della casa', en: 'Spritz, Franciacorta & house alcohol-free' },
       { course: 'Dal tagliere', it: 'Salumi e formaggi selezionati, giardiniera', en: 'Selected cured meats & cheeses, giardiniera' },
