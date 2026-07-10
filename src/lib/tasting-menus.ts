@@ -21,11 +21,12 @@ export const TASTING_MENUS = [
   },
   {
     name: 'Il Brunch',
-    tag: 'Late morning, done the Italian way',
-    price: 30,
+    tag: 'Late morning, done the Italian way — a full feast',
+    price: 75,
     meal: 'breakfast' as const,
     courses: [
       { course: 'Al risveglio', it: 'Spremute, caffè e mimosa al Franciacorta', en: 'Juices, coffee & Franciacorta mimosa' },
+      { course: 'Dal forno', it: 'Cornetti caldi, pane e pasticceria del mattino', en: 'Warm cornetti, bread & morning pastries' },
       { course: 'Salato I', it: 'Uova in camicia, salmone e avocado su pane tostato', en: 'Poached eggs, salmon & avocado on toast' },
       { course: 'Salato II', it: 'Pancakes salati al grana, pomodorini confit', en: 'Savoury parmesan pancakes, confit tomatoes' },
       { course: 'Dolce', it: 'Pancakes allo sciroppo, frutti di bosco', en: 'Pancakes with syrup & berries' },
