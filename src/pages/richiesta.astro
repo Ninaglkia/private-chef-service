@@ -187,10 +187,10 @@ const EXPERIENCES = [
           <label for="meal_type" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Type of meal</label>
           <select id="meal_type" name="meal_type"
             class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-lg focus:border-[#c6a15b] focus:ring-0">
-            <option value="40" data-name="Dinner" selected>Dinner</option>
-            <option value="30" data-name="Lunch">Lunch</option>
-            <option value="15" data-name="Breakfast">Breakfast</option>
-            <option value="25" data-name="Buffet">Buffet</option>
+            <option value="50" data-name="Dinner" selected>Dinner</option>
+            <option value="40" data-name="Lunch">Lunch</option>
+            <option value="25" data-name="Breakfast">Breakfast</option>
+            <option value="45" data-name="Buffet">Buffet</option>
           </select>
         </div>
 
@@ -201,7 +201,7 @@ const EXPERIENCES = [
             <span class="text-sm text-gray-500">· final quote by Chef Nino</span>
           </p>
           <p id="estimate-breakdown" class="mt-1 text-xs text-gray-400"></p>
-          <p class="mt-2 text-[11px] text-gray-400">Estimate only — no payment now. Groceries are billed separately, at cost.</p>
+          <p class="mt-2 text-[11px] text-gray-400">Estimate only — all inclusive, no payment now. Final quote is always personal.</p>
         </div>
 
         <div class="mt-6">
@@ -380,27 +380,42 @@ const EXPERIENCES = [
   // Purely informational on the request form — the customer doesn't pay here,
   // it just sets expectations so they complete the request. Final quote is the
   // owner's, sent later. Chef base uses the standard full-day rate.
-  (() => {
-    const CHEF_BASE = 600; // € — standard full day, matches /owner default
+  (async () => {
     const guestsInp = document.getElementById('num_guests') as HTMLInputElement | null;
     const mealSel = document.getElementById('meal_type') as HTMLSelectElement | null;
     const amountEl = document.getElementById('estimate-amount');
     const breakdownEl = document.getElementById('estimate-breakdown');
     if (!guestsInp || !mealSel || !amountEl || !breakdownEl) return;
 
+    // If the guest arrived from La Carta, the estimate follows that menu's
+    // published per-person price (single source of truth: lib/tasting-menus).
+    let chosenMenu: { name: string; price: number } | null = null;
+    const rawMenu = new URLSearchParams(location.search).get('menu');
+    if (rawMenu) {
+      const { TASTING_MENUS } = await import('../lib/tasting-menus');
+      const hit = TASTING_MENUS.find((m) => m.name.toLowerCase() === rawMenu.trim().toLowerCase());
+      if (hit) {
+        chosenMenu = { name: hit.name, price: hit.price };
+        mealSel.value = '50'; // menus are dinner experiences
+      }
+    }
+
     const fmtEur = (n: number) => '€' + n.toLocaleString('it-IT');
     function recompute() {
       const guests = Math.max(1, Math.min(200, parseInt(guestsInp!.value, 10) || 1));
+      if (chosenMenu) {
+        amountEl!.textContent = fmtEur(chosenMenu.price * guests);
+        breakdownEl!.textContent = `Menu ${chosenMenu.name} — ${fmtEur(chosenMenu.price)} per person × ${guests} guests, all inclusive`;
+        return;
+      }
       const rate = Number(mealSel!.value) || 0;
       const mealName = mealSel!.options[mealSel!.selectedIndex]?.dataset.name || 'Meal';
-      const food = rate * guests;
-      const total = CHEF_BASE + food;
-      amountEl!.textContent = fmtEur(total);
-      breakdownEl!.textContent = `Chef ${fmtEur(CHEF_BASE)} + ${mealName} ${fmtEur(rate)} × ${guests} guests`;
+      amountEl!.textContent = `from ${fmtEur(rate * guests)}`;
+      breakdownEl!.textContent = `${mealName} from ${fmtEur(rate)} per person × ${guests} guests, all inclusive`;
     }
     ['change', 'input'].forEach((ev) => {
       guestsInp.addEventListener(ev, recompute);
-      mealSel.addEventListener(ev, recompute);
+      mealSel.addEventListener(ev, () => { chosenMenu = null; recompute(); });
     });
     // The +/- steppers set the value directly without firing events, so recompute on their click too.
     document.getElementById('g-minus')?.addEventListener('click', recompute);
