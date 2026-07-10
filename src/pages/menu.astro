@@ -8,8 +8,20 @@ import Footer from '../components/Footer.astro';
 export const prerender = true;
 
 // Chef's tasting menus — sample compositions, refreshed with the seasons.
-// price = indicative per-person price shown on the card.
+// price = indicative per-person price shown on the card. Sorted low → high.
 const TASTING_MENUS = [
+  {
+    name: 'La Conviviale',
+    tag: 'Honest Italian comfort, done properly',
+    price: 50,
+    courses: [
+      { course: 'Aperitivo', it: 'Prosecco e stuzzichini della casa', en: 'Prosecco & house nibbles' },
+      { course: 'Antipasto', it: 'Burrata, pomodorini confit e crostone al basilico', en: 'Burrata, confit tomatoes, basil crostone' },
+      { course: 'Primo', it: 'Paccheri al San Marzano e basilico', en: 'Paccheri with San Marzano tomato & basil' },
+      { course: 'Secondo', it: 'Pollo ruspante al limone, patate arrosto al rosmarino', en: 'Free-range lemon chicken, rosemary roast potatoes' },
+      { course: 'Dolce', it: 'Tiramisù classico', en: 'Classic tiramisù' },
+    ],
+  },
   {
     name: 'La Firma',
     tag: "The chef's signature",
@@ -95,6 +107,38 @@ const TASTING_MENUS = [
     ],
   },
   {
+    name: 'Il Gran Gourmet',
+    tag: 'Eight courses, fine-dining pace',
+    price: 180,
+    courses: [
+      { course: 'Aperitivo', it: 'Franciacorta millesimato e ostrica', en: 'Vintage Franciacorta & oyster' },
+      { course: 'Antipasto I', it: 'Scampi crudi, burrata e limone candito', en: 'Raw langoustines, burrata, candied lemon' },
+      { course: 'Antipasto II', it: 'Capasanta scottata, crema di topinambur', en: 'Seared scallop, Jerusalem artichoke cream' },
+      { course: 'Primo I', it: 'Tagliolino al tartufo di stagione', en: 'Hand-pulled tagliolini, truffle of the season' },
+      { course: 'Primo II', it: 'Risotto al gambero rosso e basilico', en: 'Red prawn risotto & basil' },
+      { course: 'Intermezzo', it: 'Sorbetto al limone e basilico', en: 'Lemon & basil sorbet' },
+      { course: 'Secondo', it: 'Branzino selvaggio in crosta di sale, rotto al tavolo', en: 'Wild sea bass in a salt crust — cracked open at your table' },
+      { course: 'Dolce', it: 'Grand dessert dello chef', en: "The chef's grand dessert" },
+    ],
+  },
+  {
+    name: "L'Imperiale",
+    tag: 'Ten acts, no compromises',
+    price: 400,
+    courses: [
+      { course: 'Aperitivo', it: 'Champagne e ostrica Gillardeau', en: 'Champagne & Gillardeau oyster' },
+      { course: 'Amuse-bouche', it: 'Tartelletta, crema di burrata e caviale Oscietra', en: 'Tartlet, burrata cream, Oscietra caviar' },
+      { course: 'Antipasto I', it: 'Crudo di gambero rosso di Mazara, lime e olio al basilico', en: 'Raw Mazara red prawn, lime, basil oil' },
+      { course: 'Antipasto II', it: 'Capasanta, beurre blanc allo Champagne', en: 'Scallop, Champagne beurre blanc' },
+      { course: 'Primo I', it: 'Tagliolino al tartufo di stagione', en: 'Hand-pulled tagliolini, truffle of the season' },
+      { course: 'Primo II', it: "Risotto all'astice blu", en: 'Blue lobster risotto' },
+      { course: 'Intermezzo', it: 'Sorbetto al limone e gin', en: 'Lemon & gin sorbet' },
+      { course: 'Secondo I', it: 'Rombo selvaggio, beurre blanc e caviale', en: 'Wild turbot, beurre blanc, caviar' },
+      { course: 'Secondo II', it: 'Wagyu, demi-glace e tartufo', en: 'Wagyu beef, demi-glace, truffle' },
+      { course: 'Dolce', it: 'Grand dessert dello chef e piccola pasticceria', en: "The chef's grand dessert & petits fours" },
+    ],
+  },
+  {
     name: 'La Grande Sera',
     tag: 'The grand tasting — six acts',
     price: 120,
@@ -107,12 +151,12 @@ const TASTING_MENUS = [
       { course: 'Dolce', it: 'Tiramisù classico e frutta di stagione', en: 'Classic tiramisù & seasonal fruit' },
     ],
   },
-];
+].sort((a, b) => a.price - b.price);
 ---
 
 <Layout
   title="La Carta — Tasting Menus | Nino's Private Chef"
-  description="Eight tasting menus from €80 per person, all inclusive — swipe through Chef Nino's menus, cooked fresh in your villa or home on Lake Como, in Milan and across Lombardy."
+  description="Eleven tasting menus from €50 to €400 per person, all inclusive — from honest Italian comfort to a ten-course caviar and wagyu experience, cooked fresh in your villa on Lake Como, in Milan and across Lombardy."
   bodyClass="bg-[#faf7f1] text-[#17130d]"
 >
   <Header transparent={false} />
@@ -127,7 +171,7 @@ const TASTING_MENUS = [
       </div>
       <h1 class="font-serif text-5xl sm:text-6xl font-semibold leading-tight">Menus by Chef Nino</h1>
       <p class="mt-4 text-gray-500 max-w-xl mx-auto">
-        Eight menus, refreshed with the seasons — swipe through and find yours,
+        Eleven menus, from €50 to €400 per person — swipe through and find yours,
         or use one as a starting point: the final menu is always designed around you.
       </p>
       <p class="mt-3 text-[12px] text-gray-400">All inclusive: menu design · shopping &amp; ingredients · cooking at your villa or home · service · kitchen left spotless</p>
@@ -141,7 +185,7 @@ const TASTING_MENUS = [
             data-slide={i}
             class="menu-slide snap-center shrink-0 w-[88vw] max-w-[560px] rounded-3xl border border-[#e0cfa6] bg-[#fdfbf7] px-7 py-9 shadow-[0_10px_30px_rgba(31,26,18,0.07)]"
           >
-            <p class="text-center text-[10px] uppercase tracking-[0.3em] text-[#8a8174]">Menu {['I','II','III','IV','V','VI','VII','VIII'][i]}</p>
+            <p class="text-center text-[10px] uppercase tracking-[0.3em] text-[#8a8174]">Menu {['I','II','III','IV','V','VI','VII','VIII','IX','X','XI'][i]}</p>
             <h2 class="mt-1 text-center font-serif text-3xl text-[#17130d]">{m.name}</h2>
             <p class="text-center font-serif italic text-sm text-[#8a6c2f]">{m.tag}</p>
             <p class="mt-3 text-center font-serif text-xl text-[#17130d]">
