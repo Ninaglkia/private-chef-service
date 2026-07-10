@@ -223,7 +223,7 @@ const EXPERIENCES = [
             <span class="text-sm text-gray-500">· final quote by Chef Nino</span>
           </p>
           <p id="estimate-breakdown" class="mt-1 text-xs text-gray-400"></p>
-          <p class="mt-2 text-[11px] text-gray-400">Estimate only — the final quote can be lower or higher, depending on your wishes. No payment now.</p>
+          <p class="mt-2 text-[11px] text-gray-400">Indicative price for a single day — the final quote can be lower or higher, depending on your wishes. No payment now.</p>
         </div>
 
         <div class="mt-6">
@@ -444,7 +444,7 @@ const EXPERIENCES = [
         }
       });
       amountEl!.textContent = `${hasFrom ? 'from ' : ''}${fmtEur(total)}`;
-      breakdownEl!.textContent = parts.join(' + ') + minNote;
+      breakdownEl!.textContent = parts.join(' + ') + minNote + (selectedMeals.size > 1 ? ' — all in the same day, one chef service' : '');
     }
 
     // Select a tasting menu: prefill the idea, sync meal type, recompute — no reload.
