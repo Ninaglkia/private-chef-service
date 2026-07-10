@@ -3,9 +3,59 @@
 // the MENU; the chef's service fee is a fixed amount per event, on top.
 export const CHEF_SERVICE_EUR = 600;
 export interface TastingCourse { course: string; it: string; en: string }
-export interface TastingMenu { name: string; tag: string; price: number; courses: TastingCourse[] }
+export type MealKind = 'breakfast' | 'lunch' | 'dinner' | 'buffet';
+export interface TastingMenu { name: string; tag: string; price: number; meal?: MealKind; courses: TastingCourse[] }
 
 export const TASTING_MENUS = [
+  {
+    name: 'La Colazione',
+    tag: 'An Italian morning, unhurried',
+    price: 25,
+    meal: 'breakfast' as const,
+    courses: [
+      { course: 'Al risveglio', it: 'Spremute fresche, caffè e cappuccino al momento', en: 'Fresh-squeezed juices, coffee & cappuccino made to order' },
+      { course: 'Dal forno', it: 'Cornetti caldi, pane e confetture artigianali', en: 'Warm cornetti, bread & artisan jams' },
+      { course: 'Salato', it: 'Uova a modo vostro, guanciale croccante', en: 'Eggs any style, crisp guanciale' },
+      { course: 'Frutta', it: 'Frutta di stagione, yogurt e granola della casa', en: 'Seasonal fruit, yogurt & house granola' },
+    ],
+  },
+  {
+    name: 'Il Brunch',
+    tag: 'Late morning, done the Italian way',
+    price: 30,
+    meal: 'breakfast' as const,
+    courses: [
+      { course: 'Al risveglio', it: 'Spremute, caffè e mimosa al Franciacorta', en: 'Juices, coffee & Franciacorta mimosa' },
+      { course: 'Salato I', it: 'Uova in camicia, salmone e avocado su pane tostato', en: 'Poached eggs, salmon & avocado on toast' },
+      { course: 'Salato II', it: 'Pancakes salati al grana, pomodorini confit', en: 'Savoury parmesan pancakes, confit tomatoes' },
+      { course: 'Dolce', it: 'Pancakes allo sciroppo, frutti di bosco', en: 'Pancakes with syrup & berries' },
+    ],
+  },
+  {
+    name: "L'Aperitivo Italiano",
+    tag: 'Spritz, bites and golden hour — drinks shape the final price',
+    price: 28,
+    meal: 'buffet' as const,
+    courses: [
+      { course: 'Nel bicchiere', it: 'Spritz, Franciacorta e analcolici della casa', en: 'Spritz, Franciacorta & house alcohol-free' },
+      { course: 'Dal tagliere', it: 'Salumi e formaggi selezionati, giardiniera', en: 'Selected cured meats & cheeses, giardiniera' },
+      { course: 'Caldi', it: 'Fritti del momento e focaccia al rosmarino', en: 'Fried bites of the day & rosemary focaccia' },
+      { course: 'Fresco', it: 'Crudités, hummus e salse della casa', en: 'Crudités, hummus & house dips' },
+    ],
+  },
+  {
+    name: 'Il Pranzo al Lago',
+    tag: 'A long lunch with the water in sight',
+    price: 75,
+    meal: 'lunch' as const,
+    courses: [
+      { course: 'Aperitivo', it: 'Bollicine e sfizi di benvenuto', en: 'Sparkling wine & welcome bites' },
+      { course: 'Antipasto', it: 'Vitello tonnato', en: 'The Piedmont classic — thin-sliced veal, tuna-caper sauce' },
+      { course: 'Primo', it: 'Pasta fresca del giorno, verdure di stagione', en: 'Fresh pasta of the day, seasonal vegetables' },
+      { course: 'Secondo', it: 'Pescato del giorno, olio al basilico', en: 'Catch of the day, basil oil' },
+      { course: 'Dolce', it: 'Sorbetto al limone', en: 'Lemon sorbet' },
+    ],
+  },
   {
     name: 'La Conviviale',
     tag: 'Honest Italian comfort, done properly',

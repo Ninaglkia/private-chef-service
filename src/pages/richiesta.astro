@@ -396,7 +396,8 @@ const EXPERIENCES = [
       const hit = TASTING_MENUS.find((m) => m.name.toLowerCase() === rawMenu.trim().toLowerCase());
       if (hit) {
         chosenMenu = { name: hit.name, price: hit.price };
-        mealSel.value = '50'; // menus are dinner experiences
+        const MEAL_VALUE: Record<string, string> = { breakfast: '25', lunch: '40', dinner: '50', buffet: '45' };
+        mealSel.value = MEAL_VALUE[hit.meal || 'dinner'] || '50';
       }
     }
 
