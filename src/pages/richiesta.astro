@@ -7,11 +7,11 @@ export const prerender = false;
 
 // Experience slideshow. Dedicated photography under /images/experiences/.
 const EXPERIENCES = [
-  { label: 'Dinner at your villa', img: '/images/experiences/villa.jpg', kicker: 'The evening', desc: 'A table under the stars, by your poolside', price: 'Menus from €50 per person', link: '/menu', linkLabel: 'Browse the dinner menus' },
-  { label: 'Romantic dinner', img: '/images/experiences/romantic.jpg', kicker: 'For two', desc: 'An intimate menu, by candlelight', price: 'La Romantica — €110 per person', link: '/richiesta?menu=La%20Romantica', linkLabel: 'Request this evening' },
-  { label: 'Aperitivo & events', img: '/images/experiences/event.jpg', kicker: 'With everyone', desc: 'Spritz, bites and golden hour for your party', price: 'From €28 pp · min 8 guests · waiter included', link: '/richiesta?menu=L%27Aperitivo%20Italiano', linkLabel: 'Request an aperitivo' },
-  { label: 'From the sea', img: '/images/experiences/seafood.jpg', kicker: 'Raw & cooked', desc: 'Crudi, risotto and the salt-crust theatre', price: 'Il Mare — €95 per person', link: '/richiesta?menu=Il%20Mare', linkLabel: 'Request Il Mare' },
-  { label: 'Chef for several days', img: '/images/experiences/multiday.jpg', kicker: 'At your home', desc: 'Breakfast to dinner, for your whole stay', price: 'Personal weekly quote', link: '#details', linkLabel: 'Tell Chef Nino your dates' },
+  { label: 'Dinner at your villa', img: '/images/experiences/villa.jpg', kicker: 'The evening', desc: 'A table under the stars, by your poolside', price: 'Menus from €50 per person', filter: 'dinner', link: '#details', linkLabel: 'Request' },
+  { label: 'Romantic dinner', img: '/images/experiences/romantic.jpg', kicker: 'For two', desc: 'An intimate menu, by candlelight', price: 'La Romantica — €110 per person', filter: 'La Romantica', link: '/richiesta?menu=La%20Romantica', linkLabel: 'Request' },
+  { label: 'Aperitivo & events', img: '/images/experiences/event.jpg', kicker: 'With everyone', desc: 'Spritz, bites and golden hour for your party', price: 'From €28 pp · min 8 guests · waiter included', filter: "L'Aperitivo Italiano", link: '/richiesta?menu=L%27Aperitivo%20Italiano', linkLabel: 'Request' },
+  { label: 'From the sea', img: '/images/experiences/seafood.jpg', kicker: 'Raw & cooked', desc: 'Crudi, risotto and the salt-crust theatre', price: 'Il Mare — €95 per person', filter: "Il Mare,Il Gran Gourmet,L'Imperiale", link: '/richiesta?menu=Il%20Mare', linkLabel: 'Request' },
+  { label: 'Chef for several days', img: '/images/experiences/multiday.jpg', kicker: 'At your home', desc: 'Breakfast to dinner, for your whole stay', price: 'Personal weekly quote', filter: 'all', link: '#details', linkLabel: 'Tell Chef Nino your dates' },
 ];
 
 // NOTE: availability is intentionally NOT managed in the website. The guest only
@@ -69,7 +69,7 @@ const EXPERIENCES = [
               <h3 class="exp-title font-serif text-4xl sm:text-5xl text-[#fdf8ef] leading-none">{ex.label}</h3>
               <p class="mt-2 font-serif italic text-lg text-[#fdf8ef]/80">{ex.desc}</p>
               <div class="mt-4 flex flex-wrap items-center gap-3">
-                <span class="inline-block rounded-full bg-[#fdf8ef]/10 backdrop-blur-sm border border-[#c6a15b]/50 px-4 py-1.5 text-[13px] text-[#fdf8ef]">{ex.price}</span>
+                <button type="button" data-filter={ex.filter} class="exp-menus-open inline-block rounded-full bg-[#fdf8ef]/10 backdrop-blur-sm border border-[#c6a15b]/50 px-4 py-1.5 text-[13px] text-[#fdf8ef] hover:bg-[#fdf8ef]/20 transition-colors cursor-pointer">{ex.price}</button>
                 <a href={ex.link} class="inline-flex items-center gap-1.5 rounded-full bg-[#c6a15b] px-4 py-1.5 text-[13px] font-semibold text-[#17130d] hover:bg-[#d4b06a] transition-colors">{ex.linkLabel} →</a>
               </div>
             </div>
@@ -87,6 +87,19 @@ const EXPERIENCES = [
       </div>
       <div id="exp-dots" class="flex justify-center gap-2 mt-3"></div>
     </section>
+
+    <!-- In-page menus modal (opened from the experience gallery chips) -->
+    <div id="menus-modal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4">
+      <div id="menus-backdrop" class="absolute inset-0 bg-[#17130d]/70 backdrop-blur-sm"></div>
+      <div class="relative max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-[#fdfbf7] p-6 sm:p-8 shadow-2xl">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-serif text-2xl text-[#17130d]">The menus</h3>
+          <button type="button" id="menus-close" aria-label="Close" class="w-9 h-9 rounded-full bg-[#17130d] text-[#fdf8ef] hover:bg-black transition-colors">✕</button>
+        </div>
+        <div id="menus-list" class="space-y-3"></div>
+        <p class="mt-5 text-center text-[11px] text-gray-400">+ chef service €600 per event · prices are indicative</p>
+      </div>
+    </div>
 
     <form id="request-form" novalidate>
       <!-- CHAPTER 02 — I DETTAGLI -->
@@ -393,9 +406,7 @@ const EXPERIENCES = [
     if (!guestsInp || !mealSel || !amountEl || !breakdownEl) return;
 
     const { TASTING_MENUS, CHEF_SERVICE_EUR } = await import('../lib/tasting-menus');
-    const MENU_RE = /^Menu I'd love:[^
-]*
-*/;
+    const MENU_RE = new RegExp("^Menu I'd love:[^\\n]*\\n*");
     const MEAL_VALUE: Record<string, string> = { breakfast: '25', lunch: '40', dinner: '50', buffet: '45' };
     let chosenMenu: { name: string; price: number; extra: number; extraLabel: string; minGuests: number } | null = null;
 
@@ -418,8 +429,7 @@ const EXPERIENCES = [
 
     // Select a tasting menu: prefill the idea, sync meal type, recompute — no reload.
     function applyMenu(rawName: string, scroll: boolean) {
-      const name = rawName.replace(/[
-<>]/g, '').trim().slice(0, 60);
+      const name = rawName.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60);
       const hit = TASTING_MENUS.find((m) => m.name.toLowerCase() === name.toLowerCase());
       if (!hit) return;
       chosenMenu = { name: hit.name, price: hit.price, extra: hit.serviceExtraEur || 0, extraLabel: hit.serviceExtraLabel || '', minGuests: hit.minGuests || 0 };
@@ -455,6 +465,43 @@ ${rest}`;
         applyMenu(url.searchParams.get('menu') || '', true);
       });
     });
+
+    // In-page menus modal: gallery chips open it, "Request" rows fill the form.
+    const modal = document.getElementById('menus-modal');
+    const listEl = document.getElementById('menus-list');
+    function closeModal() { modal?.classList.add('hidden'); modal?.classList.remove('flex'); }
+    function openModal(filter: string) {
+      if (!modal || !listEl) return;
+      const byName = filter.split(',').map((s) => s.trim());
+      const isNameFilter = TASTING_MENUS.some((m) => byName.includes(m.name));
+      const menus = filter === 'all'
+        ? TASTING_MENUS
+        : isNameFilter
+          ? TASTING_MENUS.filter((m) => byName.includes(m.name))
+          : TASTING_MENUS.filter((m) => (m.meal || 'dinner') === filter);
+      listEl.innerHTML = '';
+      menus.forEach((m) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-3 rounded-2xl border border-[#e0cfa6] bg-white px-4 py-3';
+        const info = document.createElement('div');
+        const safe = (s: string) => s.replace(/[<>&]/g, '');
+        info.innerHTML = `<p class="font-serif text-lg text-[#17130d]">${safe(m.name)} <span class="text-[#a07b35]">€${m.price}</span> <span class="text-xs text-[#8a8174]">pp</span></p><p class="text-xs italic text-[#8a8174]">${safe(m.tag)}</p>`;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'shrink-0 rounded-full bg-[#c6a15b] px-4 py-2 text-[13px] font-semibold text-[#17130d] hover:bg-[#d4b06a] transition-colors';
+        btn.textContent = 'Request →';
+        btn.addEventListener('click', () => { closeModal(); applyMenu(m.name, true); });
+        row.append(info, btn);
+        listEl.appendChild(row);
+      });
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+    document.querySelectorAll<HTMLButtonElement>('.exp-menus-open').forEach((b) =>
+      b.addEventListener('click', () => openModal(b.dataset.filter || 'all')));
+    document.getElementById('menus-close')?.addEventListener('click', closeModal);
+    document.getElementById('menus-backdrop')?.addEventListener('click', closeModal);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
     recompute();
   })();
