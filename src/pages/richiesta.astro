@@ -19,7 +19,10 @@ const EXPERIENCES = [
 // own calendar / WhatsApp). So there is no "unavailable dates" logic here.
 ---
 
-<Layout title="Request Chef Nino — Bespoke" bodyClass="bg-[#faf7f1] text-[#17130d]">
+<Layout
+  title="Request a Private Chef — Lake Como & Milan | Nino's Private Chef"
+  description="Request your bespoke private chef experience on Lake Como, in Milan or across Lombardy — personal menu and price within 24h, no payment upfront, no account needed."
+  bodyClass="bg-[#faf7f1] text-[#17130d]">
   <Header transparent={false} />
 
   <!-- Slim reading-progress bar: fills as you move through the page -->
@@ -37,6 +40,7 @@ const EXPERIENCES = [
       </div>
       <h1 class="font-serif text-5xl sm:text-6xl font-semibold leading-tight">Let's design your evening.</h1>
       <p class="mt-4 text-gray-500 max-w-xl mx-auto">Tell Chef Nino about the evening you have in mind and he'll reply with a bespoke proposal and price. No payment now — no account needed.</p>
+      <p class="mt-3 text-sm text-gray-500">Not sure yet? <a href="/menu" class="underline underline-offset-4 text-[#a07b35] hover:text-[#8a6c2f]">Browse the menus</a> — from €50 per person.</p>
     </section>
 
     <!-- CHAPTER 01 — L'ESPERIENZA -->
@@ -263,6 +267,9 @@ const EXPERIENCES = [
         </button>
         <p id="request-error" class="mt-2 text-sm text-red-500 hidden"></p>
         <p class="mt-3 text-center text-xs text-gray-400">No payment now. Chef Nino will write to you with the proposal and the price.</p>
+        <div class="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[11px] uppercase tracking-[0.15em] text-[#a07b35]">
+          <span>Reply within 24h</span><span class="text-[#c6a15b]/50">&middot;</span><span>No payment now</span><span class="text-[#c6a15b]/50">&middot;</span><span>Your details stay private</span>
+        </div>
       </div>
 
       <!-- success -->
@@ -661,5 +668,20 @@ const EXPERIENCES = [
     apply();
     // bfcache: coming back from /menu with a changed selection updates the line.
     window.addEventListener('pageshow', (e) => { if ((e as PageTransitionEvent).persisted) apply(); });
+  })();
+
+  // ===== MENU PRE-FILL (from /menu carousel "Request this menu") =====
+  // The chosen tasting menu travels via ?menu=<name>; prepend it to the idea
+  // textarea, idempotently and sanitised.
+  (() => {
+    const MENU_RE = /^Menu I'd love:[^\n]*\n*/;
+    const raw = new URLSearchParams(location.search).get('menu');
+    if (!raw) return;
+    const menu = raw.replace(/[\n\r<>]/g, '').trim().slice(0, 60);
+    if (!menu) return;
+    const ta = document.getElementById('event_details') as HTMLTextAreaElement | null;
+    if (!ta || ta.disabled) return;
+    const rest = ta.value.replace(MENU_RE, '');
+    ta.value = `Menu I'd love: ${menu}\n\n${rest}`;
   })();
 </script>
