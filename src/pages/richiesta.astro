@@ -234,22 +234,20 @@ const EXPERIENCES = [
 
         <textarea id="event_details" name="event_details" rows="5" required
           class="w-full rounded-3xl bg-white border border-[#c6a15b]/25 shadow-lg px-5 py-4 text-base focus:outline-none focus:ring-2 focus:ring-gold-500 placeholder:text-gray-400"
-          placeholder="Describe your evening… occasion, type of event, menu, allergies, budget. Chef Nino will reply with a proposal and a price."></textarea>
+          placeholder="Tell Chef Nino about your evening — the occasion, the flavours you love, any allergies or dietary needs, and anything that would make it yours. You will receive a personal proposal with menu and price."></textarea>
 
         <!-- honeypot -->
         <input type="text" name="company_website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
 
-        <!-- Welcome gift — first-booking 10% (self-enforced by the Stripe promo code
-             BENVENUTO10 / first_time_transaction; applied later on the payment link). -->
+        <!-- Welcome gift — first-booking 10%, applied by the chef directly in the
+             proposal (concierge model: no promo codes anywhere). -->
         <div class="mt-6 rounded-2xl border border-[#c6a15b]/40 bg-[#fbf7ef] px-5 py-4 flex items-start gap-3">
           <span class="mt-0.5 shrink-0 text-[#c6a15b] font-serif text-lg leading-none">✦</span>
           <div>
             <p class="text-[11px] uppercase tracking-[0.2em] text-[#a07b35]">Your welcome gift</p>
             <p class="mt-1.5 text-sm leading-relaxed text-[#575147]">
-              <span class="font-serif text-[#17130d]">10% off your first booking.</span>
-              We'll apply code
-              <span class="inline-block font-mono text-[12px] font-semibold tracking-[2px] text-[#17130d] bg-white border border-dashed border-[#c6a15b] rounded-md px-2 py-0.5 align-middle">BENVENUTO10</span>
-              to your payment link — valid once.
+              <span class="font-serif text-[#17130d]">10% off your first booking</span> —
+              no codes needed: Chef Nino applies it directly in your proposal. Valid once.
             </p>
           </div>
         </div>
