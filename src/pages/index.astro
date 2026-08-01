@@ -5,6 +5,7 @@ import Footer from '../components/Footer.astro';
 import Button from '../components/Button.astro';
 import HeroCarousel from '../components/HeroCarousel.astro';
 import ChefCarousel from '../components/ChefCarousel.astro';
+import { reviews, platforms } from '../lib/reviews';
 ---
 
 <Layout>
@@ -450,6 +451,87 @@ import ChefCarousel from '../components/ChefCarousel.astro';
               </li>
             </ul>
           </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="reviews" class="py-16 md:py-32 bg-gray-50">
+      <div class="container mx-auto px-4 md:px-6">
+        <div class="text-center mb-12 md:mb-16">
+          <h2 class="text-3xl md:text-5xl font-semibold text-gray-900 mb-4 md:mb-6">
+            Guest Reviews
+          </h2>
+          <p class="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
+            Real guests, real evenings — verified on independent platforms.
+          </p>
+        </div>
+
+        {reviews.length > 0 && (
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto mb-12 md:mb-16">
+            {reviews.map((review) => (
+              <div class="bg-white p-6 md:p-8 rounded-2xl shadow-soft hover:shadow-soft-lg transition-all duration-300 border border-gray-100 flex flex-col">
+                <div class="flex items-center gap-0.5 text-xl mb-4" role="img" aria-label={`Rated ${review.rating} out of 5 stars`}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span class={star <= Math.round(review.rating) ? 'text-gold-500' : 'text-gray-300'} aria-hidden="true">★</span>
+                  ))}
+                </div>
+                <p class="text-gray-600 text-sm md:text-base leading-relaxed mb-6 flex-grow">
+                  “{review.quote}”
+                </p>
+                <div class="pt-4 border-t border-gray-100">
+                  <p class="font-semibold text-gray-900 text-sm">
+                    {[review.author, review.occasion, review.location].filter(Boolean).join(' · ')}
+                  </p>
+                  {review.url ? (
+                    <a href={review.url} target="_blank" rel="noopener noreferrer" class="text-xs text-gold-600 hover:text-gold-700 font-medium mt-1 inline-block">
+                      via {platforms[review.source].name} ↗
+                    </a>
+                  ) : (
+                    <span class="text-xs text-gray-400 font-medium mt-1 inline-block">
+                      via {platforms[review.source].name}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div class="text-center max-w-2xl mx-auto">
+          <p class="text-gray-600 text-sm md:text-base mb-6">
+            Have you dined with Chef Nino? Share your experience on an independent review platform.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href={platforms.trustpilot.writeReviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 bg-gray-900 text-white hover:bg-gray-800 px-8 py-3.5 text-base"
+            >
+              Review us on Trustpilot ↗
+            </a>
+            {platforms.google.writeReviewUrl && (
+              <a
+                href={platforms.google.writeReviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white px-8 py-3.5 text-base"
+              >
+                Review us on Google ↗
+              </a>
+            )}
+          </div>
+          {(platforms.trustpilot.profileUrl || platforms.google.profileUrl) && (
+            <p class="text-gray-500 text-sm mt-6">
+              {platforms.trustpilot.profileUrl && (
+                <a href={platforms.trustpilot.profileUrl} target="_blank" rel="noopener noreferrer" class="text-gold-600 hover:text-gold-700 underline">All our Trustpilot reviews ↗</a>
+              )}
+              {platforms.trustpilot.profileUrl && platforms.google.profileUrl && <span class="mx-2">·</span>}
+              {platforms.google.profileUrl && (
+                <a href={platforms.google.profileUrl} target="_blank" rel="noopener noreferrer" class="text-gold-600 hover:text-gold-700 underline">All our Google reviews ↗</a>
+              )}
+            </p>
+          )}
         </div>
       </div>
     </section>
