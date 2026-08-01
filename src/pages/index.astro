@@ -5,7 +5,76 @@ import Footer from '../components/Footer.astro';
 import Button from '../components/Button.astro';
 import HeroCarousel from '../components/HeroCarousel.astro';
 import ChefCarousel from '../components/ChefCarousel.astro';
-import { reviews, platforms } from '../lib/reviews';
+import { reviews as curatedReviews, platforms, type Review } from '../lib/reviews';
+import { createClient } from '@supabase/supabase-js';
+
+// Guest reviews shown in #reviews = curated platform reviews (lib/reviews.ts)
+// + APPROVED user-submitted reviews from the DB, fetched server-side with the
+// service role (page is output:'server'). Media lives in the PRIVATE
+// 'review-media' bucket, so photo/video URLs are 1-hour signed links minted
+// here — never public URLs. Newest 12 approved rows keep the homepage fast.
+interface DisplayReview {
+  source: Review['source'] | 'site';
+  rating: number;
+  quote: string;
+  author: string;
+  occasion?: string | null;
+  location?: string | null;
+  date: string;
+  url?: string;
+  photos: string[];
+  video: string | null;
+}
+
+let siteReviews: DisplayReview[] = [];
+try {
+  const supabaseAdmin = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  );
+  const { data: rows } = await supabaseAdmin
+    .from('reviews')
+    .select('id, created_at, name, rating, review_text, occasion, location, photos, video_path')
+    .eq('status', 'approved')
+    .order('created_at', { ascending: false })
+    .limit(12);
+
+  const paths: string[] = [];
+  for (const r of rows ?? []) {
+    for (const p of Array.isArray(r.photos) ? r.photos : []) if (typeof p === 'string') paths.push(p);
+    if (r.video_path) paths.push(r.video_path);
+  }
+  const signedByPath = new Map<string, string>();
+  if (paths.length) {
+    const { data: signed } = await supabaseAdmin.storage
+      .from('review-media')
+      .createSignedUrls(paths, 3600);
+    for (const s of signed ?? []) if (s.path && s.signedUrl) signedByPath.set(s.path, s.signedUrl);
+  }
+  siteReviews = (rows ?? []).map((r) => ({
+    source: 'site' as const,
+    rating: r.rating,
+    quote: r.review_text,
+    author: r.name,
+    occasion: r.occasion,
+    location: r.location,
+    date: r.created_at,
+    photos: (Array.isArray(r.photos) ? r.photos : [])
+      .map((p: unknown) => (typeof p === 'string' ? signedByPath.get(p) : undefined))
+      .filter((u: string | undefined): u is string => !!u),
+    video: r.video_path ? signedByPath.get(r.video_path) ?? null : null,
+  }));
+} catch (e) {
+  // The homepage must render even if the reviews fetch fails.
+  console.error('Homepage reviews fetch failed:', e);
+}
+
+// One grid, newest first — curated platform reviews and site reviews look identical.
+const allReviews: DisplayReview[] = [
+  ...curatedReviews.map((r) => ({ ...r, photos: [] as string[], video: null })),
+  ...siteReviews,
+].sort((a, b) => String(b.date).localeCompare(String(a.date)));
 ---
 
 <Layout>
@@ -466,9 +535,9 @@ import { reviews, platforms } from '../lib/reviews';
           </p>
         </div>
 
-        {reviews.length > 0 && (
+        {allReviews.length > 0 && (
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto mb-12 md:mb-16">
-            {reviews.map((review) => (
+            {allReviews.map((review) => (
               <div class="bg-white p-6 md:p-8 rounded-2xl shadow-soft hover:shadow-soft-lg transition-all duration-300 border border-gray-100 flex flex-col">
                 <div class="flex items-center gap-0.5 text-xl mb-4" role="img" aria-label={`Rated ${review.rating} out of 5 stars`}>
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -478,11 +547,23 @@ import { reviews, platforms } from '../lib/reviews';
                 <p class="text-gray-600 text-sm md:text-base leading-relaxed mb-6 flex-grow">
                   “{review.quote}”
                 </p>
+                {review.video && (
+                  <video controls preload="metadata" class="w-full max-h-52 rounded-xl bg-black mb-4" src={review.video}></video>
+                )}
+                {review.photos.length > 0 && (
+                  <div class="flex flex-wrap gap-2 mb-4">
+                    {review.photos.map((photo) => (
+                      <img src={photo} alt={`Photo shared by ${review.author}`} loading="lazy" class="w-16 h-16 rounded-lg object-cover border border-gray-100" />
+                    ))}
+                  </div>
+                )}
                 <div class="pt-4 border-t border-gray-100">
                   <p class="font-semibold text-gray-900 text-sm">
                     {[review.author, review.occasion, review.location].filter(Boolean).join(' · ')}
                   </p>
-                  {review.url ? (
+                  {review.source === 'site' ? (
+                    <span class="text-xs text-gray-400 font-medium mt-1 inline-block">Guest review</span>
+                  ) : review.url ? (
                     <a href={review.url} target="_blank" rel="noopener noreferrer" class="text-xs text-gold-600 hover:text-gold-700 font-medium mt-1 inline-block">
                       via {platforms[review.source].name} ↗
                     </a>
@@ -510,6 +591,13 @@ import { reviews, platforms } from '../lib/reviews';
             >
               Review us on Trustpilot ↗
             </a>
+            <button
+              id="rv-toggle"
+              type="button"
+              class="inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white px-8 py-3.5 text-base"
+            >
+              Share your experience
+            </button>
             {platforms.google.writeReviewUrl && (
               <a
                 href={platforms.google.writeReviewUrl}
@@ -533,6 +621,82 @@ import { reviews, platforms } from '../lib/reviews';
             </p>
           )}
         </div>
+
+        <!-- Inline "write a review" form. Media go DIRECTLY to Supabase Storage
+             via short-lived signed upload URLs (Vercel serverless caps request
+             bodies at ~4.5 MB, so files never touch our API), then the text +
+             storage paths are submitted as JSON. The review stays hidden until
+             the owner approves it in /owner#reviews. -->
+        <div id="rv-form-wrap" class="hidden mt-10 md:mt-12 max-w-2xl mx-auto text-left">
+          <form id="rv-form" class="bg-white rounded-2xl shadow-soft border border-gray-100 p-6 md:p-8" novalidate>
+            <h3 class="text-xl font-semibold text-gray-900 mb-1">Share your experience</h3>
+            <p class="text-sm text-gray-500 mb-6">Reviews are checked by our team before appearing on the site.</p>
+
+            <div class="mb-6">
+              <span class="block text-xs uppercase tracking-wider text-gray-500 mb-2">Your rating *</span>
+              <div id="rv-stars" class="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button type="button" class="rv-star text-3xl leading-none text-gray-300 hover:scale-110 transition-transform" data-star={star} aria-label={`${star} star${star > 1 ? 's' : ''}`}>★</button>
+                ))}
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label for="rv-name" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Your name *</label>
+                <input id="rv-name" type="text" maxlength="120" required class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-base focus:border-gold-500 focus:ring-0 placeholder:text-gray-400" placeholder="First name" />
+              </div>
+              <div>
+                <label for="rv-occasion" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Occasion <span class="normal-case text-gray-400">(optional)</span></label>
+                <input id="rv-occasion" type="text" maxlength="120" class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-base focus:border-gold-500 focus:ring-0 placeholder:text-gray-400" placeholder="e.g. Anniversary dinner" />
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <label for="rv-email" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Email <span class="normal-case text-gray-400">(optional — never published)</span></label>
+              <input id="rv-email" type="email" maxlength="200" class="w-full bg-transparent border-0 border-b border-gray-300 px-0 py-2.5 text-base focus:border-gold-500 focus:ring-0 placeholder:text-gray-400" placeholder="you@example.com" />
+            </div>
+
+            <div class="mt-6">
+              <label for="rv-text" class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Your review *</label>
+              <textarea id="rv-text" rows="4" maxlength="4000" required class="w-full rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 placeholder:text-gray-400" placeholder="How was your evening with Chef Nino?"></textarea>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <span class="block text-xs uppercase tracking-wider text-gray-500 mb-2">Photos <span class="normal-case text-gray-400">(up to 3, max 8 MB each)</span></span>
+                <label class="inline-flex items-center gap-2 cursor-pointer rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gold-500 hover:text-gold-600 transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A1.5 1.5 0 0021.75 19.5V4.5A1.5 1.5 0 0020.25 3H3.75A1.5 1.5 0 002.25 4.5v15A1.5 1.5 0 003.75 21z"/></svg>
+                  Add photos
+                  <input id="rv-photos" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple class="hidden" />
+                </label>
+                <div id="rv-photo-previews" class="mt-3 flex flex-wrap gap-2"></div>
+              </div>
+              <div>
+                <span class="block text-xs uppercase tracking-wider text-gray-500 mb-2">Video <span class="normal-case text-gray-400">(1, up to ~60s, max 100 MB)</span></span>
+                <label class="inline-flex items-center gap-2 cursor-pointer rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gold-500 hover:text-gold-600 transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0013.5 5.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"/></svg>
+                  Add a video
+                  <input id="rv-video" type="file" accept="video/mp4,video/quicktime,video/webm" class="hidden" />
+                </label>
+                <p id="rv-video-name" class="mt-3 text-xs text-gray-500 break-all"></p>
+              </div>
+            </div>
+
+            <!-- Honeypot: humans never see or fill this. -->
+            <input type="text" name="company_website" id="rv-hp" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
+
+            <button id="rv-submit" type="submit" class="mt-8 w-full inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 bg-gray-900 text-white hover:bg-gray-800 px-8 py-3.5 text-base disabled:opacity-50">
+              <span id="rv-submit-label">Submit review</span>
+            </button>
+            <p id="rv-status" class="mt-3 text-sm text-red-600 hidden"></p>
+          </form>
+          <div id="rv-success" class="hidden bg-white rounded-2xl shadow-soft border border-gray-100 p-8 text-center">
+            <div class="text-gold-500 text-3xl mb-3" aria-hidden="true">★★★★★</div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Thank you!</h3>
+            <p class="text-gray-600">Your review will appear once approved.</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -553,3 +717,171 @@ import { reviews, platforms } from '../lib/reviews';
 
   <Footer />
 </Layout>
+
+<script>
+  // ---- Guest review form: toggle, stars, media, direct-to-Storage upload ----
+  const $rv = (id: string) => document.getElementById(id);
+
+  const rvToggle = $rv('rv-toggle');
+  const rvWrap = $rv('rv-form-wrap');
+  rvToggle?.addEventListener('click', () => {
+    if (!rvWrap) return;
+    rvWrap.classList.toggle('hidden');
+    if (!rvWrap.classList.contains('hidden')) {
+      rvWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+
+  // Star selector (hover previews, click locks the rating).
+  let rvRating = 0;
+  const rvStars = Array.from(document.querySelectorAll<HTMLButtonElement>('.rv-star'));
+  function paintStars(n: number) {
+    rvStars.forEach((s) => {
+      const v = Number(s.dataset.star);
+      s.classList.toggle('text-gold-500', v <= n);
+      s.classList.toggle('text-gray-300', v > n);
+    });
+  }
+  rvStars.forEach((s) => {
+    s.addEventListener('click', () => { rvRating = Number(s.dataset.star) || 0; paintStars(rvRating); });
+    s.addEventListener('mouseenter', () => paintStars(Number(s.dataset.star) || 0));
+    s.addEventListener('mouseleave', () => paintStars(rvRating));
+  });
+
+  const RV_MAX_PHOTOS = 3;
+  const RV_MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+  const RV_MAX_VIDEO_BYTES = 100 * 1024 * 1024;
+  const RV_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+  const RV_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
+  let rvPhotoFiles: File[] = [];
+  let rvVideoFile: File | null = null;
+
+  const rvStatusEl = $rv('rv-status');
+  function rvStatus(msg: string, ok = false) {
+    if (!rvStatusEl) return;
+    rvStatusEl.textContent = msg;
+    rvStatusEl.className = 'mt-3 text-sm ' + (ok ? 'text-green-700' : 'text-red-600');
+  }
+  function rvClearStatus() { rvStatusEl?.classList.add('hidden'); }
+
+  // Photos: cap 3, 8 MB each, image types only; small previews.
+  const rvPhotosInput = $rv('rv-photos') as HTMLInputElement | null;
+  const rvPreviews = $rv('rv-photo-previews');
+  rvPhotosInput?.addEventListener('change', () => {
+    rvClearStatus();
+    const picked = Array.from(rvPhotosInput.files || []);
+    const valid: File[] = [];
+    for (const f of picked) {
+      if (!RV_PHOTO_TYPES.includes(f.type)) { rvStatus('Photos must be JPEG, PNG, WEBP or HEIC.'); continue; }
+      if (f.size > RV_MAX_PHOTO_BYTES) { rvStatus('"' + f.name + '" is over 8 MB — please pick a smaller photo.'); continue; }
+      valid.push(f);
+    }
+    if (valid.length > RV_MAX_PHOTOS) rvStatus('Only the first ' + RV_MAX_PHOTOS + ' photos are attached.');
+    rvPhotoFiles = valid.slice(0, RV_MAX_PHOTOS);
+    if (rvPreviews) {
+      rvPreviews.innerHTML = '';
+      rvPhotoFiles.forEach((f) => {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        img.alt = f.name;
+        img.className = 'w-16 h-16 rounded-lg object-cover border border-gray-200';
+        rvPreviews.appendChild(img);
+      });
+    }
+  });
+
+  // Video: one file, 100 MB hard cap (≤60s recommended).
+  const rvVideoInput = $rv('rv-video') as HTMLInputElement | null;
+  const rvVideoName = $rv('rv-video-name');
+  rvVideoInput?.addEventListener('change', () => {
+    rvClearStatus();
+    const f = (rvVideoInput.files || [])[0] || null;
+    rvVideoFile = null;
+    if (rvVideoName) rvVideoName.textContent = '';
+    if (!f) return;
+    if (!RV_VIDEO_TYPES.includes(f.type)) { rvStatus('The video must be MP4, MOV or WEBM.'); rvVideoInput.value = ''; return; }
+    if (f.size > RV_MAX_VIDEO_BYTES) { rvStatus('The video is too large (max 100 MB).'); rvVideoInput.value = ''; return; }
+    rvVideoFile = f;
+    if (rvVideoName) rvVideoName.textContent = f.name + ' (' + (f.size / (1024 * 1024)).toFixed(1) + ' MB)';
+  });
+
+  // Submit: 1) ask the server for signed upload URLs, 2) PUT files DIRECTLY to
+  // Supabase Storage (Vercel serverless caps request bodies at ~4.5 MB, so
+  // files must never go through our API), 3) submit the review as JSON.
+  const rvForm = $rv('rv-form') as HTMLFormElement | null;
+  const rvSubmitBtn = $rv('rv-submit') as HTMLButtonElement | null;
+  const rvSubmitLabel = $rv('rv-submit-label');
+  rvForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    rvClearStatus();
+    const name = ($rv('rv-name') as HTMLInputElement | null)?.value.trim() || '';
+    const email = ($rv('rv-email') as HTMLInputElement | null)?.value.trim() || '';
+    const occasion = ($rv('rv-occasion') as HTMLInputElement | null)?.value.trim() || '';
+    const text = ($rv('rv-text') as HTMLTextAreaElement | null)?.value.trim() || '';
+    const hp = ($rv('rv-hp') as HTMLInputElement | null)?.value || '';
+    if (!rvRating) return rvStatus('Please select a star rating.');
+    if (!name) return rvStatus('Please add your name.');
+    if (!text) return rvStatus('Please write a few words about your experience.');
+
+    if (rvSubmitBtn) rvSubmitBtn.disabled = true;
+    if (rvSubmitLabel) rvSubmitLabel.textContent = 'Sending…';
+    try {
+      const files = [
+        ...rvPhotoFiles.map((file) => ({ kind: 'photo' as const, file })),
+        ...(rvVideoFile ? [{ kind: 'video' as const, file: rvVideoFile }] : []),
+      ];
+      const photoPaths: string[] = [];
+      let videoPath: string | null = null;
+      if (files.length) {
+        if (rvSubmitLabel) rvSubmitLabel.textContent = 'Uploading media…';
+        const urlRes = await fetch('/api/reviews/upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            company_website: hp,
+            files: files.map((f) => ({ kind: f.kind, content_type: f.file.type, size: f.file.size })),
+          }),
+        });
+        const urlData = await urlRes.json().catch(() => ({}));
+        if (!urlRes.ok || !Array.isArray(urlData.uploads) || urlData.uploads.length !== files.length) {
+          throw new Error(urlData?.error || 'Could not prepare the upload.');
+        }
+        for (let i = 0; i < files.length; i++) {
+          const up = urlData.uploads[i]; // same order as requested
+          const put = await fetch(up.url, {
+            method: 'PUT',
+            headers: { 'Content-Type': files[i].file.type, 'x-upsert': 'false' },
+            body: files[i].file,
+          });
+          if (!put.ok) throw new Error('A file upload failed — please try again.');
+          if (files[i].kind === 'video') videoPath = up.path;
+          else photoPaths.push(up.path);
+        }
+      }
+
+      if (rvSubmitLabel) rvSubmitLabel.textContent = 'Sending…';
+      const res = await fetch('/api/reviews/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_website: hp,
+          name,
+          email,
+          occasion,
+          rating: rvRating,
+          review_text: text,
+          photo_paths: photoPaths,
+          video_path: videoPath,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Could not submit your review.');
+      rvForm.classList.add('hidden');
+      $rv('rv-success')?.classList.remove('hidden');
+    } catch (err) {
+      rvStatus(err instanceof Error ? err.message : 'Something went wrong — please try again.');
+      if (rvSubmitBtn) rvSubmitBtn.disabled = false;
+      if (rvSubmitLabel) rvSubmitLabel.textContent = 'Submit review';
+    }
+  });
+</script>

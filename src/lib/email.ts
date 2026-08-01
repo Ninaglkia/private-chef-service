@@ -738,3 +738,51 @@ export async function sendRecruitmentEmails(data: {
     }),
   ]);
 }
+
+// 6. NEW REVIEW (owner alert when a guest submits a review on the website).
+// The review is stored as status='pending' and stays hidden until approved in
+// /owner#reviews — this email carries the full text so Nino can decide straight
+// from the inbox. Every dynamic value is escaped (public, untrusted form).
+export async function sendReviewNotificationEmail(data: {
+  name: string;
+  rating: number;
+  review_text: string;
+  occasion?: string | null;
+  photo_count?: number;
+  has_video?: boolean;
+}): Promise<void> {
+  const rating = Math.min(5, Math.max(1, Math.round(data.rating)));
+  const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  const media =
+    [
+      data.photo_count ? `${data.photo_count} photo${data.photo_count > 1 ? 's' : ''}` : '',
+      data.has_video ? '1 video' : '',
+    ]
+      .filter(Boolean)
+      .join(' + ') || 'None';
+
+  const html = getHtmlTemplate(
+    'New review',
+    `
+      <h2>New guest review — <span style="color:#c6a15b;">${stars}</span></h2>
+      <p>A guest has just shared their experience on the website. It is <strong>hidden</strong> until you approve it.</p>
+      <div class="details-box">
+        <div class="details-row"><span class="label">Name:</span> <span class="value">${escapeHtml(data.name)}</span></div>
+        ${data.occasion ? `<div class="details-row"><span class="label">Occasion:</span> <span class="value">${escapeHtml(data.occasion)}</span></div>` : ''}
+        <div class="details-row"><span class="label">Rating:</span> <span class="value">${rating}/5</span></div>
+        <div class="details-row"><span class="label">Media:</span> <span class="value">${escapeHtml(media)}</span></div>
+      </div>
+      <p style="margin-top:16px;"><strong>Their words:</strong></p>
+      <div class="details-box"><p style="margin:0;">${escapeHtml(data.review_text)}</p></div>
+      ${emailButton('https://ninos-privatechefs.com/owner#reviews', 'Approve or reject')}
+      <p style="text-align:center;" class="fine">Photos and video are viewable in the owner console before publishing.</p>
+    `
+  );
+
+  await sendEmail({
+    to: ORGANIZER_EMAIL,
+    subject: `[NEW REVIEW] ★${rating} — ${data.name}`,
+    html,
+    from: FROM_EMAIL_SYSTEM,
+  });
+}
