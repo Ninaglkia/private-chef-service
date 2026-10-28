@@ -1,5 +1,6 @@
 ---
 import ChatWidget from '../components/ChatWidget.astro';
+import Analytics from '@vercel/analytics/astro';
 
 interface Props {
 	title?: string;
@@ -140,6 +141,7 @@ const ogImage = new URL('/og-image.jpg', Astro.site ?? Astro.url).href;
 	<body class={`antialiased ${bodyClass}`}>
 		<slot />
 		<ChatWidget />
+		<Analytics />
 		<script>
 			// Restore scroll position to top on reload for mobile devices
 			if (history.scrollRestoration) {
