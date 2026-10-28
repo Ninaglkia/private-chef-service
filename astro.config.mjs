@@ -8,6 +8,8 @@ import vercel from '@astrojs/vercel/serverless';
 export default defineConfig({
   site: 'https://ninos-privatechefs.com',
   output: 'server',
-  adapter: vercel(),
+  adapter: vercel({
+    webAnalytics: { enabled: true }
+  }),
   integrations: [tailwind(), sitemap()],
 });
